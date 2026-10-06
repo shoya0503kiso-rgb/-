@@ -690,8 +690,8 @@ function route(){
   }
   routed=true;
   const h=(location.hash||"").replace("#","");
-  mode=["staff","pick","tv"].includes(h)?h:"home";
-  document.body.dataset.mode=mode;
+  const prev=mode;mode=["staff","pick","tv"].includes(h)?h:"home";
+  document.body.dataset.mode=mode;if(prev!==mode)scrollTo(0,0);   // a new screen starts at its top (pick grid was opening mid-scroll)
   onState("route");
 }
 function go(m){
