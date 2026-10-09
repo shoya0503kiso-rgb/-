@@ -1,9 +1,10 @@
 import { summarize } from "@/lib/attendance/calc";
-import { businessDateOf, rangeOnDate, yearMonthOf } from "@/lib/time";
+import { addMonths, businessDateOf, shiftRangeOnBusinessDate, yearMonthOf } from "@/lib/time";
 import { listOpenAnomalies, monthlyTotalsAll } from "./attendance";
 import { prisma } from "./db";
 import { kioskStatus } from "./punch";
 import { getSettings } from "./settings";
+import { isAcceptingRequests, nextTargetMonth, periodOverview, publishDueDate } from "./shifts/periods";
 
 export async function dashboard(now = new Date()) {
   const settings = await getSettings();
@@ -17,7 +18,7 @@ export async function dashboard(now = new Date()) {
       include: { breaks: true, employee: true },
       orderBy: { clockIn: "asc" },
     }),
-    listOpenAnomalies({ now }),
+    listOpenAnomalies({ now, from: `${addMonths(ym, -2)}-01` }),
     monthlyTotalsAll(ym),
     prisma.employee.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     prisma.shiftAssignment.findMany({
@@ -37,13 +38,29 @@ export async function dashboard(now = new Date()) {
   const clockedIn = new Set(todaySessions.filter((s) => s.clockIn).map((s) => s.employeeId));
   const notClockedIn = todayShifts
     .filter((a) => !clockedIn.has(a.employeeId) && !onDuty.some((d) => d.id === a.employeeId))
-    .filter((a) => now.getTime() > rangeOnDate(a.date, a.startTime, a.endTime).start.getTime() + settings.lateGraceMinutes * 60_000)
+    .filter((a) => now.getTime() > shiftRangeOnBusinessDate(a.date, a.startTime, a.endTime, settings.dayChangeHour).start.getTime() + settings.lateGraceMinutes * 60_000)
     .map((a) => ({ id: a.employeeId, name: a.employee.name, startTime: a.startTime, endTime: a.endTime }));
 
   const monthWork = employees.map((e) => ({ id: e.id, name: e.name, ...(totals.get(e.id) ?? { workMinutes: 0, workDays: 0, breakMinutes: 0, incompleteCount: 0 }) }));
 
+  // シフト：次に作る月の提出状況と期限
+  const shiftYm = await nextTargetMonth(now);
+  const overview = await periodOverview(shiftYm);
+  const shift = {
+    ym: shiftYm,
+    status: overview.period.status,
+    accepting: isAcceptingRequests(overview.period, now),
+    deadline: overview.period.deadline,
+    publishDue: publishDueDate(shiftYm, settings),
+    rate: overview.rate,
+    submittedCount: overview.submittedCount,
+    total: overview.total,
+    notSubmitted: overview.rows.filter((r) => !r.submission).map((r) => ({ id: r.employee.id, name: r.employee.name })),
+  };
+
   return {
     today,
+    shift,
     ym,
     onDuty,
     finished,

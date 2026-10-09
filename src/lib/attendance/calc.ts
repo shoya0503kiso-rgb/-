@@ -4,6 +4,8 @@ import { diffMinutes } from "../time";
 export interface BreakLike {
   start: Date;
   end: Date | null;
+  /** 休憩中のまま退勤したため自動終了した */
+  autoEnded?: boolean;
 }
 
 export interface SessionLike {

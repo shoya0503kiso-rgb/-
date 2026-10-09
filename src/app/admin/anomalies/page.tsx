@@ -1,13 +1,30 @@
 import Link from "next/link";
 import { Badge, Card, Empty, PageHeader, TableWrap, td, th } from "@/components/ui";
-import { formatDateJa, formatDuration, formatTime } from "@/lib/time";
+import { addMonths, businessDateOf, formatDateJa, formatDuration, formatTime, yearMonthOf } from "@/lib/time";
 import { listOpenAnomalies } from "@/server/attendance";
+import { getSettings } from "@/server/settings";
 
-export default async function AnomaliesPage() {
-  const items = await listOpenAnomalies();
+export default async function AnomaliesPage({ searchParams }: { searchParams: Promise<{ all?: string }> }) {
+  const { all } = await searchParams;
+  const settings = await getSettings();
+  const ym = yearMonthOf(businessDateOf(new Date(), settings.dayChangeHour));
+  const from = `${addMonths(ym, -2)}-01`;
+  const items = await listOpenAnomalies(all ? {} : { from });
   return (
     <>
-      <PageHeader title={`要確認勤怠 ${items.length}件`} description="自動チェックで不自然と判定された勤怠です。修正するか、問題なければ「確認済み」にしてください。" />
+      <PageHeader
+        title={`要確認勤怠 ${items.length}件`}
+        description={
+          <>
+            自動チェックで不自然と判定された勤怠です。修正するか、問題なければ「確認済み」にしてください。
+            {all ? (
+              <Link className="ml-2 text-teal-700 underline" href="/admin/anomalies">直近3か月だけ表示</Link>
+            ) : (
+              <Link className="ml-2 text-teal-700 underline" href="/admin/anomalies?all=1">{formatDateJa(from)}より前も表示</Link>
+            )}
+          </>
+        }
+      />
       <Card>
         {items.length === 0 ? (
           <Empty>要確認の勤怠はありません 🎉</Empty>

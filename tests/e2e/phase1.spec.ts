@@ -1,8 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function login(page: Page) {
-  await page.goto("/admin");
-  await expect(page).toHaveURL(/\/login/);
+  await page.goto("/login");
   await page.getByLabel("ログインID").fill("admin");
   await page.getByLabel("パスワード").fill("admin1234");
   await page.getByRole("button", { name: "ログイン" }).click();
@@ -43,13 +42,18 @@ test("Phase 1: 従業員登録 → iPad打刻 → 勤怠確認 → 要確認 →
   await expect(page.getByRole("status")).toContainText("休憩も終了しました");
   await page.getByRole("status").click();
 
+  // 打刻端末には管理者ログインが残らない
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/login/);
+  await login(page);
+
   // ダッシュボードに要確認が出る（休憩終了押し忘れ・短すぎる勤務）
   await page.goto("/admin");
   await expect(page.getByText(/要確認勤怠 \d+件/).first()).toBeVisible();
 
   await page.goto("/admin/anomalies");
   await expect(page.getByText("休憩終了を押さずに退勤")).toBeVisible();
-  await page.getByRole("link", { name: /\d+\/\d+\(.\)/ }).first().click();
+  await page.locator("table").getByRole("link", { name: /\d+\/\d+\(.\)/ }).first().click();
   await expect(page.getByRole("heading", { name: /テスト 次郎/ })).toBeVisible();
 
   // 確認済みにする

@@ -18,6 +18,8 @@ model AdminUser {
   name         String
   passwordHash String
   active       Boolean  @default(true)
+  /// ログアウト・パスワード変更で +1 し、発行済みセッションを失効させる
+  tokenVersion Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -136,6 +138,17 @@ model BreakPeriod {
   session   WorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   start     DateTime
   end       DateTime?
+  /// 休憩中のまま退勤したため、退勤時刻で自動終了した
+  autoEnded Boolean     @default(false)
+}
+
+/// 管理者ログイン失敗（総当たり対策）
+model LoginFailure {
+  id        String   @id @default(cuid())
+  loginId   String
+  createdAt DateTime @default(now())
+
+  @@index([loginId, createdAt])
 }
 
 /// 打刻の生ログ（改変しない）。拒否された打刻も記録する

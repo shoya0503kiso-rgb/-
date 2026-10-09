@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge, Card, Empty, Stat, TableWrap, td, th } from "@/components/ui";
 import { formatDateJa, formatDuration, formatHmRange, formatTime, formatYearMonthJa } from "@/lib/time";
+import { PERIOD_STATUS_LABELS, formatDeadline } from "@/server/shifts/periods";
 import { dashboard } from "@/server/dashboard";
 
 export default async function AdminHome() {
@@ -20,6 +21,26 @@ export default async function AdminHome() {
         <Stat label="未打刻" value={`${d.notClockedIn.length}人`} tone={d.notClockedIn.length > 0 ? "alert" : "default"} sub="シフト開始を過ぎて出勤なし" />
         <Stat label={`${formatYearMonthJa(d.ym)}の総実働`} value={formatDuration(d.monthTotalMinutes)} href={`/admin/attendance?ym=${d.ym}`} sub="全スタッフ合計" />
       </div>
+
+      <Card
+        title={`${formatYearMonthJa(d.shift.ym)}のシフト`}
+        actions={<Link className="text-sm text-teal-700 underline" href={`/admin/shifts/${d.shift.ym}`}>シフト画面へ</Link>}
+      >
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Stat label="状態" value={<span className="text-lg">{PERIOD_STATUS_LABELS[d.shift.status]}</span>} />
+          <Stat label="シフト提出率" value={`${d.shift.rate}%`} sub={`${d.shift.submittedCount} / ${d.shift.total}人`} tone={d.shift.rate === 100 ? "good" : "default"} />
+          <Stat label="提出締切" value={<span className="text-lg">{formatDeadline(d.shift.deadline)}</span>} sub={d.shift.accepting ? "受付中" : "受付していません"} />
+          <Stat label="次回シフト作成期限" value={<span className="text-lg">{formatDateJa(d.shift.publishDue)}</span>} sub="公開予定日" />
+        </div>
+        {d.shift.notSubmitted.length > 0 && d.shift.status !== "PREPARING" && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-medium text-red-700">シフト未提出者 {d.shift.notSubmitted.length}人：</span>
+            {d.shift.notSubmitted.map((e) => (
+              <Badge key={e.id} color="red">{e.name}</Badge>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {d.anomalyCount > 0 && (
         <Card title={<span className="text-red-700">要確認勤怠 {d.anomalyCount}件</span>} actions={<Link className="text-sm text-teal-700 underline" href="/admin/anomalies">すべて見る</Link>}>

@@ -58,8 +58,10 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
       {!s.deletedAt && (
         <Card title="修正">
           <SessionForm
+            key={s.version}
             sessionId={s.id}
             employeeId={s.employeeId}
+            version={s.version}
             initial={{
               clockIn: toJstLocal(s.clockIn),
               clockOut: toJstLocal(s.clockOut),

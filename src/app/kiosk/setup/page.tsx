@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAdmin, getKioskDevice, registerKioskDevice } from "@/server/auth";
+import { getAdmin, getKioskDevice, logoutAdmin, registerKioskDevice } from "@/server/auth";
 import { Button, Card, Field, Input } from "@/components/ui";
 
 export default async function KioskSetupPage() {
@@ -11,6 +11,8 @@ export default async function KioskSetupPage() {
     "use server";
     if (!(await getAdmin())) redirect("/login?next=/kiosk/setup");
     await registerKioskDevice(String(form.get("name") ?? ""));
+    // 打刻端末に管理者ログインを残さない（スタッフが管理画面に入れないように）
+    await logoutAdmin();
     redirect("/kiosk");
   }
 
@@ -24,6 +26,7 @@ export default async function KioskSetupPage() {
           </Field>
           <p className="text-sm text-slate-600">
             登録すると、この端末のブラウザでは管理者ログインなしで打刻画面を使えます。
+            <b>登録後、この端末の管理者ログインは自動で解除されます。</b>
             紛失時は「店舗設定」から登録を解除してください。
           </p>
           <Button type="submit" className="w-full">この端末を登録して打刻画面へ</Button>

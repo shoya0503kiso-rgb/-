@@ -87,6 +87,38 @@ describe("打刻", () => {
     expect(status[0].status).toBe("WORKING");
   });
 
+  it("前日の退勤し忘れ（16時間以内）でも翌日に出勤できる", async () => {
+    const e = await makeEmployee("翌日");
+    await p(e.id, "CLOCK_IN", "2026-10-12 22:00");
+    await p(e.id, "CLOCK_IN", "2026-10-13 13:30");
+    expect(await prisma.workSession.count()).toBe(2);
+  });
+
+  it("閉店後まで続く長時間勤務は1件のまま退勤できる", async () => {
+    const e = await makeEmployee("長時間");
+    await p(e.id, "CLOCK_IN", "2026-10-13 13:00");
+    await p(e.id, "CLOCK_OUT", "2026-10-14 06:30");
+    const sessions = await prisma.workSession.findMany();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].clockOut).not.toBeNull();
+  });
+
+  it("勤務中に退職扱いにされても退勤はできる（出勤はできない）", async () => {
+    const e = await makeEmployee("途中退職");
+    await p(e.id, "CLOCK_IN", "2026-10-13 18:00");
+    await prisma.employee.update({ where: { id: e.id }, data: { active: false } });
+    expect((await kioskStatus(t("2026-10-13 20:00"))).map((k) => k.name)).toContain("途中退職");
+    await p(e.id, "CLOCK_OUT", "2026-10-13 23:00");
+    await expect(p(e.id, "CLOCK_IN", "2026-10-14 18:00")).rejects.toThrow("見つかりません");
+  });
+
+  it("同時打刻でも勤務中の勤怠は1件だけ", async () => {
+    const e = await makeEmployee("同時");
+    const results = await Promise.allSettled([1, 2, 3].map(() => p(e.id, "CLOCK_IN", "2026-10-13 18:00")));
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(await prisma.workSession.count()).toBe(1);
+  });
+
   it("PIN設定者はPINが必要。5回間違えるとロック", async () => {
     const e = await makeEmployee("PIN");
     await setEmployeePin(e.id, "1234");
@@ -158,6 +190,26 @@ describe("勤怠修正と履歴", () => {
     ).rejects.toThrow("重なって");
   });
 
+  it("同じ時間帯の勤怠は二重に追加できない", async () => {
+    const e = await makeEmployee("重複");
+    await p(e.id, "CLOCK_IN", "2026-10-13 18:00");
+    await p(e.id, "CLOCK_OUT", "2026-10-13 23:00");
+    await expect(
+      createSession(e.id, { clockIn: t("2026-10-13 18:00"), clockOut: t("2026-10-13 23:00"), breaks: [] }, "手入力", editor),
+    ).rejects.toThrow("重なっています");
+  });
+
+  it("画面を開いた後に打刻されたら修正を上書きしない", async () => {
+    const e = await makeEmployee("競合");
+    await p(e.id, "CLOCK_IN", "2026-10-13 18:00");
+    const opened = await prisma.workSession.findFirstOrThrow();
+    await p(e.id, "CLOCK_OUT", "2026-10-13 23:00");
+    await expect(
+      updateSession(opened.id, { clockIn: t("2026-10-13 17:55"), clockOut: null, breaks: [] }, "出勤時刻の修正", editor, opened.version),
+    ).rejects.toThrow("更新されました");
+    expect((await prisma.workSession.findFirstOrThrow()).clockOut).not.toBeNull();
+  });
+
   it("手動追加・削除（論理削除）も履歴に残る", async () => {
     const e = await makeEmployee("追加");
     const s = await createSession(
@@ -181,6 +233,14 @@ describe("出力", () => {
     const csv = await buildCsv("2026-10");
     expect(csv.startsWith("﻿従業員名,日付,曜日,出勤,退勤,休憩,実働時間,備考")).toBe(true);
     expect(csv).toContain('"出力, 太郎",2026-10-12,月,20:00,翌03:00,0:00,7:00,');
+    expect(csv).toContain('【月合計】従業員名,総勤務日数,総勤務時間,休憩合計\r\n"出力, 太郎",1,7:00,0:00');
+  });
+
+  it("CSV は数式として解釈される名前を無害化する", async () => {
+    const e = await makeEmployee("=HYPERLINK(1)");
+    await p(e.id, "CLOCK_IN", "2026-10-12 20:00");
+    await p(e.id, "CLOCK_OUT", "2026-10-13 03:00");
+    expect(await buildCsv("2026-10")).toContain("\n'=HYPERLINK(1),");
   });
 
   it("Excel を生成できる", async () => {

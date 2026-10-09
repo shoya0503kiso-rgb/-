@@ -1,6 +1,8 @@
 import { AutoSubmitForm } from "@/components/AutoSubmitForm";
-import { Card, Field, Input, LinkButton, PageHeader, Select } from "@/components/ui";
-import { addMonths, businessDateOf, formatYearMonthJa, isValidYearMonth, yearMonthOf } from "@/lib/time";
+import Link from "next/link";
+import { Alert, Card, Field, Input, LinkButton, PageHeader, Select } from "@/components/ui";
+import { addMonths, businessDateOf, datesOfMonth, formatYearMonthJa, isValidYearMonth, yearMonthOf } from "@/lib/time";
+import { listOpenAnomalies } from "@/server/attendance";
 import { listEmployees } from "@/server/employees";
 import { getSettings } from "@/server/settings";
 
@@ -12,6 +14,10 @@ export default async function ExportPage({ searchParams }: { searchParams: Promi
   const employees = await listEmployees({ includeInactive: true });
   const employeeId = employees.some((e) => e.id === sp.employeeId) ? sp.employeeId! : "";
   const qs = new URLSearchParams({ ym, ...(employeeId ? { employeeId } : {}) });
+  const dates = datesOfMonth(ym);
+  const unconfirmed = (await listOpenAnomalies({ from: dates[0] })).filter(
+    (a) => a.businessDate <= dates[dates.length - 1] && (!employeeId || a.employeeId === employeeId),
+  );
 
   return (
     <>
@@ -30,6 +36,15 @@ export default async function ExportPage({ searchParams }: { searchParams: Promi
             </Select>
           </Field>
         </AutoSubmitForm>
+        {unconfirmed.length > 0 && (
+          <div className="mb-3">
+            <Alert kind="warn">
+              この月に未確認の要確認勤怠が <b>{unconfirmed.length}件</b> あります。出力前に
+              <Link className="mx-1 underline" href="/admin/anomalies">要確認勤怠</Link>
+              を確認・修正してください。
+            </Alert>
+          </div>
+        )}
         <p className="mb-3 font-bold">{formatYearMonthJa(ym)}・{employees.find((e) => e.id === employeeId)?.name ?? "全スタッフ"}</p>
         <div className="flex flex-wrap gap-2">
           <LinkButton href={`/api/admin/export?${qs}&format=xlsx`} prefetch={false}>Excel（.xlsx）</LinkButton>

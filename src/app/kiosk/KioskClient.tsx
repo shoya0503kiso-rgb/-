@@ -56,8 +56,12 @@ export function KioskClient({ initial, storeName }: { initial: KioskEmployee[]; 
 
   const refresh = useCallback(() => {
     startTransition(async () => {
-      const r = await refreshKioskAction();
-      if (r.ok && r.data) setEmployees(r.data);
+      try {
+        const r = await refreshKioskAction();
+        if (r.ok && r.data) setEmployees(r.data);
+      } catch {
+        // 通信エラー・再デプロイ直後など。次回の更新で回復させる（画面は落とさない）
+      }
     });
   }, []);
 
@@ -98,7 +102,14 @@ export function KioskClient({ initial, storeName }: { initial: KioskEmployee[]; 
   function submit(emp: KioskEmployee, type: PunchType, pinValue?: string) {
     setError(null);
     startTransition(async () => {
-      const r = await punchAction(emp.id, type, pinValue);
+      let r: Awaited<ReturnType<typeof punchAction>>;
+      try {
+        r = await punchAction(emp.id, type, pinValue);
+      } catch {
+        setError("通信エラーで打刻できませんでした。もう一度押してください。");
+        setPin("");
+        return;
+      }
       if (r.ok && r.data) {
         setDone({ message: r.data.message, type });
         close();

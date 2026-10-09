@@ -32,12 +32,12 @@ function toInput(v: SessionFormValue) {
   };
 }
 
-export async function saveSessionAction(sessionId: string | null, employeeId: string, value: SessionFormValue) {
+export async function saveSessionAction(sessionId: string | null, employeeId: string, value: SessionFormValue, version?: number) {
   const admin = await requireAdmin();
   const r = await runAction(async () => {
     const input = toInput(value);
     if (sessionId) {
-      await updateSession(sessionId, input, value.reason, admin);
+      await updateSession(sessionId, input, value.reason, admin, version);
       return { id: sessionId };
     }
     const s = await createSession(employeeId, input, value.reason, admin);
@@ -47,9 +47,9 @@ export async function saveSessionAction(sessionId: string | null, employeeId: st
   return r;
 }
 
-export async function deleteSessionAction(sessionId: string, reason: string) {
+export async function deleteSessionAction(sessionId: string, reason: string, version?: number) {
   const admin = await requireAdmin();
-  const r = await runAction(() => deleteSession(sessionId, reason, admin), "削除しました");
+  const r = await runAction(() => deleteSession(sessionId, reason, admin, version), "削除しました");
   revalidatePath("/admin", "layout");
   return r;
 }

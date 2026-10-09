@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { summarize, totalsOf } from "@/lib/attendance/calc";
-import { detectAnomalies, type AnomalyRules } from "@/lib/attendance/anomalies";
+import { detectAnomalies, isStaleOpen, type AnomalyRules } from "@/lib/attendance/anomalies";
 import { isHoliday, parseWeekdays } from "@/lib/calendar";
-import { businessDateOf, formatTime, jstAt, parseJstLocal, toJstLocal } from "@/lib/time";
+import { businessDateOf, formatTime, jstAt, parseJstLocal, shiftRangeOnBusinessDate, toJstLocal } from "@/lib/time";
 
 const rules: AnomalyRules = {
   dayChangeHour: 6,
@@ -37,6 +37,11 @@ describe("時刻ユーティリティ", () => {
     const d = jstAt("2026-10-12", 20 * 60 + 5);
     expect(toJstLocal(d)).toBe("2026-10-12T20:05");
     expect(parseJstLocal("2026-10-12T20:05")!.getTime()).toBe(d.getTime());
+  });
+
+  it("深夜開始のシフトは営業日の翌暦日として扱う", () => {
+    expect(toJstLocal(shiftRangeOnBusinessDate("2026-10-12", "01:00", "05:00", 6).start)).toBe("2026-10-13T01:00");
+    expect(toJstLocal(shiftRangeOnBusinessDate("2026-10-12", "20:00", "05:00", 6).end)).toBe("2026-10-13T05:00");
   });
 
   it("翌日の時刻は「翌」を付けて表示する", () => {
@@ -129,12 +134,18 @@ describe("勤怠異常チェック", () => {
     expect(codes({ ...base, clockOut: t("2026-10-13 23:01") })).toEqual(["BREAK_SHORT_LEGAL"]);
   });
 
-  it("退勤打刻なし：16時間経過で要確認、それまでは勤務中扱い", () => {
+  it("退勤打刻なし：閉店＋2時間（翌07:00）までは勤務中、過ぎたら要確認", () => {
     const s = { businessDate: "2026-10-19", clockIn: t("2026-10-19 18:00"), clockOut: null, breaks: [] };
-    expect(detectAnomalies(s, { rules, isHoliday: false, now: t("2026-10-20 09:00") })).toEqual([]);
-    expect(detectAnomalies(s, { rules, isHoliday: false, now: t("2026-10-20 10:01") }).map((a) => a.code)).toEqual([
+    expect(detectAnomalies(s, { rules, isHoliday: false, now: t("2026-10-20 06:59") })).toEqual([]);
+    expect(detectAnomalies(s, { rules, isHoliday: false, now: t("2026-10-20 07:01") }).map((a) => a.code)).toEqual([
       "MISSING_CLOCK_OUT",
     ]);
+  });
+
+  it("勤務中の古さ判定：長時間勤務は閉店後まで、前日の打ち忘れは翌日には古い", () => {
+    const r = { ...rules };
+    expect(isStaleOpen({ businessDate: "2026-10-13", clockIn: t("2026-10-13 13:00") }, r, t("2026-10-14 06:30"))).toBe(false);
+    expect(isStaleOpen({ businessDate: "2026-10-12", clockIn: t("2026-10-12 22:00") }, r, t("2026-10-13 13:30"))).toBe(true);
   });
 
   it("退勤だけ存在する", () => {
@@ -163,7 +174,11 @@ describe("勤怠異常チェック", () => {
     expect(codes({ businessDate: "2026-10-13", clockIn: t("2026-10-13 20:00"), clockOut: t("2026-10-13 03:00"), breaks: [] })).toContain(
       "TIME_INCONSISTENT",
     );
-    expect(codes({ businessDate: "2026-10-12", clockIn: t("2026-10-13 20:00"), clockOut: t("2026-10-14 03:00"), breaks: [] })).toContain(
+    expect(codes({ businessDate: "2026-10-11", clockIn: t("2026-10-13 20:00"), clockOut: t("2026-10-14 03:00"), breaks: [] })).toContain(
+      "TIME_INCONSISTENT",
+    );
+    // 日付切替時刻の設定変更による1日のずれは許容
+    expect(codes({ businessDate: "2026-10-12", clockIn: t("2026-10-13 05:30"), clockOut: t("2026-10-13 06:00"), breaks: [] })).not.toContain(
       "TIME_INCONSISTENT",
     );
   });
@@ -171,8 +186,12 @@ describe("勤怠異常チェック", () => {
   it("休憩中のまま退勤・休憩が退勤後まで続く", () => {
     const out = t("2026-10-13 23:00");
     expect(
-      codes({ businessDate: "2026-10-13", clockIn: t("2026-10-13 18:00"), clockOut: out, breaks: [{ start: t("2026-10-13 22:30"), end: out }] }),
+      codes({ businessDate: "2026-10-13", clockIn: t("2026-10-13 18:00"), clockOut: out, breaks: [{ start: t("2026-10-13 22:30"), end: out, autoEnded: true }] }),
     ).toEqual(["BREAK_AUTO_ENDED"]);
+    // 休憩終了と退勤が同じ分でも、自動終了でなければ誤検知しない
+    expect(
+      codes({ businessDate: "2026-10-13", clockIn: t("2026-10-13 18:00"), clockOut: out, breaks: [{ start: t("2026-10-13 22:30"), end: out }] }),
+    ).toEqual([]);
     expect(
       codes({
         businessDate: "2026-10-13",

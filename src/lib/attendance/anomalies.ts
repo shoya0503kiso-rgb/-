@@ -1,5 +1,5 @@
 // 勤怠異常の判定（DB非依存）。結果は保存せず毎回計算する。
-import { businessDateOf, diffMinutes, formatDurationJa, jstAt, parseHm } from "../time";
+import { businessDateOf, diffDays, diffMinutes, formatDurationJa, jstAt, parseHm } from "../time";
 import { summarize, type SessionLike } from "./calc";
 
 export type AnomalyCode =
@@ -62,6 +62,22 @@ export function businessHours(date: string, rules: Pick<AnomalyRules, "openTime"
   return { open: jstAt(date, open), close: jstAt(date, close) };
 }
 
+const MAX_OPEN_MINUTES = 24 * 60;
+
+/**
+ * 退勤のない勤怠が「退勤漏れで古くなった」か。
+ * 営業日の閉店＋余裕時間を過ぎた、または24時間を超えたら古いとみなす（打刻・打刻画面・異常判定で共通）
+ */
+export function isStaleOpen(
+  s: { businessDate: string; clockIn: Date },
+  rules: Pick<AnomalyRules, "openTime" | "closeTime" | "dayChangeHour" | "outOfHoursMarginMinutes">,
+  now: Date,
+): boolean {
+  if (diffMinutes(s.clockIn, now) > MAX_OPEN_MINUTES) return true;
+  const { close } = businessHours(s.businessDate, rules);
+  return diffMinutes(close, now) > rules.outOfHoursMarginMinutes && businessDateOf(now, rules.dayChangeHour) > s.businessDate;
+}
+
 export function detectAnomalies(s: SessionLike, ctx: DetectContext): Anomaly[] {
   const { rules, now } = ctx;
   const out: Anomaly[] = [];
@@ -72,8 +88,12 @@ export function detectAnomalies(s: SessionLike, ctx: DetectContext): Anomaly[] {
   if (!s.clockIn && s.clockOut) {
     add("MISSING_CLOCK_IN", "退勤打刻だけがあります。出勤時刻を入力してください。");
   }
-  if (s.clockIn && !s.clockOut && diffMinutes(s.clockIn, now) > rules.missingClockOutHours * 60) {
-    add("MISSING_CLOCK_OUT", `出勤から${rules.missingClockOutHours}時間以上、退勤打刻がありません。`);
+  if (s.clockIn && !s.clockOut) {
+    if (diffMinutes(s.clockIn, now) > rules.missingClockOutHours * 60) {
+      add("MISSING_CLOCK_OUT", `出勤から${rules.missingClockOutHours}時間以上、退勤打刻がありません。`);
+    } else if (isStaleOpen({ businessDate: s.businessDate, clockIn: s.clockIn }, rules, now)) {
+      add("MISSING_CLOCK_OUT", "営業終了後も退勤打刻がありません。");
+    }
   }
   if (!s.clockIn && !s.clockOut) {
     add("TIME_INCONSISTENT", "出勤・退勤とも記録がありません。");
@@ -84,10 +104,12 @@ export function detectAnomalies(s: SessionLike, ctx: DetectContext): Anomaly[] {
   if (s.clockIn && s.clockOut && s.clockOut.getTime() <= s.clockIn.getTime()) {
     problems.push("退勤が出勤より前（または同時刻）です");
   }
-  if (s.clockIn && businessDateOf(s.clockIn, rules.dayChangeHour) !== s.businessDate) {
+  // 日付切替時刻の設定変更で1日ずれるのは許容（設定変更のたびに過去分が一斉に要確認になるのを防ぐ）
+  const farFrom = (d: Date) => Math.abs(diffDays(businessDateOf(d, rules.dayChangeHour), s.businessDate)) > 1;
+  if (s.clockIn && farFrom(s.clockIn)) {
     problems.push("勤務日と出勤時刻の日付が一致しません");
   }
-  if (!s.clockIn && s.clockOut && businessDateOf(s.clockOut, rules.dayChangeHour) !== s.businessDate) {
+  if (!s.clockIn && s.clockOut && farFrom(s.clockOut)) {
     problems.push("勤務日と退勤時刻の日付が一致しません");
   }
   const sorted = [...s.breaks].sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -105,7 +127,7 @@ export function detectAnomalies(s: SessionLike, ctx: DetectContext): Anomaly[] {
   if (s.clockOut && s.breaks.some((b) => !b.end)) {
     add("BREAK_NOT_ENDED", "終了時刻のない休憩があります。");
   }
-  if (s.clockOut && s.breaks.some((b) => b.end && b.end.getTime() === s.clockOut!.getTime())) {
+  if (s.clockOut && s.breaks.some((b) => b.autoEnded)) {
     add("BREAK_AUTO_ENDED", "休憩中のまま退勤したため、退勤時刻で休憩を終了しました。休憩時間を確認してください。");
   }
 

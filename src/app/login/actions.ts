@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
-import { loginAdmin, logoutAdmin } from "@/server/auth";
+import { loginAdmin, logoutAdmin, logoutAdminEverywhere, safeNextPath } from "@/server/auth";
 import { UserError } from "@/server/errors";
 
 export async function loginAction(_: string | null, form: FormData): Promise<string | null> {
@@ -10,11 +10,15 @@ export async function loginAction(_: string | null, form: FormData): Promise<str
     if (e instanceof UserError) return e.message;
     throw e;
   }
-  const next = String(form.get("next") ?? "");
-  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/admin");
+  redirect(safeNextPath(String(form.get("next") ?? "")));
 }
 
 export async function logoutAction() {
   await logoutAdmin();
+  redirect("/login");
+}
+
+export async function logoutEverywhereAction() {
+  await logoutAdminEverywhere();
   redirect("/login");
 }

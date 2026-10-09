@@ -7,10 +7,12 @@ import { deleteSessionAction, saveSessionAction, type SessionFormValue } from ".
 export function SessionForm({
   sessionId,
   employeeId,
+  version,
   initial,
 }: {
   sessionId: string | null;
   employeeId: string;
+  version?: number;
   initial: Omit<SessionFormValue, "reason">;
 }) {
   const router = useRouter();
@@ -24,7 +26,7 @@ export function SessionForm({
 
   function save() {
     start(async () => {
-      const r = await saveSessionAction(sessionId, employeeId, value);
+      const r = await saveSessionAction(sessionId, employeeId, value, version);
       if (!r.ok) return setResult({ error: r.error });
       setResult({ message: r.message });
       if (!sessionId && r.data) router.push(`/admin/attendance/${r.data.id}`);
@@ -39,7 +41,7 @@ export function SessionForm({
     if (!value.reason.trim()) return setResult({ error: "削除する場合も理由を入力してください" });
     if (!confirm("この勤怠を削除しますか？（履歴には残ります）")) return;
     start(async () => {
-      const r = await deleteSessionAction(sessionId!, value.reason);
+      const r = await deleteSessionAction(sessionId!, value.reason, version);
       if (!r.ok) return setResult({ error: r.error });
       router.push(`/admin/attendance?employeeId=${employeeId}`);
     });

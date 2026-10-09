@@ -91,6 +91,15 @@ export function addDays(date: DateStr, n: number): DateStr {
   return toDateStr(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate());
 }
 
+/** 日付の差（b − a、日数） */
+export function diffDays(a: DateStr, b: DateStr): number {
+  const toUtc = (d: DateStr) => {
+    const [y, m, dd] = d.split("-").map(Number);
+    return Date.UTC(y, m - 1, dd);
+  };
+  return Math.round((toUtc(b) - toUtc(a)) / 86_400_000);
+}
+
 export function weekdayOf(date: DateStr): number {
   const [y, m, d] = date.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
@@ -175,6 +184,18 @@ export function rangeOnDate(date: DateStr, start: string, end: string): { start:
   const s = parseHm(start);
   let e = parseHm(end);
   if (e <= s) e += DAY_MINUTES;
+  return { start: jstAt(date, s), end: jstAt(date, e) };
+}
+
+/**
+ * 営業日 date のシフト "HH:MM"〜"HH:MM" を具体的な時刻に。
+ * 開始が日付切替時刻より前（例 01:00）なら翌暦日の時刻とみなす
+ */
+export function shiftRangeOnBusinessDate(date: DateStr, start: string, end: string, dayChangeHour: number) {
+  let s = parseHm(start);
+  if (s < dayChangeHour * 60) s += DAY_MINUTES;
+  let e = parseHm(end);
+  while (e <= s) e += DAY_MINUTES;
   return { start: jstAt(date, s), end: jstAt(date, e) };
 }
 

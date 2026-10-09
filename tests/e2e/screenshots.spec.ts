@@ -23,6 +23,11 @@ test("画面キャプチャ", async ({ page }) => {
   await page.getByRole("button", { name: "閉じる" }).click();
   await page.screenshot({ path: `${dir}/kiosk.png` });
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/login");
+  await page.getByLabel("ログインID").fill("admin");
+  await page.getByLabel("パスワード").fill("admin1234");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.waitForURL("**/admin");
   for (const [name, url] of [["dashboard", "/admin"], ["attendance", "/admin/attendance"], ["settings", "/admin/settings"]]) {
     await page.goto(url);
     await page.screenshot({ path: `${dir}/${name}-mobile.png`, fullPage: true });

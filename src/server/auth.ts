@@ -10,12 +10,24 @@ import { ADMIN_COOKIE, KIOSK_COOKIE, signAdminSession, verifyAdminSession, type 
 const ADMIN_MAX_AGE = 60 * 60 * 24 * 14;
 const KIOSK_MAX_AGE = 60 * 60 * 24 * 365 * 5;
 
-export async function loginAdmin(loginId: string, password: string): Promise<void> {
-  const user = await prisma.adminUser.findUnique({ where: { loginId: loginId.trim() } });
+const LOGIN_LOCK_FAILURES = 5;
+const LOGIN_LOCK_WINDOW_MS = 15 * 60 * 1000;
+
+export async function loginAdmin(loginId: string, password: string, now = new Date()): Promise<void> {
+  const id = loginId.trim();
+  const failures = await prisma.loginFailure.count({
+    where: { loginId: id, createdAt: { gte: new Date(now.getTime() - LOGIN_LOCK_WINDOW_MS) } },
+  });
+  if (failures >= LOGIN_LOCK_FAILURES) {
+    throw new UserError("ログインに続けて失敗したため、15分間ログインできません");
+  }
+  const user = await prisma.adminUser.findUnique({ where: { loginId: id } });
   if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
+    await prisma.loginFailure.create({ data: { loginId: id } });
     throw new UserError("IDまたはパスワードが違います");
   }
-  const token = await signAdminSession({ adminId: user.id, name: user.name }, ADMIN_MAX_AGE);
+  await prisma.loginFailure.deleteMany({ where: { loginId: id } });
+  const token = await signAdminSession({ adminId: user.id, name: user.name, ver: user.tokenVersion }, ADMIN_MAX_AGE);
   (await cookies()).set(ADMIN_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -25,8 +37,28 @@ export async function loginAdmin(loginId: string, password: string): Promise<voi
   });
 }
 
+/** この端末のログアウト */
 export async function logoutAdmin() {
   (await cookies()).delete(ADMIN_COOKIE);
+}
+
+/** 全端末からログアウト：この管理者の発行済みセッションをすべて失効させる（端末紛失時など） */
+export async function logoutAdminEverywhere() {
+  const admin = await getAdmin();
+  if (admin) await prisma.adminUser.update({ where: { id: admin.adminId }, data: { tokenVersion: { increment: 1 } } });
+  (await cookies()).delete(ADMIN_COOKIE);
+}
+
+/** ログイン後の戻り先として安全なパスか（同一オリジンの相対パスのみ） */
+export function safeNextPath(next: string): string {
+  if (!next.startsWith("/") || next.includes("\\")) return "/admin";
+  try {
+    const u = new URL(next, "http://local.invalid");
+    if (u.origin !== "http://local.invalid") return "/admin";
+    return u.pathname + u.search;
+  } catch {
+    return "/admin";
+  }
 }
 
 export async function getAdmin(): Promise<AdminSession | null> {
@@ -35,7 +67,8 @@ export async function getAdmin(): Promise<AdminSession | null> {
   const session = await verifyAdminSession(token);
   if (!session) return null;
   const user = await prisma.adminUser.findUnique({ where: { id: session.adminId } });
-  return user && user.active ? { adminId: user.id, name: user.name } : null;
+  if (!user || !user.active || user.tokenVersion !== (session.ver ?? 0)) return null;
+  return { adminId: user.id, name: user.name };
 }
 
 /** 管理者必須（画面・サーバーアクションの先頭で呼ぶ） */

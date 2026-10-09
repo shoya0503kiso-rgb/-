@@ -23,13 +23,43 @@ function toCells(r: Row): string[] {
   ];
 }
 
-const csvEscape = (v: string) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+/** 数式として解釈される先頭文字を無害化（CSVインジェクション対策） */
+const defuse = (v: string) => (/^[=+\-@\t\r]/.test(v) ? `'${v}` : v);
+const csvEscape = (v: string) => {
+  const x = defuse(v);
+  return /[",\r\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x;
+};
 
-/** Excel で文字化けしないよう BOM 付き UTF-8 */
+function groupByEmployee(rows: Row[]) {
+  const map = new Map<string, Row[]>();
+  for (const r of rows) map.set(r.employee.id, [...(map.get(r.employee.id) ?? []), r]);
+  return map;
+}
+
+/** Excel で文字化けしないよう BOM 付き UTF-8。明細の後にスタッフ別の月合計を付ける */
 export async function buildCsv(ym: YearMonth, employeeId?: string): Promise<string> {
   const rows = await exportRows(ym, employeeId);
-  const lines = [HEADER, ...rows.map(toCells)].map((cells) => cells.map(csvEscape).join(","));
-  return "﻿" + lines.join("\r\n") + "\r\n";
+  const totals = [...groupByEmployee(rows).values()].map((list) => {
+    const t = totalsOf(list.map((r) => r.session));
+    return [list[0].employee.name, String(t.workDays), formatDuration(t.workMinutes), formatDuration(t.breakMinutes)];
+  });
+  const lines = [
+    HEADER,
+    ...rows.map(toCells),
+    [],
+    ["【月合計】従業員名", "総勤務日数", "総勤務時間", "休憩合計"],
+    ...totals,
+  ].map((cells) => cells.map(csvEscape).join(","));
+  return "\uFEFF" + lines.join("\r\n") + "\r\n";
+}
+
+/** 分 → Excel の時間値（日単位）。書式 [h]:mm で "160:30" のように表示され、合計計算もできる */
+const excelTime = (minutes: number | null) => (minutes === null ? null : minutes / 1440);
+const TIME_FMT = "[h]:mm";
+
+function detailValues(r: Row) {
+  const c = toCells(r).map(defuse);
+  return [...c.slice(0, 5), excelTime(r.summary.breakMinutes), excelTime(r.summary.workMinutes), c[7]];
 }
 
 export async function buildXlsx(ym: YearMonth, employeeId?: string): Promise<Buffer> {
@@ -37,8 +67,7 @@ export async function buildXlsx(ym: YearMonth, employeeId?: string): Promise<Buf
   const wb = new ExcelJS.Workbook();
   wb.created = new Date();
 
-  const byEmployee = new Map<string, Row[]>();
-  for (const r of rows) byEmployee.set(r.employee.id, [...(byEmployee.get(r.employee.id) ?? []), r]);
+  const byEmployee = groupByEmployee(rows);
 
   // 集計シート
   const summary = wb.addWorksheet("集計");
@@ -48,9 +77,11 @@ export async function buildXlsx(ym: YearMonth, employeeId?: string): Promise<Buf
   sh.font = { bold: true };
   for (const list of byEmployee.values()) {
     const t = totalsOf(list.map((r) => ({ ...r.session })));
-    summary.addRow([list[0].employee.name, t.workDays, formatDuration(t.workMinutes), formatDuration(t.breakMinutes), t.incompleteCount || ""]);
+    summary.addRow([defuse(list[0].employee.name), t.workDays, excelTime(t.workMinutes), excelTime(t.breakMinutes), t.incompleteCount || ""]);
   }
   summary.columns.forEach((c) => (c.width = 16));
+  summary.getColumn(3).numFmt = TIME_FMT;
+  summary.getColumn(4).numFmt = TIME_FMT;
 
   // スタッフ別シート（月の全日を表示）
   for (const list of byEmployee.values()) {
@@ -58,7 +89,7 @@ export async function buildXlsx(ym: YearMonth, employeeId?: string): Promise<Buf
     let sheetName = name;
     for (let i = 2; wb.getWorksheet(sheetName); i++) sheetName = `${name}(${i})`;
     const ws = wb.addWorksheet(sheetName);
-    ws.addRow([`${list[0].employee.name}　${ym}`]).font = { bold: true, size: 13 };
+    ws.addRow([defuse(`${list[0].employee.name}　${ym}`)]).font = { bold: true, size: 13 };
     const h = ws.addRow(HEADER.slice(1));
     h.font = { bold: true };
     for (const date of datesOfMonth(ym)) {
@@ -66,20 +97,24 @@ export async function buildXlsx(ym: YearMonth, employeeId?: string): Promise<Buf
       if (sessions.length === 0) {
         ws.addRow([date, WEEKDAY_JA[weekdayOf(date)]]);
       } else {
-        for (const r of sessions) ws.addRow(toCells(r).slice(1));
+        for (const r of sessions) ws.addRow(detailValues(r).slice(1));
       }
     }
     const t = totalsOf(list.map((r) => r.session));
     ws.addRow([]);
-    ws.addRow(["合計", "", "", "", formatDuration(t.breakMinutes), formatDuration(t.workMinutes), `勤務日数 ${t.workDays}日`]).font = { bold: true };
+    ws.addRow(["合計", "", "", "", excelTime(t.breakMinutes), excelTime(t.workMinutes), `勤務日数 ${t.workDays}日`]).font = { bold: true };
     ws.columns.forEach((c, i) => (c.width = i === 0 ? 13 : i === 6 ? 24 : 10));
+    ws.getColumn(5).numFmt = TIME_FMT;
+    ws.getColumn(6).numFmt = TIME_FMT;
   }
 
   // 全明細
   const all = wb.addWorksheet("全明細");
   all.addRow(HEADER).font = { bold: true };
-  rows.forEach((r) => all.addRow(toCells(r)));
+  rows.forEach((r) => all.addRow(detailValues(r)));
   all.columns.forEach((c, i) => (c.width = i === 0 ? 14 : i === 1 ? 12 : i === 7 ? 24 : 10));
+  all.getColumn(6).numFmt = TIME_FMT;
+  all.getColumn(7).numFmt = TIME_FMT;
 
   return Buffer.from(await wb.xlsx.writeBuffer());
 }

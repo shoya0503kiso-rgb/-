@@ -4,6 +4,7 @@ import { prisma } from "@/server/db";
 import { getSettings } from "@/server/settings";
 import { parseWeekdays } from "@/lib/calendar";
 import { revokeKioskAction } from "./actions";
+import { logoutEverywhereAction } from "../../login/actions";
 import { CalendarForm, SettingsForm } from "./SettingsForm";
 
 export default async function SettingsPage() {
@@ -61,6 +62,13 @@ export default async function SettingsPage() {
             ))}
           </ul>
         )}
+      </Card>
+
+      <Card title="管理者セッション">
+        <p className="mb-3 text-sm text-slate-600">スマホの紛失時などは、すべての端末の管理者ログインを無効にできます（この端末も再ログインが必要です）。</p>
+        <form action={logoutEverywhereAction}>
+          <Button variant="danger" size="sm">全端末からログアウト</Button>
+        </form>
       </Card>
     </div>
   );

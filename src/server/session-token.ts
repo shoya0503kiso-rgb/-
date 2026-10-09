@@ -7,6 +7,8 @@ export const KIOSK_COOKIE = "kiosk_token";
 export interface AdminSession {
   adminId: string;
   name: string;
+  /** AdminUser.tokenVersion と一致する間だけ有効 */
+  ver?: number;
 }
 
 function secret() {
@@ -16,7 +18,7 @@ function secret() {
 }
 
 export async function signAdminSession(session: AdminSession, maxAgeSec: number) {
-  return new SignJWT({ name: session.name })
+  return new SignJWT({ name: session.name, ver: session.ver ?? 0 })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(session.adminId)
     .setAudience("admin")
@@ -29,7 +31,7 @@ export async function verifyAdminSession(token: string): Promise<AdminSession | 
   try {
     const { payload } = await jwtVerify(token, secret(), { audience: "admin" });
     if (!payload.sub) return null;
-    return { adminId: payload.sub, name: String(payload.name ?? "") };
+    return { adminId: payload.sub, name: String(payload.name ?? ""), ver: Number(payload.ver ?? 0) };
   } catch {
     return null;
   }

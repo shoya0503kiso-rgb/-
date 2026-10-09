@@ -112,6 +112,30 @@ function normalize(input: SessionInput, dayChangeHour: number) {
   return { clockIn, clockOut, breaks, businessDate };
 }
 
+/** 同じ従業員の他の勤怠と時間が重なっていないか（二重計上の防止） */
+async function assertNoOverlap(employeeId: string, v: { clockIn: Date | null; clockOut: Date | null }, excludeId?: string) {
+  const start = v.clockIn ?? v.clockOut!;
+  const end = v.clockOut ?? v.clockIn!;
+  const near = await prisma.workSession.findMany({
+    where: {
+      employeeId,
+      deletedAt: null,
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+      OR: [
+        { clockIn: { gte: new Date(start.getTime() - 36 * 3600_000), lte: new Date(end.getTime() + 36 * 3600_000) } },
+        { clockOut: { gte: new Date(start.getTime() - 36 * 3600_000), lte: new Date(end.getTime() + 36 * 3600_000) } },
+      ],
+    },
+  });
+  for (const o of near) {
+    const os = o.clockIn ?? o.clockOut!;
+    const oe = o.clockOut ?? o.clockIn!;
+    if (start.getTime() <= oe.getTime() && os.getTime() <= end.getTime()) {
+      throw new UserError(`${o.businessDate} の別の勤怠と時間が重なっています。重複していないか確認してください。`);
+    }
+  }
+}
+
 export async function getSessionDetail(id: string, now = new Date()) {
   const s = await prisma.workSession.findUnique({
     where: { id },
@@ -143,6 +167,7 @@ export async function createSession(employeeId: string, input: SessionInput, rea
   const why = requireReason(reason);
   const settings = await getSettings();
   const v = normalize(input, settings.dayChangeHour);
+  await assertNoOverlap(employeeId, v);
   return prisma.$transaction(async (tx) => {
     const s = await tx.workSession.create({
       data: {
@@ -168,13 +193,23 @@ export async function createSession(employeeId: string, input: SessionInput, rea
   });
 }
 
-export async function updateSession(id: string, input: SessionInput, reason: string, editor: Editor) {
+/**
+ * 勤怠の修正。expectedVersion は画面を開いた時点の version。
+ * その間に打刻や別の修正があれば上書きせずエラーにする（楽観ロック）
+ */
+export async function updateSession(id: string, input: SessionInput, reason: string, editor: Editor, expectedVersion?: number) {
   const why = requireReason(reason);
   const settings = await getSettings();
   const v = normalize(input, settings.dayChangeHour);
+  const current = await prisma.workSession.findUnique({ where: { id } });
+  if (!current || current.deletedAt) throw new UserError("勤怠が見つかりません");
+  await assertNoOverlap(current.employeeId, v, id);
   return prisma.$transaction(async (tx) => {
     const before = await tx.workSession.findUnique({ where: { id }, include: { breaks: true } });
     if (!before || before.deletedAt) throw new UserError("勤怠が見つかりません");
+    if (expectedVersion !== undefined && before.version !== expectedVersion) {
+      throw new UserError("この勤怠は画面を開いた後に更新されました（打刻または別の修正）。再読み込みしてから修正してください。");
+    }
     const after = snapshot(v);
     if (snapshot(before) === after) throw new UserError("変更がありません");
     await tx.breakPeriod.deleteMany({ where: { sessionId: id } });
@@ -203,11 +238,14 @@ export async function updateSession(id: string, input: SessionInput, reason: str
   });
 }
 
-export async function deleteSession(id: string, reason: string, editor: Editor) {
+export async function deleteSession(id: string, reason: string, editor: Editor, expectedVersion?: number) {
   const why = requireReason(reason);
   return prisma.$transaction(async (tx) => {
     const before = await tx.workSession.findUnique({ where: { id }, include: { breaks: true } });
     if (!before || before.deletedAt) throw new UserError("勤怠が見つかりません");
+    if (expectedVersion !== undefined && before.version !== expectedVersion) {
+      throw new UserError("この勤怠は画面を開いた後に更新されました。再読み込みしてください。");
+    }
     await tx.workSession.update({ where: { id }, data: { deletedAt: new Date(), version: { increment: 1 } } });
     await tx.attendanceRevision.create({
       data: {
@@ -237,7 +275,7 @@ export interface AnomalyItem {
   anomalies: Anomaly[];
 }
 
-/** 未確認の要確認勤怠（新しい順）。from を省略すると全期間 */
+/** 未確認の要確認勤怠（新しい順）。from を省略すると全期間（ダッシュボード等は直近3か月を渡す） */
 export async function listOpenAnomalies(opts: { from?: DateStr; now?: Date } = {}): Promise<AnomalyItem[]> {
   const now = opts.now ?? new Date();
   const sessions = await prisma.workSession.findMany({
