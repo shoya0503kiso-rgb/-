@@ -17,6 +17,7 @@ export async function BoardTab({ ym }: { ym: string }) {
       patterns={data.patterns.map((p) => ({ id: p.id, name: p.name, startTime: p.startTime, endTime: p.endTime, active: p.active }))}
       rows={data.rows}
       fill={data.fill}
+      violations={data.violations}
       report={report ? { ...report.report, createdAt: report.createdAt.toISOString(), createdBy: report.createdBy } : null}
     />
   );

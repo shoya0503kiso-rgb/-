@@ -1,7 +1,7 @@
 // シフト枠と必要人数（P-18）
 import { z } from "zod";
 import type { GenSlot } from "@/lib/shift/generate";
-import { datesOfMonth, isValidHm, weekdayOf, type YearMonth } from "@/lib/time";
+import { datesOfMonth, isValidHm, jstDateStr, weekdayOf, type YearMonth } from "@/lib/time";
 import { prisma } from "../db";
 import { UserError } from "../errors";
 import { loadCalendar } from "../settings";
@@ -34,8 +34,23 @@ export function createPattern(input: PatternInput) {
   return prisma.shiftPattern.create({ data: parse(input) });
 }
 
-export function updatePattern(id: string, input: PatternInput & { active?: boolean }) {
-  return prisma.shiftPattern.update({ where: { id }, data: { ...parse(input), ...(input.active === undefined ? {} : { active: input.active }) } });
+/**
+ * 枠の更新。時刻を変えた場合は、今日以降のその枠の配置の時刻も合わせる
+ * （公開済みの月は「未通知の変更」になり、変更通知で知らせられる）
+ */
+export async function updatePattern(id: string, input: PatternInput & { active?: boolean }) {
+  const before = await prisma.shiftPattern.findUnique({ where: { id } });
+  const data = parse(input);
+  const updated = await prisma.shiftPattern.update({ where: { id }, data: { ...data, ...(input.active === undefined ? {} : { active: input.active }) } });
+  let moved = 0;
+  if (before && (before.startTime !== data.startTime || before.endTime !== data.endTime)) {
+    const r = await prisma.shiftAssignment.updateMany({
+      where: { patternId: id, date: { gte: jstDateStr(new Date()) } },
+      data: { startTime: data.startTime, endTime: data.endTime },
+    });
+    moved = r.count;
+  }
+  return { pattern: updated, moved };
 }
 
 /** 曜日ごとの必要人数をまとめて保存（counts[weekday][patternId]） */

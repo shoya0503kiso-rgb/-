@@ -140,7 +140,7 @@ describe("自動生成 → 編集 → 公開", () => {
     const start = (a: typeof first) => t(`${a.date} ${a.startTime}`);
     await punch({ employeeId: staff[0].id, type: "CLOCK_IN", source: "KIOSK", now: new Date(start(first).getTime() + 10 * 60_000) });
     await punch({ employeeId: staff[0].id, type: "CLOCK_OUT", source: "KIOSK", now: new Date(start(first).getTime() + 5 * 3600_000) });
-    const stats = await referenceStats("2026-12", new Date(start(second).getTime() + 24 * 3600_000));
+    const stats = await referenceStats("2026-12", new Date(start(second).getTime() + 60_000));
     expect(stats.stats.get(staff[0].id)).toMatchObject({ late: 1, noShow: 1, workDays: 1 });
     const cond = (await listConditions("2026-12")).find((c) => c.employee.id === staff[0].id)!;
     expect(cond.saved).toBe(false);

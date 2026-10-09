@@ -37,7 +37,7 @@ export async function dispatchPending(limit = 200) {
       OR: [
         { status: "PENDING" },
         { status: "FAILED", attempts: { lt: MAX_ATTEMPTS } },
-        { status: "SENDING", createdAt: { lt: new Date(Date.now() - SENDING_TIMEOUT_MS) } },
+        { status: "SENDING", claimedAt: { lt: new Date(Date.now() - SENDING_TIMEOUT_MS) } },
       ],
     },
     include: { employee: { include: { lineAccount: true } } },
@@ -48,8 +48,8 @@ export async function dispatchPending(limit = 200) {
   for (const n of pending) {
     // 同時に動いた別の送信処理と同じ通知を二重に送らないよう、1件ずつ確保してから送る
     const claimed = await prisma.notification.updateMany({
-      where: { id: n.id, status: n.status, attempts: n.attempts },
-      data: { status: "SENDING" },
+      where: { id: n.id, status: n.status, attempts: n.attempts, claimedAt: n.claimedAt },
+      data: { status: "SENDING", claimedAt: new Date() },
     });
     if (claimed.count !== 1) continue;
     const lineUserId = n.employee?.lineAccount?.lineUserId;

@@ -22,7 +22,7 @@ function useAction() {
   const run = (fn: () => Promise<ActionResult<unknown>>) =>
     start(async () => {
       const r = await fn();
-      setMsg(r.ok ? { message: r.message ?? "保存しました" } : { error: r.error });
+      setMsg(r.ok ? { message: typeof r.data === "string" ? r.data : (r.message ?? "保存しました") } : { error: r.error });
       if (r.ok) router.refresh();
     });
   const view = msg && <Alert kind={msg.error ? "error" : "success"}>{msg.error ?? msg.message}</Alert>;

@@ -84,8 +84,12 @@ export async function adminSubmitRequestAction(ym: string, employeeId: string, d
 export async function savePatternAction(id: string | null, input: PatternInput & { active?: boolean }) {
   await requireAdmin();
   const r = await runAction(async () => {
-    if (id) await updatePattern(id, input);
-    else await createPattern(input);
+    if (!id) {
+      await createPattern(input);
+      return;
+    }
+    const { moved } = await updatePattern(id, input);
+    return moved ? `保存しました。今日以降のこの枠の配置 ${moved}件の時刻も変更しました（公開済みの月は「変更を公開・通知」で知らせてください）` : undefined;
   }, "保存しました");
   revalidatePath("/admin/shifts", "layout");
   return r;

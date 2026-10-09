@@ -1,5 +1,5 @@
 // 打刻処理。打刻はすべて PunchLog に記録し、WorkSession / BreakPeriod を更新する。
-import { isStaleOpen } from "@/lib/attendance/anomalies";
+import { businessHours, isStaleOpen } from "@/lib/attendance/anomalies";
 import { businessDateOf, formatTime, truncateToMinute } from "@/lib/time";
 import { prisma, type Tx } from "./db";
 import { verifyPin } from "./employees";
@@ -44,7 +44,9 @@ async function findOpenSession(tx: Tx, employeeId: string, now: Date, rules: Rul
     include: { breaks: true },
   });
   const fresh = candidates.find((s) => !isStaleOpen({ businessDate: s.businessDate, clockIn: s.clockIn! }, rules, now));
-  return fresh ?? (includeStale ? (candidates[0] ?? null) : null);
+  if (fresh || !includeStale) return fresh ?? null;
+  // 退勤：閉店から12時間以内なら、古くなった勤怠にも退勤を付ける（翌日夜の「退勤だけ」を前日に付けない）
+  return candidates.find((s) => now.getTime() - businessHours(s.businessDate, rules).close.getTime() <= 12 * 3600_000) ?? null;
 }
 
 export interface PunchResult {

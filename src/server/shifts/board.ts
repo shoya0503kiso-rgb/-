@@ -1,6 +1,6 @@
 // シフト案の生成・編集（AIが案を作る → 店長が確認・修正 → 公開。要件12）
-import { generateShifts, type GenAvailability, type GenResult, type GenStaff } from "@/lib/shift/generate";
-import { datesOfMonth, isValidHm, type YearMonth } from "@/lib/time";
+import { fitsTime, generateShifts, type GenAvailability, type GenResult, type GenStaff } from "@/lib/shift/generate";
+import { addDays, addMonths, datesOfMonth, isValidHm, type YearMonth } from "@/lib/time";
 import { prisma } from "../db";
 import { UserError } from "../errors";
 import { getSettings, loadCalendar } from "../settings";
@@ -26,12 +26,16 @@ async function buildInput(ym: YearMonth, keepManual: boolean) {
     keepManual ? prisma.shiftAssignment.findMany({ where: { periodId: period.id, source: "MANUAL" } }) : Promise.resolve([]),
   ]);
   const subByEmp = new Map(submissions.map((s) => [s.employeeId, s]));
+  const activePatternIds = new Set(slots.map((s) => s.patternId));
+  const prior = await priorMonthDates(ym);
   const staff: GenStaff[] = conditions.map(({ employee, value }) => {
     const available = new Map<string, GenAvailability>();
     for (const d of subByEmp.get(employee.id)?.days ?? []) {
-      if (d.availability === "OK") available.set(d.date, { patternId: d.patternId, startTime: d.startTime, endTime: d.endTime });
+      // 停止した枠を希望していた日は「どの枠でも可」として扱う（提出画面の表示と合わせる）
+      const patternId = d.patternId && activePatternIds.has(d.patternId) ? d.patternId : null;
+      if (d.availability === "OK") available.set(d.date, { patternId, startTime: d.startTime, endTime: d.endTime });
     }
-    return { id: employee.id, name: employee.name, available, ...value };
+    return { id: employee.id, name: employee.name, available, ...value, priorDates: prior.get(employee.id) ?? [] };
   });
   return {
     period,
@@ -39,11 +43,39 @@ async function buildInput(ym: YearMonth, keepManual: boolean) {
       slots,
       staff,
       pairs: pairs.map((p) => ({ a: p.employeeAId, b: p.employeeBId, strength: p.strength as "HARD" | "SOFT" })),
-      fixed: manual.map((m) => ({ date: m.date, employeeId: m.employeeId, patternId: m.patternId, startTime: m.startTime, endTime: m.endTime })),
+      // 時間指定の手動配置も、時刻が同じ枠があればその枠の人数に数える
+      fixed: manual.map((m) => ({
+        date: m.date,
+        employeeId: m.employeeId,
+        patternId: m.patternId ?? matchPattern(slots, m.date, m.startTime, m.endTime),
+        startTime: m.startTime,
+        endTime: m.endTime,
+      })),
       maxConsecutiveDays: settings.maxConsecutiveDays,
+      dayChangeHour: settings.dayChangeHour,
       seed: 20260101,
     },
   };
+}
+
+function matchPattern(slots: { date: string; patternId: string; startTime: string; endTime: string }[], date: string, start: string, end: string) {
+  return slots.find((s) => s.date === date && s.startTime === start && s.endTime === end)?.patternId ?? null;
+}
+
+/** 前月の公開済みシフトの最後の7日間の勤務日（月をまたぐ連勤の判定用） */
+async function priorMonthDates(ym: YearMonth) {
+  const prev = await prisma.shiftPeriod.findUnique({
+    where: { yearMonth: addMonths(ym, -1) },
+    include: { publications: { orderBy: { version: "desc" }, take: 1 } },
+  });
+  const map = new Map<string, string[]>();
+  const pub = prev?.publications[0];
+  if (!pub) return map;
+  const from = addDays(`${ym}-01`, -7);
+  for (const a of JSON.parse(pub.snapshot) as { date: string; employeeId: string }[]) {
+    if (a.date >= from) map.set(a.employeeId, [...(map.get(a.employeeId) ?? []), a.date]);
+  }
+  return map;
 }
 
 /** シフト案を自動生成して保存する。keepManual = 手動で入れた配置は残す */
@@ -126,7 +158,9 @@ export async function boardData(ym: YearMonth) {
   );
   const fill = slots.map((s) => ({
     ...s,
-    assigned: assignments.filter((a) => a.date === s.date && a.patternId === s.patternId).length,
+    assigned: assignments.filter(
+      (a) => a.date === s.date && (a.patternId === s.patternId || (!a.patternId && a.startTime === s.startTime && a.endTime === s.endTime)),
+    ).length,
   }));
   return {
     period,
@@ -135,6 +169,7 @@ export async function boardData(ym: YearMonth) {
     rows,
     fill,
     pairs,
+    violations: await findViolations(ym),
   };
 }
 
@@ -180,24 +215,78 @@ export async function setAssignment(
   return { warnings: await checkAssignment(ym, period.id, date, employeeId) };
 }
 
-/** 手動配置が絶対条件に反していないか */
+/** 手動配置が絶対条件・本人の希望に反していないか */
 async function checkAssignment(ym: YearMonth, periodId: string, date: string, employeeId: string) {
   const warnings: string[] = [];
-  const [sub, calendar, cond, count, pairs, sameDay] = await Promise.all([
+  const settings = await getSettings();
+  const [sub, calendar, cond, count, pairs, sameDay, mine] = await Promise.all([
     prisma.shiftRequestSubmission.findUnique({ where: { periodId_employeeId: { periodId, employeeId } }, include: { days: { where: { date } } } }),
     loadCalendar(date, date),
     prisma.monthlyCondition.findUnique({ where: { yearMonth_employeeId: { yearMonth: ym, employeeId } } }),
     prisma.shiftAssignment.count({ where: { periodId, employeeId } }),
     prisma.pairConstraint.findMany({ where: { yearMonth: ym, strength: "HARD", OR: [{ employeeAId: employeeId }, { employeeBId: employeeId }] }, include: { employeeA: true, employeeB: true } }),
     prisma.shiftAssignment.findMany({ where: { periodId, date } }),
+    prisma.shiftAssignment.findUnique({ where: { periodId_date_employeeId: { periodId, date, employeeId } }, include: { pattern: true } }),
   ]);
   if (calendar.isClosed(date)) warnings.push("店休日です");
+  const req = sub?.days[0];
   if (!sub) warnings.push("希望が未提出のスタッフです");
-  else if (sub.days[0]?.availability !== "OK") warnings.push("本人が「出勤不可」の日です");
+  else if (req?.availability !== "OK") warnings.push("本人が「出勤不可」の日です");
+  else if (mine) {
+    if (req.patternId && mine.patternId !== req.patternId) {
+      const wanted = await prisma.shiftPattern.findUnique({ where: { id: req.patternId } });
+      if (wanted?.active) warnings.push(`本人の希望は「${wanted.name}」です`);
+    }
+    if (req.startTime && req.endTime && !fitsTime(mine, { patternId: null, startTime: req.startTime, endTime: req.endTime }, settings.dayChangeHour)) {
+      warnings.push(`本人の希望時間（${req.startTime}〜${req.endTime}）から外れています`);
+    }
+  }
   if (cond?.maxDays !== null && cond?.maxDays !== undefined && count > cond.maxDays) warnings.push(`最大勤務日数（${cond.maxDays}日）を超えています`);
   for (const p of pairs) {
     const other = p.employeeAId === employeeId ? p.employeeB : p.employeeA;
     if (sameDay.some((a) => a.employeeId === other.id)) warnings.push(`${other.name}さんと「絶対に同じ日にしない」設定です`);
   }
   return warnings;
+}
+
+/**
+ * 公開前チェック：今の配置が絶対条件に反していないか（生成後に店休日・NGペア・最大日数を変えた場合など）
+ */
+export async function findViolations(ym: YearMonth) {
+  const period = await prisma.shiftPeriod.findUnique({ where: { yearMonth: ym } });
+  if (!period) return [];
+  const dates = datesOfMonth(ym);
+  const [assignments, submissions, conditions, pairs, calendar, patterns] = await Promise.all([
+    prisma.shiftAssignment.findMany({ where: { periodId: period.id }, include: { employee: true } }),
+    prisma.shiftRequestSubmission.findMany({ where: { periodId: period.id }, include: { days: true } }),
+    prisma.monthlyCondition.findMany({ where: { yearMonth: ym } }),
+    prisma.pairConstraint.findMany({ where: { yearMonth: ym, strength: "HARD" }, include: { employeeA: true, employeeB: true } }),
+    loadCalendar(dates[0], dates[dates.length - 1]),
+    prisma.shiftPattern.findMany(),
+  ]);
+  const out: { date: string; employeeName: string; message: string }[] = [];
+  const req = new Map(submissions.flatMap((s) => s.days.map((d) => [`${s.employeeId}|${d.date}`, d] as const)));
+  const submitted = new Set(submissions.map((s) => s.employeeId));
+  const pattern = new Map(patterns.map((p) => [p.id, p]));
+  for (const a of assignments) {
+    const name = a.employee.name;
+    if (calendar.isClosed(a.date)) out.push({ date: a.date, employeeName: name, message: "店休日に配置されています" });
+    const r = req.get(`${a.employeeId}|${a.date}`);
+    if (!submitted.has(a.employeeId)) out.push({ date: a.date, employeeName: name, message: "希望未提出のスタッフです" });
+    else if (r?.availability !== "OK") out.push({ date: a.date, employeeName: name, message: "本人が「出勤不可」の日です" });
+    if (a.patternId && pattern.get(a.patternId) && !pattern.get(a.patternId)!.active) out.push({ date: a.date, employeeName: name, message: "停止中の枠です" });
+  }
+  for (const c of conditions) {
+    if (c.maxDays === null) continue;
+    const n = assignments.filter((a) => a.employeeId === c.employeeId).length;
+    const name = assignments.find((a) => a.employeeId === c.employeeId)?.employee.name;
+    if (n > c.maxDays && name) out.push({ date: "", employeeName: name, message: `最大勤務日数（${c.maxDays}日）を超えて${n}日です` });
+  }
+  for (const p of pairs) {
+    const aDates = new Set(assignments.filter((a) => a.employeeId === p.employeeAId).map((a) => a.date));
+    for (const b of assignments.filter((a) => a.employeeId === p.employeeBId && aDates.has(a.date))) {
+      out.push({ date: b.date, employeeName: `${p.employeeA.name}・${p.employeeB.name}`, message: "「絶対に同じ日にしない」ペアが同じ日です" });
+    }
+  }
+  return out.sort((x, y) => x.date.localeCompare(y.date));
 }

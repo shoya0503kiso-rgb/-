@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Alert, Badge, Button, Card, Input, Select, TableWrap, td, th } from "@/components/ui";
 import { formatDuration } from "@/lib/time";
 import type { ActionResult } from "@/server/errors";
@@ -32,6 +32,11 @@ export function ConditionsEditor({
 }) {
   const router = useRouter();
   const [values, setValues] = useState(rows.map((r) => r.value));
+  // 前月コピーなどでサーバー側の値が変わったら入力欄に反映する（古い値で上書き保存しないように）
+  const serverValues = JSON.stringify(rows.map((r) => r.value));
+  useEffect(() => {
+    setValues(JSON.parse(serverValues));
+  }, [serverValues]);
   const [msg, setMsg] = useState<{ error?: string; message?: string } | null>(null);
   const [pending, start] = useTransition();
   const [pair, setPair] = useState({ a: rows[0]?.employee.id ?? "", b: rows[1]?.employee.id ?? "", strength: "SOFT" as "HARD" | "SOFT", memo: "" });

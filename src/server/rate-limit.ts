@@ -11,11 +11,13 @@ const LOCK_WINDOW_MS = 15 * 60 * 1000;
  */
 export async function assertNotLocked(key: string, ip: string, now: Date) {
   const since = new Date(now.getTime() - LOCK_WINDOW_MS);
-  const [byKey, byIp] = await Promise.all([
+  const [byKey, byIp, byKeyHour] = await Promise.all([
     prisma.loginFailure.count({ where: { loginId: key, ip, createdAt: { gte: since } } }),
     ip ? prisma.loginFailure.count({ where: { ip, createdAt: { gte: since } } }) : Promise.resolve(0),
+    // 接続元を変えながらの試行にも上限（IDだけで1時間30回）
+    prisma.loginFailure.count({ where: { loginId: key, createdAt: { gte: new Date(now.getTime() - 3600_000) } } }),
   ]);
-  if (byKey >= LOCK_FAILURES || byIp >= LOCK_FAILURES * 4) {
+  if (byKey >= LOCK_FAILURES || byIp >= LOCK_FAILURES * 4 || byKeyHour >= 30) {
     throw new UserError("続けて失敗したため、15分間お待ちください");
   }
 }

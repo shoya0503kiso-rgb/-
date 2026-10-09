@@ -20,6 +20,7 @@ export function Board({
   patterns,
   rows,
   fill,
+  violations,
   report,
 }: {
   ym: string;
@@ -29,6 +30,7 @@ export function Board({
   patterns: Pattern[];
   rows: Data["rows"];
   fill: Data["fill"];
+  violations: Data["violations"];
   report: (GenerationReport & { createdAt: string; createdBy: string }) | null;
 }) {
   const router = useRouter();
@@ -59,6 +61,10 @@ export function Board({
   };
 
   const shortTotal = fill.reduce((s, f) => s + Math.max(0, f.required - f.assigned), 0);
+  const publishWarnings = [
+    shortTotal ? `※ まだ ${shortTotal}人分の不足があります` : "",
+    violations.length ? `※ 絶対条件に反する配置が ${violations.length}件あります（上の一覧を確認してください）` : "",
+  ].filter(Boolean).join("\n");
 
   return (
     <div className="space-y-4">
@@ -77,7 +83,18 @@ export function Board({
           <Button disabled={pending || collecting} onClick={() => run(() => generateAction(ym, true), "希望と条件からシフト案を自動作成しますか？（手動で入れた配置は残します）")}>
             自動作成（手動配置は残す）
           </Button>
-          <Button variant="secondary" disabled={pending || collecting} onClick={() => run(() => generateAction(ym, false), "手動の配置も含めてすべて作り直しますか？")}>
+          <Button
+            variant="secondary"
+            disabled={pending || collecting}
+            onClick={() =>
+              run(
+                () => generateAction(ym, false),
+                status === "PUBLISHED"
+                  ? "公開済みのシフトを手動の配置も含めてすべて作り直しますか？\n公開し直すと、多くのスタッフに変更通知が送られます。"
+                  : "手動の配置も含めてすべて作り直しますか？",
+              )
+            }
+          >
             すべて作り直す
           </Button>
           <span className="mx-2 hidden h-6 w-px bg-slate-200 sm:block" />
@@ -85,12 +102,12 @@ export function Board({
             <Button
               variant="primary"
               disabled={pending || collecting}
-              onClick={() => run(() => publishAction(ym), `シフトを確定して公開し、全員にLINEで通知しますか？${shortTotal ? `\n※ まだ ${shortTotal}人分の不足があります` : ""}`)}
+              onClick={() => run(() => publishAction(ym), `シフトを確定して公開し、全員にLINEで通知しますか？${publishWarnings ? `\n${publishWarnings}` : ""}`)}
             >
               確定して公開・通知
             </Button>
           ) : unpublished ? (
-            <Button disabled={pending} onClick={() => run(() => publishAction(ym), "変更を公開し、変更があったスタッフにだけLINEで通知しますか？")}>
+            <Button disabled={pending} onClick={() => run(() => publishAction(ym), `変更を公開し、変更があったスタッフにだけLINEで通知しますか？${publishWarnings ? `\n${publishWarnings}` : ""}`)}>
               変更を公開・通知
             </Button>
           ) : (
@@ -101,6 +118,20 @@ export function Board({
           自動作成は「案」を作るだけです。内容を確認・修正してから公開してください。表のマスをタップすると配置を変更できます（手動の配置は再作成しても残ります）。
         </p>
       </Card>
+
+      {violations.length > 0 && (
+        <Card title={<span className="text-red-700">絶対条件に反する配置 {violations.length}件</span>}>
+          <ul className="space-y-1 text-sm">
+            {violations.map((v, i) => (
+              <li key={i}>
+                {v.date && `${formatDateJa(v.date)} `}
+                <b>{v.employeeName}</b>：{v.message}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-slate-500">作成後に店休日・相性条件・最大日数を変えた場合などに出ます。店長の判断で残す場合はそのまま公開できます。</p>
+        </Card>
+      )}
 
       {report && <ReportView report={report} patternName={patternName} />}
 
@@ -242,7 +273,7 @@ function ReportView({ report, patternName }: { report: GenerationReport & { crea
         <div className="space-y-3 text-sm">
           {report.shortages.length > 0 && (
             <div>
-              <div className="mb-1 font-bold text-red-700">人数不足（希望者が足りない枠）</div>
+              <div className="mb-1 font-bold text-red-700">人数不足</div>
               <ul className="space-y-1">
                 {report.shortages.map((s) => (
                   <li key={`${s.date}|${s.patternId}`}>
@@ -251,7 +282,7 @@ function ReportView({ report, patternName }: { report: GenerationReport & { crea
                   </li>
                 ))}
               </ul>
-              <p className="mt-1 text-xs text-slate-500">本人に相談して手動で入れるか、必要人数を見直してください（自動では「出勤不可」の人を入れません）。</p>
+              <p className="mt-1 text-xs text-slate-500">（）内は入れられなかった理由です。本人に相談して手動で入れるか、必要人数・最大日数を見直してください（自動では「出勤不可」の人を入れません）。</p>
             </div>
           )}
           {notes.length > 0 && (

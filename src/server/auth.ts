@@ -15,7 +15,11 @@ const KIOSK_MAX_AGE = 60 * 60 * 24 * 365 * 5;
 /** 接続元IP（リバースプロキシ経由を想定） */
 export async function clientIp() {
   const h = await headers();
-  return (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "").trim();
+  // 送信元が書き換えられないヘッダーを優先（Vercel / 信頼できるリバースプロキシ）。
+  // x-forwarded-for は先頭が偽装できるため、プロキシが付けた末尾を使う
+  const trusted = h.get("x-vercel-forwarded-for") ?? h.get("x-real-ip");
+  if (trusted) return trusted.split(",")[0].trim();
+  return (h.get("x-forwarded-for")?.split(",").pop() ?? "").trim();
 }
 
 export async function loginAdmin(loginId: string, password: string, now = new Date(), ip?: string): Promise<void> {

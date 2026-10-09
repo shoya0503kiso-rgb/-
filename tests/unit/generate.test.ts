@@ -67,7 +67,7 @@ describe("自動シフト生成：絶対条件", () => {
     const r = generateShifts(base({ slots: slots({ early: 1, late: 1 }, ["2026-11-01"]), staff: [staff("A", ["2026-11-01"])] }));
     // A は1日1枠なので、2枠のうち1枠は必ず不足になる
     expect(r.shortages).toHaveLength(1);
-    expect(r.shortages[0]).toMatchObject({ date: "2026-11-01", required: 1, assigned: 0, candidates: ["A"] });
+    expect(r.shortages[0]).toMatchObject({ date: "2026-11-01", required: 1, assigned: 0, candidates: ["A（同日に別の枠）"] });
   });
 
   it("枠指定の希望はその枠だけ", () => {
@@ -82,6 +82,20 @@ describe("自動シフト生成：絶対条件", () => {
     s.available = new Map(dates.map((d) => [d, { patternId: null, startTime: "15:00", endTime: "23:00" }]));
     const r = generateShifts(base({ staff: [s, staff("X", dates)] }));
     expect(r.assignments.filter((a) => a.employeeId === "T").every((a) => a.patternId === "early")).toBe(true);
+  });
+
+  it("日付をまたぐ希望時間（20:00〜05:00）で深夜開始の枠（00:00〜05:00）に入れる", () => {
+    const s = staff("N", ["2026-11-01"]);
+    s.available = new Map([["2026-11-01", { patternId: null, startTime: "20:00", endTime: "05:00" }]]);
+    const r = generateShifts(base({ slots: [{ date: "2026-11-01", patternId: "mid", startTime: "00:00", endTime: "05:00", required: 1 }], staff: [s] }));
+    expect(r.shortages).toEqual([]);
+    expect(r.assignments).toHaveLength(1);
+  });
+
+  it("前月末からの連勤も数える", () => {
+    const s = staff("P", dates.slice(0, 3), { priorDates: ["2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31"] });
+    const r = generateShifts(base({ slots: slots({ early: 1, late: 0 }, dates.slice(0, 3)), staff: [s], maxConsecutiveDays: 5 }));
+    expect(r.staff[0].notes.join()).toContain("7連勤");
   });
 
   it("店休日（枠なし）には入れない", () => {

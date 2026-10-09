@@ -6,7 +6,7 @@ import { kioskStatus } from "./punch";
 import { getSettings } from "./settings";
 import { failedCount } from "./notify";
 import { publishedShiftsOn } from "./shifts/staff";
-import { isAcceptingRequests, nextTargetMonth, periodOverview, publishDueDate } from "./shifts/periods";
+import { activeRequestMonth, isAcceptingRequests, periodOverview, publishDueDate } from "./shifts/periods";
 
 export async function dashboard(now = new Date()) {
   const settings = await getSettings();
@@ -46,7 +46,7 @@ export async function dashboard(now = new Date()) {
   const monthWork = employees.map((e) => ({ id: e.id, name: e.name, ...(totals.get(e.id) ?? { workMinutes: 0, workDays: 0, breakMinutes: 0, incompleteCount: 0 }) }));
 
   // シフト：次に作る月の提出状況と期限
-  const shiftYm = await nextTargetMonth(now);
+  const shiftYm = await activeRequestMonth(now);
   const overview = await periodOverview(shiftYm);
   const shift = {
     ym: shiftYm,

@@ -22,7 +22,8 @@ export interface ConditionValue {
 /** 在籍スタッフの月次条件（未設定の人は固定プロフィールの基本条件を初期値にする） */
 export async function listConditions(ym: YearMonth) {
   const [employees, rows] = await Promise.all([
-    prisma.employee.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
+    // id まで並べて、DBが変わっても生成の入力順（＝結果）が変わらないようにする
+    prisma.employee.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }] }),
     prisma.monthlyCondition.findMany({ where: { yearMonth: ym } }),
   ]);
   const byEmp = new Map(rows.map((r) => [r.employeeId, r]));

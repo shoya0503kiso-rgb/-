@@ -35,6 +35,8 @@ export interface GenStaff {
   maxDays: number | null;
   minDays: number | null;
   fillAll: boolean;
+  /** 前月末の勤務日（月をまたぐ連勤の判定にだけ使う） */
+  priorDates?: string[];
 }
 
 export interface GenPair {
@@ -60,6 +62,8 @@ export interface GenInput {
   /** 残す手動配置 */
   fixed: GenAssignment[];
   maxConsecutiveDays: number;
+  /** 営業日の日付切替時刻（深夜の時刻を翌暦日として扱う） */
+  dayChangeHour?: number;
   seed?: number;
   iterations?: number;
 }
@@ -69,7 +73,7 @@ export interface Shortage {
   patternId: string;
   required: number;
   assigned: number;
-  /** その日に出勤可能だった人（他の枠に入っている人を含む） */
+  /** その日に出勤可能だった人と、入れられなかった理由（例「山田（最大日数）」） */
   candidates: string[];
 }
 
@@ -115,22 +119,21 @@ function rng(seed: number) {
   };
 }
 
-/** 希望時間がある場合、枠が希望時間内（前後30分の余裕）に収まるか */
-function fitsTime(slot: GenSlot, a: GenAvailability) {
+/**
+ * 希望時間がある場合、枠が希望時間内（前後30分の余裕）に収まるか。
+ * 枠・希望とも、開始が日付切替時刻より前なら翌暦日の時刻とみなす（営業日基準）
+ */
+export function fitsTime(slot: Pick<GenSlot, "startTime" | "endTime">, a: GenAvailability, dayChangeHour = 6) {
   if (!a.startTime || !a.endTime) return true;
   const norm = (s: string, e: string) => {
-    const st = parseHm(s);
+    let st = parseHm(s);
+    if (st < dayChangeHour * 60) st += 1440;
     let en = parseHm(e);
-    if (en <= st) en += 1440;
+    while (en <= st) en += 1440;
     return [st, en] as const;
   };
   const [ps, pe] = norm(slot.startTime, slot.endTime);
-  let [ws, we] = norm(a.startTime, a.endTime);
-  // 深夜の希望（例 01:00〜05:00）は営業日の翌日側とみなす
-  if (ws + 720 < ps) {
-    ws += 1440;
-    we += 1440;
-  }
+  const [ws, we] = norm(a.startTime, a.endTime);
   return ps >= ws - 30 && pe <= we + 30;
 }
 
@@ -183,7 +186,7 @@ export function generateShifts(input: GenInput): GenResult {
     const a = st.available.get(slot.date);
     if (!a) return false;
     if (a.patternId && a.patternId !== slot.patternId) return false;
-    return fitsTime(slot, a);
+    return fitsTime(slot, a, input.dayChangeHour ?? 6);
   };
 
   /** 絶対条件を満たして配置できるか（slot 内の入替時は ignore を除いて判定） */
@@ -223,6 +226,8 @@ export function generateShifts(input: GenInput): GenResult {
 
   // ── スコア（小さいほど良い） ──
   const sortedDayIdx = (dates: Set<string>) => [...dates].map(dayIndex).sort((a, b) => a - b);
+  /** 前月末の勤務も含めた勤務日（連勤判定用） */
+  const withPrior = (s: GenStaff, dates: Set<string>) => sortedDayIdx(new Set([...(s.priorDates ?? []), ...dates]));
   function staffPenalty(s: GenStaff) {
     const dates = workDates.get(s.id)!;
     const n = dates.size;
@@ -234,7 +239,7 @@ export function generateShifts(input: GenInput): GenResult {
     p += n * (s.priority === "HIGH" ? -WEIGHTS.priority : s.priority === "LOW" ? WEIGHTS.priority : 0);
     // 連勤（「できるだけ全部入れる」の人は店長の明示的な指定を優先し、連勤は警告のみ）
     if (s.fillAll) return p;
-    const idx = sortedDayIdx(dates);
+    const idx = withPrior(s, dates);
     let run = 0;
     for (let i = 0; i < idx.length; i++) {
       run = i > 0 && idx[i] === idx[i - 1] + 1 ? run + 1 : 1;
@@ -382,7 +387,18 @@ export function generateShifts(input: GenInput): GenResult {
       patternId: s.patternId,
       required: s.required,
       assigned: members[i].length,
-      candidates: input.staff.filter((st) => eligible(st.id, i)).map((st) => st.name),
+      candidates: input.staff.filter((st) => eligible(st.id, i)).map((st) => {
+        const dates = workDates.get(st.id)!;
+        const enemies = hardPairs.get(st.id);
+        const reason = dates.has(s.date)
+          ? "同日に別の枠"
+          : st.maxDays !== null && dates.size >= st.maxDays
+            ? "最大日数"
+            : enemies && [...enemies].some((x) => workDates.get(x)?.has(s.date))
+              ? "絶対NGの相手と同日"
+              : "";
+        return reason ? `${st.name}（${reason}）` : st.name;
+      }),
     }))
     .filter((s) => s.assigned < s.required);
 
@@ -395,7 +411,7 @@ export function generateShifts(input: GenInput): GenResult {
       notes.push(avail < s.minDays ? `最低${s.minDays}日に届かず（出勤可が${avail}日のみ）` : `最低${s.minDays}日に届かず`);
     }
     if (s.fillAll && days < avail) notes.push(`出勤可${avail}日のうち${days}日（他の条件・人数の都合）`);
-    const idx = sortedDayIdx(workDates.get(s.id)!);
+    const idx = withPrior(s, workDates.get(s.id)!);
     let run = 0;
     let maxRun = 0;
     for (let i = 0; i < idx.length; i++) {

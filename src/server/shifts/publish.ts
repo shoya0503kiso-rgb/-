@@ -23,6 +23,10 @@ function shiftLines(items: SnapshotItem[]) {
     .join("\n");
 }
 
+function prevHasAny(pubs: { snapshot: string }[]) {
+  return pubs.some((p) => (JSON.parse(p.snapshot) as unknown[]).length > 0);
+}
+
 export async function publishPeriod(ym: YearMonth, admin: { name: string }, now = new Date()) {
   const period = await prisma.shiftPeriod.findUnique({
     where: { yearMonth: ym },
@@ -31,6 +35,9 @@ export async function publishPeriod(ym: YearMonth, admin: { name: string }, now 
   if (!period) throw new UserError("期間がありません");
   if (period.status === "PREPARING" || period.status === "COLLECTING") {
     throw new UserError("希望の受付を終了してから公開してください");
+  }
+  if (period.assignments.length === 0 && !prevHasAny(period.publications)) {
+    throw new UserError("配置が1件もありません。シフトを作成してから公開してください");
   }
   const snapshot: SnapshotItem[] = period.assignments.map((a) => ({
     date: a.date,

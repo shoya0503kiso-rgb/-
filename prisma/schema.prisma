@@ -239,6 +239,8 @@ model Notification {
   status     String    @default("PENDING") // PENDING / SENT / FAILED / SKIPPED
   error      String    @default("")
   attempts   Int       @default(0)
+  /// 送信処理が確保した時刻（同時実行時の二重送信防止・止まった送信の検出）
+  claimedAt  DateTime?
   createdAt  DateTime  @default(now())
   sentAt     DateTime?
 
