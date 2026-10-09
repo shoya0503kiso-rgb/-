@@ -1,0 +1,396 @@
+// DB設計の説明は docs/02-database.md を参照。
+// 開発は SQLite、本番は PostgreSQL を想定。両方で動くよう enum / Json 型は使わず String で保持する。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── 管理者・店舗設定 ─────────────────────────
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  loginId      String   @unique
+  name         String
+  passwordHash String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// 店舗設定（単一店舗前提。id = 1 の1行のみ）
+model StoreSetting {
+  id                          Int      @id @default(1)
+  storeName                   String   @default("店舗")
+  /// 営業日の切替時刻（時）。これより前の出勤は前日の営業日扱い（P-04）
+  dayChangeHour               Int      @default(6)
+  /// 営業時間 "HH:MM"。閉店が開店より前なら翌日（P-05）
+  openTime                    String   @default("15:00")
+  closeTime                   String   @default("05:00")
+  // 異常判定の閾値（P-10）
+  longWorkMinutes             Int      @default(720)
+  outOfHoursMarginMinutes     Int      @default(120)
+  missingClockOutHours        Int      @default(16)
+  shortWorkMinutes            Int      @default(10)
+  /// 一般的な休憩不足チェック（P-11）
+  legalBreakCheckEnabled      Boolean  @default(true)
+  // 休日の休憩チェック（P-12）
+  holidayWeekdays             String   @default("0,6") // 0=日 … 6=土
+  holidayIncludesPublic       Boolean  @default(true)
+  holidayBreakWorkMinutes     Int      @default(420)
+  holidayBreakRequiredMinutes Int      @default(60)
+  // シフト関連（P-19, P-24, P-25）
+  lateGraceMinutes            Int      @default(5)
+  maxConsecutiveDays          Int      @default(5)
+  requestNotifyDay            Int      @default(13)
+  requestReminderDay          Int      @default(16)
+  requestDeadlineDay          Int      @default(17)
+  publishDay                  Int      @default(20)
+  updatedAt                   DateTime @updatedAt
+}
+
+/// 店舗カレンダーの個別指定（店休日・休日扱いの日）
+model CalendarDay {
+  date      String   @id // YYYY-MM-DD
+  isClosed  Boolean  @default(false) // 店休日（シフト配置しない）
+  isHoliday Boolean? // null = 自動判定（土日祝）に従う / true,false = 強制
+  note      String   @default("")
+}
+
+/// 打刻端末（店舗iPad）
+model KioskDevice {
+  id         String     @id @default(cuid())
+  name       String
+  tokenHash  String     @unique
+  createdAt  DateTime   @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  punches    PunchLog[]
+}
+
+// ───────────────────────── 従業員（固定プロフィール） ─────────────────────────
+
+model Employee {
+  id             String   @id @default(cuid())
+  name           String
+  kana           String   @default("")
+  employmentType String   @default("PART") // PART / FULL / OTHER
+  active         Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  /// 任意の4桁PIN（P-06）。null なら名前タップのみで打刻
+  pinHash        String?
+  /// 時給（Phase 4 給与目安用）
+  hourlyWage     Int?
+  /// 基本勤務条件（毎月の条件の初期値）
+  baseMaxDays    Int?
+  baseMinDays    Int?
+  note           String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sessions          WorkSession[]
+  punches           PunchLog[]
+  lineAccount       LineAccount?
+  lineLinkCodes     LineLinkCode[]
+  submissions       ShiftRequestSubmission[]
+  monthlyConditions MonthlyCondition[]
+  assignments       ShiftAssignment[]
+  notifications     Notification[]
+  pairsA            PairConstraint[]         @relation("pairA")
+  pairsB            PairConstraint[]         @relation("pairB")
+}
+
+// ───────────────────────── 勤怠 ─────────────────────────
+
+/// 1回の勤務（出勤〜退勤）。日跨ぎでも1レコード
+model WorkSession {
+  id           String    @id @default(cuid())
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  /// 帰属する営業日 YYYY-MM-DD（P-04）
+  businessDate String
+  clockIn      DateTime?
+  clockOut     DateTime?
+  /// 修正のたびに +1。確認済み(AnomalyAck)の有効判定に使う
+  version      Int       @default(1)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  breaks    BreakPeriod[]
+  revisions AttendanceRevision[]
+  acks      AnomalyAck[]
+  punches   PunchLog[]
+
+  @@index([employeeId, businessDate])
+  @@index([businessDate])
+}
+
+model BreakPeriod {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   WorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  start     DateTime
+  end       DateTime?
+}
+
+/// 打刻の生ログ（改変しない）。拒否された打刻も記録する
+model PunchLog {
+  id         String       @id @default(cuid())
+  employeeId String
+  employee   Employee     @relation(fields: [employeeId], references: [id])
+  type       String // CLOCK_IN / CLOCK_OUT / BREAK_START / BREAK_END
+  at         DateTime
+  source     String // KIOSK / ADMIN / LINE
+  deviceId   String?
+  device     KioskDevice? @relation(fields: [deviceId], references: [id])
+  sessionId  String?
+  session    WorkSession? @relation(fields: [sessionId], references: [id])
+  result     String // OK / REJECTED
+  message    String       @default("")
+  createdAt  DateTime     @default(now())
+
+  @@index([employeeId, at])
+}
+
+/// 管理者による修正履歴（修正前後をJSONで保存）（P-13）
+model AttendanceRevision {
+  id         String      @id @default(cuid())
+  sessionId  String
+  session    WorkSession @relation(fields: [sessionId], references: [id])
+  action     String // CREATE / UPDATE / DELETE
+  editedBy   String // AdminUser.id
+  editorName String
+  reason     String
+  before     String // JSON
+  after      String // JSON
+  editedAt   DateTime    @default(now())
+
+  @@index([sessionId])
+}
+
+/// 要確認勤怠の「確認済み」（P-14）。sessionVersion が現在の version と一致する間だけ有効
+model AnomalyAck {
+  id             String      @id @default(cuid())
+  sessionId      String
+  session        WorkSession @relation(fields: [sessionId], references: [id])
+  code           String
+  sessionVersion Int
+  ackedBy        String
+  note           String      @default("")
+  ackedAt        DateTime    @default(now())
+
+  @@unique([sessionId, code, sessionVersion])
+}
+
+// ───────────────────────── LINE連携（勤怠とは疎結合） ─────────────────────────
+
+model LineAccount {
+  id          String   @id @default(cuid())
+  employeeId  String   @unique
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  lineUserId  String   @unique
+  displayName String   @default("")
+  linkedAt    DateTime @default(now())
+}
+
+model LineLinkCode {
+  id         String    @id @default(cuid())
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  code       String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+/// 通知の送信キュー（アウトボックス）。業務ロジックはここに積むだけで、送信はディスパッチャが行う
+model Notification {
+  id         String    @id @default(cuid())
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+  channel    String    @default("LINE")
+  kind       String // SHIFT_REQUEST / SHIFT_REMINDER / SHIFT_PUBLISHED / SHIFT_CHANGED / TEXT
+  title      String
+  body       String
+  /// 同じ通知を二重に送らないためのキー（例: SHIFT_REQUEST:2026-11:empId）
+  dedupeKey  String    @unique
+  status     String    @default("PENDING") // PENDING / SENT / FAILED / SKIPPED
+  error      String    @default("")
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+  sentAt     DateTime?
+
+  @@index([status])
+}
+
+// ───────────────────────── シフト ─────────────────────────
+
+/// シフト枠（例: 早番 15:00-23:00）。終了が開始以前なら翌日終了
+model ShiftPattern {
+  id        String  @id @default(cuid())
+  name      String
+  startTime String
+  endTime   String
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  rules       StaffingRule[]
+  overrides   StaffingOverride[]
+  assignments ShiftAssignment[]
+  requestDays ShiftRequestDay[]
+}
+
+/// 曜日ごとの枠別必要人数
+model StaffingRule {
+  id            String       @id @default(cuid())
+  weekday       Int // 0=日 … 6=土
+  patternId     String
+  pattern       ShiftPattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+  requiredCount Int
+
+  @@unique([weekday, patternId])
+}
+
+/// 特定日の必要人数（曜日設定を上書き）
+model StaffingOverride {
+  id            String       @id @default(cuid())
+  date          String
+  patternId     String
+  pattern       ShiftPattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+  requiredCount Int
+
+  @@unique([date, patternId])
+}
+
+/// 月ごとのシフト期間
+model ShiftPeriod {
+  id          String    @id @default(cuid())
+  yearMonth   String    @unique // YYYY-MM
+  /// PREPARING → COLLECTING → CLOSED → DRAFT → PUBLISHED
+  status      String    @default("PREPARING")
+  deadline    DateTime
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  submissions  ShiftRequestSubmission[]
+  assignments  ShiftAssignment[]
+  runs         ShiftGenerationRun[]
+  publications ShiftPublication[]
+}
+
+/// スタッフのシフト希望提出（1人1期間1件）
+model ShiftRequestSubmission {
+  id          String      @id @default(cuid())
+  periodId    String
+  period      ShiftPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee    @relation(fields: [employeeId], references: [id])
+  comment     String      @default("")
+  /// STAFF / ADMIN（代理入力）
+  submittedBy String      @default("STAFF")
+  submittedAt DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  days ShiftRequestDay[]
+
+  @@unique([periodId, employeeId])
+}
+
+model ShiftRequestDay {
+  id           String                 @id @default(cuid())
+  submissionId String
+  submission   ShiftRequestSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  date         String
+  /// OK = 出勤可 / NG = 不可
+  availability String
+  /// 希望する枠（null = どの枠でも可）
+  patternId    String?
+  pattern      ShiftPattern?          @relation(fields: [patternId], references: [id], onDelete: SetNull)
+  /// 時間指定（任意） "HH:MM"
+  startTime    String?
+  endTime      String?
+
+  @@unique([submissionId, date])
+}
+
+/// スタッフ別 月次条件（毎月変更可・固定プロフィールと分離）
+model MonthlyCondition {
+  id         String   @id @default(cuid())
+  yearMonth  String
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  priority   String   @default("MID") // HIGH / MID / LOW
+  volume     String   @default("NORMAL") // MORE / NORMAL / LESS
+  maxDays    Int?
+  minDays    Int?
+  /// 入れる日はできるだけ全部入れる
+  fillAll    Boolean  @default(false)
+  memo       String   @default("")
+  updatedAt  DateTime @updatedAt
+
+  @@unique([yearMonth, employeeId])
+}
+
+/// 相性条件（同じ日にしない）
+model PairConstraint {
+  id          String   @id @default(cuid())
+  yearMonth   String
+  employeeAId String
+  employeeA   Employee @relation("pairA", fields: [employeeAId], references: [id])
+  employeeBId String
+  employeeB   Employee @relation("pairB", fields: [employeeBId], references: [id])
+  strength    String   @default("SOFT") // HARD / SOFT
+  memo        String   @default("")
+
+  @@unique([yearMonth, employeeAId, employeeBId])
+}
+
+/// シフト割当（案・確定とも同じテーブル。期間の status で区別）
+model ShiftAssignment {
+  id         String        @id @default(cuid())
+  periodId   String
+  period     ShiftPeriod   @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  date       String
+  employeeId String
+  employee   Employee      @relation(fields: [employeeId], references: [id])
+  patternId  String?
+  pattern    ShiftPattern? @relation(fields: [patternId], references: [id], onDelete: SetNull)
+  startTime  String
+  endTime    String
+  source     String        @default("AUTO") // AUTO / MANUAL
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([periodId, date, employeeId])
+  @@index([employeeId, date])
+}
+
+/// 自動生成の実行記録（結果レポートを保存）
+model ShiftGenerationRun {
+  id        String      @id @default(cuid())
+  periodId  String
+  period    ShiftPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  createdBy String
+  score     Float
+  report    String // JSON
+  createdAt DateTime    @default(now())
+}
+
+/// 公開履歴（変更通知の差分計算に使う）
+model ShiftPublication {
+  id          String      @id @default(cuid())
+  periodId    String
+  period      ShiftPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  version     Int
+  snapshot    String // JSON: [{date, employeeId, startTime, endTime, patternId}]
+  publishedBy String
+  publishedAt DateTime    @default(now())
+
+  @@unique([periodId, version])
+}
