@@ -1,19 +1,17 @@
 import { Alert, Card } from "@/components/ui";
 import { addMonths, businessDateOf, formatDateJa, formatDuration, formatDurationJa, formatHmRange, formatTime, formatYearMonthJa, yearMonthOf } from "@/lib/time";
 import { monthlyAttendance } from "@/server/attendance";
-import { prisma } from "@/server/db";
 import { getSettings } from "@/server/settings";
 import { myShifts } from "@/server/shifts/staff";
-import { verifyStaffToken } from "@/server/staff-link";
+import { resolveStaffToken } from "@/server/staff-link";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "わたしのシフト・勤務時間", robots: { index: false } };
 
 export default async function MePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const employeeId = verifyStaffToken(token, "me");
-  const employee = employeeId ? await prisma.employee.findUnique({ where: { id: employeeId } }) : null;
-  if (!employee || !employee.active) {
+  const employee = await resolveStaffToken(token, "me");
+  if (!employee) {
     return (
       <main className="mx-auto max-w-xl p-4">
         <Alert kind="error">リンクの有効期限が切れています。LINEで「シフト確認」と送ると新しいリンクが届きます。</Alert>

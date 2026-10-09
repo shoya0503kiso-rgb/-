@@ -1,10 +1,10 @@
 // シフト期間（月）と希望提出の受付管理
 import type { ShiftPeriod, StoreSetting } from "@prisma/client";
-import { addMonths, businessDateOf, formatYearMonthJa, jstAt, jstParts, toDateStr, yearMonthOf, type YearMonth } from "@/lib/time";
+import { addMonths, businessDateOf, datesOfMonth, formatYearMonthJa, jstAt, jstParts, toDateStr, yearMonthOf, type YearMonth } from "@/lib/time";
 import { prisma } from "../db";
 import { UserError } from "../errors";
 import { enqueue } from "../notify";
-import { getSettings } from "../settings";
+import { getSettings, loadCalendar } from "../settings";
 import { staffUrl } from "../staff-link";
 
 export const PERIOD_STATUS_LABELS: Record<string, string> = {
@@ -39,8 +39,15 @@ export async function getPeriod(ym: YearMonth) {
 
 export async function getOrCreatePeriod(ym: YearMonth) {
   const existing = await getPeriod(ym);
-  if (existing) return existing;
   const settings = await getSettings();
+  if (existing) {
+    // 受付前で手動変更していなければ、店舗設定の締切日の変更に追従する
+    const def = defaultDeadline(ym, settings);
+    if (existing.status === "PREPARING" && !existing.deadlineManual && existing.deadline.getTime() !== def.getTime()) {
+      return prisma.shiftPeriod.update({ where: { id: existing.id }, data: { deadline: def } });
+    }
+    return existing;
+  }
   return prisma.shiftPeriod.upsert({
     where: { yearMonth: ym },
     create: { yearMonth: ym, deadline: defaultDeadline(ym, settings) },
@@ -76,7 +83,7 @@ export async function openCollection(ym: YearMonth, now = new Date()) {
       employeeId: e.id,
       kind: "SHIFT_REQUEST",
       title: `${formatYearMonthJa(ym)} シフト提出依頼`,
-      body: `【シフト提出のお願い】\n${e.name}さん、${formatYearMonthJa(ym)}の希望シフトを ${formatDeadline(updated.deadline)} までに提出してください。\n\n▼提出はこちら\n${staffUrl(e.id, "submit", now)}`,
+      body: `【シフト提出のお願い】\n${e.name}さん、${formatYearMonthJa(ym)}の希望シフトを ${formatDeadline(updated.deadline)} までに提出してください。\n\n▼提出はこちら\n${staffUrl(e, "submit", now, updated.deadline)}`,
       dedupeKey: `SHIFT_REQUEST:${ym}:${e.id}`,
     });
     if (r.created) queued++;
@@ -84,8 +91,11 @@ export async function openCollection(ym: YearMonth, now = new Date()) {
   return { period: updated, queued };
 }
 
-/** 未提出者へのリマインド。1回/日まで */
-export async function sendReminders(ym: YearMonth, now = new Date()) {
+/**
+ * 未提出者へのリマインド。自動（cron）は期間につき1回だけ。
+ * 管理者の手動リマインドは1日1回まで（自動とは別に数える）
+ */
+export async function sendReminders(ym: YearMonth, now = new Date(), opts: { manual?: boolean } = {}) {
   const period = await getPeriod(ym);
   if (!period || !isAcceptingRequests(period, now)) throw new UserError("受付中の期間がありません");
   const settings = await getSettings();
@@ -98,8 +108,8 @@ export async function sendReminders(ym: YearMonth, now = new Date()) {
       employeeId: e.id,
       kind: "SHIFT_REMINDER",
       title: `${formatYearMonthJa(ym)} シフト提出リマインド`,
-      body: `【シフト提出リマインド】\n${e.name}さん、${formatYearMonthJa(ym)}の希望シフトがまだ提出されていません。\n締切は ${formatDeadline(period.deadline)} です。\n\n▼提出はこちら\n${staffUrl(e.id, "submit", now)}`,
-      dedupeKey: `SHIFT_REMINDER:${ym}:${e.id}:${today}`,
+      body: `【シフト提出リマインド】\n${e.name}さん、${formatYearMonthJa(ym)}の希望シフトがまだ提出されていません。\n締切は ${formatDeadline(period.deadline)} です。\n\n▼提出はこちら\n${staffUrl(e, "submit", now, period.deadline)}`,
+      dedupeKey: opts.manual ? `SHIFT_REMINDER:${ym}:${e.id}:manual:${today}` : `SHIFT_REMINDER:${ym}:${e.id}`,
     });
     if (r.created) queued++;
   }
@@ -119,8 +129,29 @@ export async function extendDeadline(ym: YearMonth, date: string, now = new Date
   const deadline = jstAt(date, 24 * 60);
   if (deadline.getTime() <= now.getTime()) throw new UserError("締切は未来の日付にしてください");
   if (yearMonthOf(date) > ym) throw new UserError("締切は対象月より前にしてください");
+  if (period.status === "DRAFT" || period.status === "PUBLISHED") throw new UserError("シフト作成後のため締切は変更できません");
   const reopen = period.status === "CLOSED";
-  return prisma.shiftPeriod.update({ where: { id: period.id }, data: { deadline, ...(reopen ? { status: "COLLECTING" } : {}) } });
+  const updated = await prisma.shiftPeriod.update({
+    where: { id: period.id },
+    data: { deadline, deadlineManual: true, ...(reopen ? { status: "COLLECTING" } : {}) },
+  });
+  // 受付中なら、未提出者に新しい締切を知らせる（同じ締切への変更で二重に送らない）
+  let queued = 0;
+  if (isAcceptingRequests(updated, now)) {
+    const submitted = new Set((await prisma.shiftRequestSubmission.findMany({ where: { periodId: period.id } })).map((s) => s.employeeId));
+    for (const e of await activeEmployees()) {
+      if (submitted.has(e.id)) continue;
+      const r = await enqueue({
+        employeeId: e.id,
+        kind: "SHIFT_REMINDER",
+        title: `${formatYearMonthJa(ym)} 締切変更`,
+        body: `【シフト提出の締切変更】\n${formatYearMonthJa(ym)}の希望シフトの締切が ${formatDeadline(deadline)} になりました。まだの方は提出をお願いします。\n\n▼提出はこちら\n${staffUrl(e, "submit", now, deadline)}`,
+        dedupeKey: `SHIFT_DEADLINE:${ym}:${e.id}:${date}`,
+      });
+      if (r.created) queued++;
+    }
+  }
+  return { period: updated, queued };
 }
 
 /** 期間の提出状況 */
@@ -131,12 +162,15 @@ export async function periodOverview(ym: YearMonth) {
     prisma.shiftRequestSubmission.findMany({ where: { periodId: period.id }, include: { days: true } }),
   ]);
   const byEmployee = new Map(submissions.map((s) => [s.employeeId, s]));
+  const dates = datesOfMonth(ym);
+  const calendar = await loadCalendar(dates[0], dates[dates.length - 1]);
   const rows = employees.map((e) => {
     const s = byEmployee.get(e.id);
     return {
       employee: e,
       submission: s ?? null,
-      okDays: s ? s.days.filter((d) => d.availability === "OK").length : 0,
+      // 提出後に店休日になった日は数えない
+      okDays: s ? s.days.filter((d) => d.availability === "OK" && !calendar.isClosed(d.date)).length : 0,
     };
   });
   const submittedCount = rows.filter((r) => r.submission).length;
@@ -147,6 +181,16 @@ export async function periodOverview(ym: YearMonth) {
     total: rows.length,
     rate: rows.length ? Math.round((submittedCount / rows.length) * 100) : 0,
   };
+}
+
+/**
+ * スタッフが今提出すべき月：受付中の期間があればその月（締切延長で月をまたいだ場合も含む）、
+ * なければ翌月。LINE・提出画面・cron・ダッシュボードで共通に使う
+ */
+export async function activeRequestMonth(now = new Date()): Promise<YearMonth> {
+  const collecting = await prisma.shiftPeriod.findMany({ where: { status: "COLLECTING" }, orderBy: { yearMonth: "asc" } });
+  const open = collecting.find((p) => isAcceptingRequests(p, now));
+  return open?.yearMonth ?? nextTargetMonth(now);
 }
 
 /** 次に作るべきシフトの月（今日の営業日の翌月） */

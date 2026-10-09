@@ -16,3 +16,16 @@ export async function myShifts(employeeId: string, ym: YearMonth) {
   const lines = items.map((a) => `${formatDateJa(a.date)} ${a.patternName ? `${a.patternName} ` : ""}${formatHmRange(a.startTime, a.endTime)}`).join("\n");
   return { published: true, items, lines, publishedAt: pub.publishedAt };
 }
+
+/** その日の公開済みシフト（全員分）。営業日 date の最後に公開した内容 */
+export async function publishedShiftsOn(date: string) {
+  const period = await prisma.shiftPeriod.findUnique({
+    where: { yearMonth: date.slice(0, 7) },
+    include: { publications: { orderBy: { version: "desc" }, take: 1 } },
+  });
+  const pub = period?.publications[0];
+  if (!pub) return [];
+  return (JSON.parse(pub.snapshot) as { date: string; employeeId: string; startTime: string; endTime: string; patternName: string | null }[]).filter(
+    (a) => a.date === date,
+  );
+}

@@ -13,6 +13,8 @@ export const NOTIFICATION_KIND_LABELS: Record<string, string> = {
 };
 
 const MAX_ATTEMPTS = 3;
+/** 送信中のまま止まった通知（処理が途中で落ちた）を再送対象にするまでの時間 */
+const SENDING_TIMEOUT_MS = 10 * 60 * 1000;
 
 /** 通知を積む。同じ dedupeKey が既にあれば何もしない（二重送信防止） */
 export async function enqueue(n: { employeeId: string; kind: NotificationKind; title: string; body: string; dedupeKey: string }) {
@@ -31,13 +33,25 @@ export async function enqueue(n: { employeeId: string; kind: NotificationKind; t
 /** 未送信・失敗（上限未満）の通知を送信する */
 export async function dispatchPending(limit = 200) {
   const pending = await prisma.notification.findMany({
-    where: { OR: [{ status: "PENDING" }, { status: "FAILED", attempts: { lt: MAX_ATTEMPTS } }] },
+    where: {
+      OR: [
+        { status: "PENDING" },
+        { status: "FAILED", attempts: { lt: MAX_ATTEMPTS } },
+        { status: "SENDING", createdAt: { lt: new Date(Date.now() - SENDING_TIMEOUT_MS) } },
+      ],
+    },
     include: { employee: { include: { lineAccount: true } } },
     orderBy: { createdAt: "asc" },
     take: limit,
   });
   const result = { sent: 0, skipped: 0, failed: 0, mocked: 0 };
   for (const n of pending) {
+    // 同時に動いた別の送信処理と同じ通知を二重に送らないよう、1件ずつ確保してから送る
+    const claimed = await prisma.notification.updateMany({
+      where: { id: n.id, status: n.status, attempts: n.attempts },
+      data: { status: "SENDING" },
+    });
+    if (claimed.count !== 1) continue;
     const lineUserId = n.employee?.lineAccount?.lineUserId;
     if (!n.employee || !n.employee.active || !lineUserId) {
       await prisma.notification.update({
@@ -64,4 +78,14 @@ export async function dispatchPending(limit = 200) {
     }
   }
   return result;
+}
+
+/** 送信失敗（再送上限に達したものを含む）を未送信に戻す */
+export async function retryFailed() {
+  const r = await prisma.notification.updateMany({ where: { status: "FAILED" }, data: { status: "PENDING", attempts: 0 } });
+  return r.count;
+}
+
+export function failedCount() {
+  return prisma.notification.count({ where: { status: "FAILED" } });
 }

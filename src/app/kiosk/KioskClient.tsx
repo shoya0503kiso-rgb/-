@@ -53,17 +53,24 @@ export function KioskClient({ initial, storeName }: { initial: KioskEmployee[]; 
   const [done, setDone] = useState<{ message: string; type: PunchType } | null>(null);
   const [isPending, startTransition] = useTransition();
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const failures = useRef(0);
+  // 再デプロイ後などで通信が続けて失敗したら、画面を読み込み直して回復する
+  const noteFailure = useCallback(() => {
+    failures.current += 1;
+    if (failures.current >= 2) location.reload();
+  }, []);
 
   const refresh = useCallback(() => {
     startTransition(async () => {
       try {
         const r = await refreshKioskAction();
+        failures.current = 0;
         if (r.ok && r.data) setEmployees(r.data);
       } catch {
-        // 通信エラー・再デプロイ直後など。次回の更新で回復させる（画面は落とさない）
+        noteFailure();
       }
     });
-  }, []);
+  }, [noteFailure]);
 
   const close = useCallback(() => {
     setSelected(null);
@@ -105,7 +112,9 @@ export function KioskClient({ initial, storeName }: { initial: KioskEmployee[]; 
       let r: Awaited<ReturnType<typeof punchAction>>;
       try {
         r = await punchAction(emp.id, type, pinValue);
+        failures.current = 0;
       } catch {
+        noteFailure();
         setError("通信エラーで打刻できませんでした。もう一度押してください。");
         setPin("");
         return;
@@ -178,7 +187,11 @@ export function KioskClient({ initial, storeName }: { initial: KioskEmployee[]; 
               <div>
                 <div className="text-3xl font-bold">{selected.name}さん</div>
                 <div className="mt-1 text-slate-600">
-                  {selected.status === "OFF" ? "未出勤" : `${STATUS[selected.status].text}（${hm(selected.since)}〜）`}
+                  {selected.status !== "OFF"
+                    ? `${STATUS[selected.status].text}（${hm(selected.since)}〜）`
+                    : selected.pendingSince
+                      ? `${hm(selected.pendingSince)}からの勤務の退勤が押されていません`
+                      : "未出勤"}
                 </div>
               </div>
               <button onClick={close} className="rounded-full px-4 py-2 text-lg text-slate-500 hover:bg-slate-100">閉じる</button>
@@ -198,7 +211,16 @@ export function KioskClient({ initial, storeName }: { initial: KioskEmployee[]; 
                     {LABEL[type]}
                   </button>
                 ))}
-                {selected.status === "OFF" && (
+                {selected.status === "OFF" && selected.pendingSince && (
+                  <button
+                    disabled={isPending}
+                    onClick={() => choose("CLOCK_OUT")}
+                    className={cx("h-20 w-full rounded-2xl text-2xl font-bold shadow active:scale-[0.99] disabled:opacity-60", ACTION_STYLE.CLOCK_OUT)}
+                  >
+                    退勤（{hm(selected.pendingSince)}からの勤務）
+                  </button>
+                )}
+                {selected.status === "OFF" && !selected.pendingSince && (
                   <button disabled={isPending} onClick={() => choose("CLOCK_OUT")} className="w-full py-3 text-slate-500 underline">
                     出勤を押し忘れた → 退勤だけ記録する
                   </button>

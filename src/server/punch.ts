@@ -27,8 +27,12 @@ const OPEN_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 
 type Rules = ReturnType<typeof anomalyRulesOf>;
 
-/** 現在勤務中の勤怠（退勤漏れで古くなったものは除く。isStaleOpen を参照） */
-async function findOpenSession(tx: Tx, employeeId: string, now: Date, rules: Rules) {
+/**
+ * 現在勤務中の勤怠。退勤漏れで古くなったもの（isStaleOpen）は除く。
+ * includeStale = true（退勤打刻）なら、古くても24時間以内の勤怠を対象にする
+ * （閉店後に片付けて遅く退勤した場合に勤怠が2件に割れないように）
+ */
+async function findOpenSession(tx: Tx, employeeId: string, now: Date, rules: Rules, includeStale = false) {
   const candidates = await tx.workSession.findMany({
     where: {
       employeeId,
@@ -39,7 +43,8 @@ async function findOpenSession(tx: Tx, employeeId: string, now: Date, rules: Rul
     orderBy: { clockIn: "desc" },
     include: { breaks: true },
   });
-  return candidates.find((s) => !isStaleOpen({ businessDate: s.businessDate, clockIn: s.clockIn! }, rules, now)) ?? null;
+  const fresh = candidates.find((s) => !isStaleOpen({ businessDate: s.businessDate, clockIn: s.clockIn! }, rules, now));
+  return fresh ?? (includeStale ? (candidates[0] ?? null) : null);
 }
 
 export interface PunchResult {
@@ -116,7 +121,7 @@ export async function punch(params: {
         reject(`${PUNCH_LABELS[params.type]}は打刻済みです（${formatTime(last.at)}）`);
       }
 
-      const open = await findOpenSession(tx, employee.id, at, rules);
+      const open = await findOpenSession(tx, employee.id, at, rules, params.type === "CLOCK_OUT");
       const openBreak = open?.breaks.find((b) => !b.end);
       // 退職・休止にされたスタッフも、勤務中なら退勤・休憩はできる
       if (!employee.active && (!open || params.type === "CLOCK_IN")) reject("従業員が見つかりません");
@@ -181,6 +186,8 @@ export interface KioskEmployee {
   hasPin: boolean;
   status: WorkStatus;
   since: Date | null;
+  /** 未出勤だが、24時間以内に退勤していない勤務がある（その出勤時刻）。退勤ボタンで閉じられる */
+  pendingSince: Date | null;
 }
 
 /** 打刻画面に表示する従業員と現在の状態（勤務中なら退職扱いでも表示する） */
@@ -196,9 +203,13 @@ export async function kioskStatus(now = new Date()): Promise<KioskEmployee[]> {
     }),
   ]);
   const byEmployee = new Map<string, (typeof openSessions)[number]>();
+  const pending = new Map<string, Date>();
   for (const s of openSessions) {
-    if (byEmployee.has(s.employeeId) || isStaleOpen({ businessDate: s.businessDate, clockIn: s.clockIn! }, rules, now)) continue;
-    byEmployee.set(s.employeeId, s);
+    if (isStaleOpen({ businessDate: s.businessDate, clockIn: s.clockIn! }, rules, now)) {
+      if (!pending.has(s.employeeId)) pending.set(s.employeeId, s.clockIn!);
+      continue;
+    }
+    if (!byEmployee.has(s.employeeId)) byEmployee.set(s.employeeId, s);
   }
   return employees
     .filter((e) => e.active || byEmployee.has(e.id))
@@ -212,6 +223,7 @@ export async function kioskStatus(now = new Date()): Promise<KioskEmployee[]> {
         hasPin: !!e.pinHash,
         status: !s ? "OFF" : br ? "ON_BREAK" : "WORKING",
         since: br ? br.start : (s?.clockIn ?? null),
+        pendingSince: s ? null : (pending.get(e.id) ?? null),
       };
     });
 }

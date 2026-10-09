@@ -56,8 +56,10 @@ export async function publishPeriod(ym: YearMonth, admin: { name: string }, now 
   let notified = 0;
   for (const e of employees) {
     const mine = byEmp(snapshot, e.id);
-    const url = staffUrl(e.id, "me", now);
-    if (version === 1) {
+    const url = staffUrl(e, "me", now);
+    // 初回の確定通知を受け取っていない人（初回公開が途中で失敗した・後から在籍になった等）には全文を送る
+    const gotFirst = version > 1 && (await prisma.notification.findUnique({ where: { dedupeKey: `SHIFT_PUBLISHED:${ym}:v1:${e.id}` } }));
+    if (version === 1 || !gotFirst) {
       await enqueue({
         employeeId: e.id,
         kind: "SHIFT_PUBLISHED",

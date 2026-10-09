@@ -32,4 +32,14 @@ test("画面キャプチャ", async ({ page }) => {
     await page.goto(url);
     await page.screenshot({ path: `${dir}/${name}-mobile.png`, fullPage: true });
   }
+  // シフト画面（PC幅）
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/admin/shifts");
+  await page.getByRole("link", { name: /のシフト$/ }).click();
+  await page.waitForURL(/\/admin\/shifts\/\d{4}-\d{2}/);
+  const url = page.url().split("?")[0];
+  for (const tab of ["board", "conditions", "requests"]) {
+    await page.goto(`${url}?tab=${tab}`);
+    await page.screenshot({ path: `${dir}/shift-${tab}.png`, fullPage: true });
+  }
 });

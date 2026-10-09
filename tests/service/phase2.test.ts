@@ -53,8 +53,8 @@ describe("LINE連携", () => {
 describe("本人専用リンク", () => {
   it("改ざん・用途違い・期限切れは無効", () => {
     const now = t("2026-10-13 10:00");
-    const token = createStaffToken("emp1", "submit", now);
-    expect(verifyStaffToken(token, "submit", now)).toBe("emp1");
+    const token = createStaffToken({ id: "emp1", linkVersion: 0 }, "submit", now);
+    expect(verifyStaffToken(token, "submit", now)?.employeeId).toBe("emp1");
     expect(verifyStaffToken(token, "me", now)).toBeNull();
     expect(verifyStaffToken(token.slice(0, -2) + "xx", "submit", now)).toBeNull();
     expect(verifyStaffToken(token, "submit", t("2026-11-13 10:01"))).toBeNull();
@@ -146,8 +146,9 @@ describe("シフト提出フロー（13日依頼 → 16日リマインド → 17
     await makeEmployee("A");
     await openCollection("2026-11", t("2026-10-13 10:00"));
     await runDaily(t("2026-10-18 10:00"));
-    const p = await extendDeadline("2026-11", "2026-10-19", t("2026-10-18 11:00"));
+    const { period: p, queued } = await extendDeadline("2026-11", "2026-10-19", t("2026-10-18 11:00"));
     expect(p.status).toBe("COLLECTING");
+    expect(queued).toBe(1);
   });
 });
 

@@ -22,6 +22,12 @@ export default async function AdminHome() {
         <Stat label={`${formatYearMonthJa(d.ym)}の総実働`} value={formatDuration(d.monthTotalMinutes)} href={`/admin/attendance?ym=${d.ym}`} sub="全スタッフ合計" />
       </div>
 
+      {d.lineFailed > 0 && (
+        <Link href="/admin/line" className="block rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+          LINE送信失敗 {d.lineFailed}件 — タップして確認・再送
+        </Link>
+      )}
+
       <Card
         title={`${formatYearMonthJa(d.shift.ym)}のシフト`}
         actions={<Link className="text-sm text-teal-700 underline" href={`/admin/shifts/${d.shift.ym}`}>シフト画面へ</Link>}

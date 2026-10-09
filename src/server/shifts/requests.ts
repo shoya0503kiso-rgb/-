@@ -3,7 +3,7 @@ import { datesOfMonth, isValidHm, type YearMonth } from "@/lib/time";
 import { prisma } from "../db";
 import { UserError } from "../errors";
 import { loadCalendar } from "../settings";
-import { getOrCreatePeriod, isAcceptingRequests } from "./periods";
+import { getOrCreatePeriod, getPeriod, isAcceptingRequests } from "./periods";
 
 export interface RequestDayInput {
   date: string;
@@ -25,11 +25,15 @@ export async function requestForm(employeeId: string, ym: YearMonth, now = new D
     }),
   ]);
   const byDate = new Map(submission?.days.map((d) => [d.date, d]));
+  const activeIds = new Set(patterns.map((p) => p.id));
+  // 希望していた枠が停止された日（「どの枠でも可」として表示し、本人に知らせる）
+  const removedPatternDays = (submission?.days ?? []).filter((d) => d.patternId && !activeIds.has(d.patternId)).map((d) => d.date);
   return {
     period,
     accepting: isAcceptingRequests(period, now),
     patterns,
     submission,
+    removedPatternDays,
     days: dates.map((date) => {
       const d = byDate.get(date);
       return {
@@ -37,7 +41,7 @@ export async function requestForm(employeeId: string, ym: YearMonth, now = new D
         closed: calendar.isClosed(date),
         holiday: calendar.isHoliday(date),
         availability: (d?.availability ?? null) as "OK" | "NG" | null,
-        patternId: d?.patternId ?? null,
+        patternId: d?.patternId && activeIds.has(d.patternId) ? d.patternId : null,
         startTime: d?.startTime ?? null,
         endTime: d?.endTime ?? null,
       };
@@ -58,8 +62,9 @@ export async function submitRequest(
 ) {
   const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
   if (!employee || !employee.active) throw new UserError("従業員が見つかりません");
-  const period = await getOrCreatePeriod(ym);
-  if (by === "STAFF" && !isAcceptingRequests(period, now)) {
+  // スタッフからは受付中の期間にだけ提出できる（期間を勝手に作らない）
+  const period = by === "STAFF" ? await getPeriod(ym) : await getOrCreatePeriod(ym);
+  if (!period || (by === "STAFF" && !isAcceptingRequests(period, now))) {
     throw new UserError("提出期間外のため変更できません。店長に連絡してください。");
   }
   const dates = datesOfMonth(ym);
@@ -69,7 +74,7 @@ export async function submitRequest(
   for (const d of input.days) {
     if (!dates.includes(d.date)) throw new UserError(`対象月以外の日付です: ${d.date}`);
     if (d.availability !== "OK" && d.availability !== "NG") throw new UserError("出勤可否が正しくありません");
-    if (d.patternId && !patternIds.has(d.patternId)) throw new UserError("シフト枠が正しくありません");
+    if (d.patternId && !patternIds.has(d.patternId)) throw new UserError("選んだシフト枠は現在使われていません。枠を選び直してください");
     if ((d.startTime && !isValidHm(d.startTime)) || (d.endTime && !isValidHm(d.endTime))) throw new UserError("時刻が正しくありません");
     if (!!d.startTime !== !!d.endTime) throw new UserError("希望時間は開始と終了の両方を入力してください");
     given.set(d.date, d);

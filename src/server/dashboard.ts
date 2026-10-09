@@ -4,6 +4,8 @@ import { listOpenAnomalies, monthlyTotalsAll } from "./attendance";
 import { prisma } from "./db";
 import { kioskStatus } from "./punch";
 import { getSettings } from "./settings";
+import { failedCount } from "./notify";
+import { publishedShiftsOn } from "./shifts/staff";
 import { isAcceptingRequests, nextTargetMonth, periodOverview, publishDueDate } from "./shifts/periods";
 
 export async function dashboard(now = new Date()) {
@@ -11,7 +13,7 @@ export async function dashboard(now = new Date()) {
   const today = businessDateOf(now, settings.dayChangeHour);
   const ym = yearMonthOf(today);
 
-  const [status, todaySessions, anomalies, totals, employees, todayShifts] = await Promise.all([
+  const [status, todaySessions, anomalies, totals, employees, todayShiftsRaw] = await Promise.all([
     kioskStatus(now),
     prisma.workSession.findMany({
       where: { businessDate: today, deletedAt: null },
@@ -21,12 +23,12 @@ export async function dashboard(now = new Date()) {
     listOpenAnomalies({ now, from: `${addMonths(ym, -2)}-01` }),
     monthlyTotalsAll(ym),
     prisma.employee.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
-    prisma.shiftAssignment.findMany({
-      where: { date: today, period: { status: "PUBLISHED" } },
-      include: { employee: true },
-      orderBy: { startTime: "asc" },
-    }),
+    publishedShiftsOn(today),
   ]);
+  const nameOf = new Map(employees.map((e) => [e.id, e.name]));
+  const todayShifts = todayShiftsRaw
+    .map((a) => ({ ...a, employee: { name: nameOf.get(a.employeeId) ?? "（退職）" } }))
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   // 今日の出勤者（勤務中・休憩中・退勤済み）
   const onDuty = status.filter((s) => s.status !== "OFF");
@@ -61,6 +63,7 @@ export async function dashboard(now = new Date()) {
   return {
     today,
     shift,
+    lineFailed: await failedCount(),
     ym,
     onDuty,
     finished,

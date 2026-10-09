@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Alert, Button } from "@/components/ui";
-import { dispatchAction, runDailyAction } from "./actions";
+import { dispatchAction, retryFailedAction, runDailyAction } from "./actions";
 
 export function LineActions() {
   const router = useRouter();
@@ -18,6 +18,7 @@ export function LineActions() {
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         <Button variant="secondary" disabled={pending} onClick={() => run(dispatchAction)}>未送信の通知を送信</Button>
+        <Button variant="secondary" disabled={pending} onClick={() => run(retryFailedAction)}>送信失敗を再送</Button>
         <Button variant="secondary" disabled={pending} onClick={() => run(runDailyAction)}>毎日の自動処理を今すぐ実行</Button>
       </div>
       {msg && <Alert kind="info"><pre className="font-sans whitespace-pre-wrap">{msg}</pre></Alert>}

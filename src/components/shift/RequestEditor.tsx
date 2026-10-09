@@ -1,6 +1,6 @@
 "use client";
 // シフト希望の入力（スタッフのスマホ用。管理者の代理入力でも使う）
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Alert, Button, cx, Textarea } from "@/components/ui";
 import { formatDateJa, formatHmRange } from "@/lib/time";
 import type { ActionResult } from "@/server/errors";
@@ -42,13 +42,25 @@ export function RequestEditor({
   const [comment, setComment] = useState(initialComment);
   const [result, setResult] = useState<{ error?: string; message?: string } | null>(null);
   const [pending, start] = useTransition();
+  const [dirty, setDirty] = useState(false);
+
+  // 未提出の変更があるままページを閉じようとしたら警告する
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   const update = (date: string, patch: Partial<EditorDay>) => {
     setResult(null);
+    setDirty(true);
     setDays((ds) => ds.map((d) => (d.date === date ? { ...d, ...patch } : d)));
   };
-  const setAll = (availability: "OK" | "NG") =>
+  const setAll = (availability: "OK" | "NG") => {
+    setDirty(true);
     setDays((ds) => ds.map((d) => (d.closed ? d : { ...d, availability })));
+  };
   const okCount = days.filter((d) => d.availability === "OK" && !d.closed).length;
 
   function submit() {
@@ -64,7 +76,10 @@ export function RequestEditor({
         }));
       const r = await onSubmit(payload, comment);
       setResult(r.ok ? { message: `${r.message ?? "提出しました"}（出勤可 ${r.data?.okDays ?? okCount}日）` } : { error: r.error });
-      if (r.ok) window.scrollTo({ top: 0, behavior: "smooth" });
+      if (r.ok) {
+        setDirty(false);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     });
   }
 
@@ -141,13 +156,19 @@ export function RequestEditor({
       </ul>
       <div className="mt-4">
         <label className="mb-1 block text-sm font-medium">店長へのメモ（任意）</label>
-        <Textarea rows={3} value={comment} disabled={readOnly} onChange={(e) => setComment(e.target.value)} placeholder="例：テスト期間のため11/20〜は少なめ希望" />
+        <Textarea rows={3} value={comment} disabled={readOnly} onChange={(e) => {
+            setComment(e.target.value);
+            setDirty(true);
+          }} placeholder="例：テスト期間のため11/20〜は少なめ希望" />
       </div>
       {result?.error && <div className="mt-3"><Alert kind="error">{result.error}</Alert></div>}
       {!readOnly && (
         <div className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 p-3 backdrop-blur">
           <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
-            <span className="text-sm">出勤可 <b className="text-lg">{okCount}</b> 日</span>
+            <span className="text-sm">
+              出勤可 <b className="text-lg">{okCount}</b> 日
+              {dirty && <span className="ml-2 text-amber-700">未提出の変更あり</span>}
+            </span>
             <Button onClick={submit} disabled={pending} className="min-w-40 py-3 text-lg">{pending ? "送信中…" : submitLabel}</Button>
           </div>
         </div>

@@ -1,32 +1,33 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "./db";
 import { UserError } from "./errors";
+import { assertNotLocked, recordFailure } from "./rate-limit";
 import { ADMIN_COOKIE, KIOSK_COOKIE, signAdminSession, verifyAdminSession, type AdminSession } from "./session-token";
 
 const ADMIN_MAX_AGE = 60 * 60 * 24 * 14;
 const KIOSK_MAX_AGE = 60 * 60 * 24 * 365 * 5;
 
-const LOGIN_LOCK_FAILURES = 5;
-const LOGIN_LOCK_WINDOW_MS = 15 * 60 * 1000;
 
-export async function loginAdmin(loginId: string, password: string, now = new Date()): Promise<void> {
+/** 接続元IP（リバースプロキシ経由を想定） */
+export async function clientIp() {
+  const h = await headers();
+  return (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "").trim();
+}
+
+export async function loginAdmin(loginId: string, password: string, now = new Date(), ip?: string): Promise<void> {
   const id = loginId.trim();
-  const failures = await prisma.loginFailure.count({
-    where: { loginId: id, createdAt: { gte: new Date(now.getTime() - LOGIN_LOCK_WINDOW_MS) } },
-  });
-  if (failures >= LOGIN_LOCK_FAILURES) {
-    throw new UserError("ログインに続けて失敗したため、15分間ログインできません");
-  }
+  const from = ip ?? (await clientIp());
+  await assertNotLocked(id, from, now);
   const user = await prisma.adminUser.findUnique({ where: { loginId: id } });
   if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
-    await prisma.loginFailure.create({ data: { loginId: id } });
+    await recordFailure(id, from, now);
     throw new UserError("IDまたはパスワードが違います");
   }
-  await prisma.loginFailure.deleteMany({ where: { loginId: id } });
+  await prisma.loginFailure.deleteMany({ where: { loginId: id, ip: from } });
   const token = await signAdminSession({ adminId: user.id, name: user.name, ver: user.tokenVersion }, ADMIN_MAX_AGE);
   (await cookies()).set(ADMIN_COOKIE, token, {
     httpOnly: true,
