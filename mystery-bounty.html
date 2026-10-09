@@ -342,6 +342,21 @@ details.fold[open] > summary .fs:empty::before{content:"閉じる"}
 .tcell.wiggle .chest{animation:wiggle .5s ease-in-out}
 @keyframes wiggle{25%{transform:rotate(-5deg);filter:brightness(1.4)}75%{transform:rotate(5deg);filter:brightness(1.4)}}
 @media (prefers-reduced-motion:reduce){.lamps::before,.lamps::after,.kakutei i,.speed,.idle-chest .chest,.idle-chest .ch-lid{animation:none}.ticker .tk-in{animation-duration:60s}#tv.shake{animation:none}}
+/* ---- Performance: TV browsers are slow to repaint. Nothing animates a filter or a background endlessly;
+   continuous motion runs on transform/opacity only, which the GPU handles without redrawing. ---- */
+.chest svg{position:relative}
+.chest[data-look]:not([data-look="rusty"]) svg{animation:none;filter:none}
+.chest::before{content:"";position:absolute;left:-8%;right:-8%;top:4%;bottom:-4%;border-radius:50%;background:radial-gradient(closest-side,var(--glow),transparent 72%);opacity:0;pointer-events:none}
+.chest[data-look="gold"]::before,.chest[data-look="red"]::before,.chest[data-look="blue"]::before,.chest[data-look="rainbow"]::before{opacity:.6;animation:glowP 1.8s ease-in-out infinite;will-change:opacity}
+.chest[data-look="silver"]::before{opacity:.3}
+@keyframes glowP{50%{opacity:.2}}
+.tcell .chest,.pcell .chest,.ticker .tk-in{will-change:transform}
+.tv-light{animation:none!important}   /* the full-screen rotating rays alone cost about a third of the frame rate on slow devices */
+.lamps{animation:none!important}
+.lamps::before,.lamps::after{filter:none!important;will-change:opacity}
+#tvStage.rainbow .st-glow,.chest.open[data-res="jackpot"] .ch-beam,.meter span.rb.on{animation:none!important}
+.idle-title{filter:none;animation:none}
+.result .r-tier{filter:none}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -1035,21 +1050,23 @@ const A={ctx:null,
 
 /* ---------- FX (confetti) ---------- */
 const fx=$("#fx"),fxc=fx.getContext("2d");let parts=[],fxOn=false;
-function sizeFx(){fx.width=innerWidth*devicePixelRatio;fx.height=innerHeight*devicePixelRatio}
+const FXR=1,FXMAX=260;   // draw particles at CSS-pixel resolution and cap their number: TV browsers are slow at full-screen canvas work
+function sizeFx(){fx.width=innerWidth*FXR;fx.height=innerHeight*FXR}
 window.addEventListener("resize",sizeFx);sizeFx();
 function confetti(colors,n,spread){
   const W=fx.width,H=fx.height;
-  for(let i=0;i<n;i++){const a=-Math.PI/2+(rnd()-.5)*(spread||1.6);const sp=(8+rnd()*14)*devicePixelRatio;
-    parts.push({x:W/2+(rnd()-.5)*W*.1,y:H*.55,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:rnd()*6.28,vr:(rnd()-.5)*.4,s:(6+rnd()*8)*devicePixelRatio,c:colors[i%colors.length],life:1})}
+  for(let i=0;i<n;i++){const a=-Math.PI/2+(rnd()-.5)*(spread||1.6);const sp=(8+rnd()*14)*FXR;
+    parts.push({x:W/2+(rnd()-.5)*W*.1,y:H*.55,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:rnd()*6.28,vr:(rnd()-.5)*.4,s:(6+rnd()*8)*FXR,c:colors[i%colors.length],life:1})}
   if(!fxOn){fxOn=true;requestAnimationFrame(tick)}
 }
-function rain(colors,n){const W=fx.width;for(let i=0;i<n;i++)parts.push({x:rnd()*W,y:-20-rnd()*fx.height*.5,vx:(rnd()-.5)*2,vy:2+rnd()*4,r:rnd()*6.28,vr:(rnd()-.5)*.3,s:(6+rnd()*8)*devicePixelRatio,c:colors[i%colors.length],life:1});if(!fxOn){fxOn=true;requestAnimationFrame(tick)}}
+function rain(colors,n){const W=fx.width;for(let i=0;i<n;i++)parts.push({x:rnd()*W,y:-20-rnd()*fx.height*.5,vx:(rnd()-.5)*2,vy:2+rnd()*4,r:rnd()*6.28,vr:(rnd()-.5)*.3,s:(6+rnd()*8)*FXR,c:colors[i%colors.length],life:1});if(!fxOn){fxOn=true;requestAnimationFrame(tick)}}
 /* gold coins dropped from above the screen, staggered by start height so they land over ~2.5s */
-function coinShower(n){const W=fx.width,H=fx.height;for(let i=0;i<n;i++)parts.push({k:"coin",x:rnd()*W,y:-20-rnd()*H*1.3,vx:(rnd()-.5)*3,vy:2+rnd()*4,r:rnd()*6.28,vr:.08+rnd()*.25,s:(9+rnd()*7)*devicePixelRatio,life:1});if(!fxOn){fxOn=true;requestAnimationFrame(tick)}}
+function coinShower(n){const W=fx.width,H=fx.height;for(let i=0;i<n;i++)parts.push({k:"coin",x:rnd()*W,y:-20-rnd()*H*1.3,vx:(rnd()-.5)*3,vy:2+rnd()*4,r:rnd()*6.28,vr:.08+rnd()*.25,s:(9+rnd()*7)*FXR,life:1});if(!fxOn){fxOn=true;requestAnimationFrame(tick)}}
 function tick(){
   fxc.clearRect(0,0,fx.width,fx.height);
   parts=parts.filter(p=>p.y<fx.height+40&&p.life>0);
-  for(const p of parts){p.vy+=.35*devicePixelRatio*.5;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;
+  if(parts.length>FXMAX)parts.splice(0,parts.length-FXMAX);
+  for(const p of parts){p.vy+=.35*FXR*.5;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;
     if(p.k==="coin"){
       if(p.y>fx.height*.92&&!p.b){p.vy*=-.45;p.b=1}
       if(p.y<-p.s)continue;
