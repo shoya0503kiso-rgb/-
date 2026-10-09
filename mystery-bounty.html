@@ -279,9 +279,6 @@ details.fold[open] > summary .fs:empty::before{content:"閉じる"}
 .smoke{position:absolute;left:50%;top:44%;width:30vh;height:30vh;margin-left:-15vh;border-radius:50%;background:radial-gradient(circle,rgba(200,200,210,.55),transparent 65%);animation:smoke 2.2s ease-out forwards;pointer-events:none}
 @keyframes smoke{from{transform:translateY(0) scale(.4);opacity:.9}to{transform:translateY(-25vh) scale(2.2);opacity:0}}
 #fx{position:absolute;inset:0;z-index:5;pointer-events:none;width:100%;height:100%}
-.tv-gate{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,3,8,.82);border:none;color:var(--text);font-size:3vh;text-align:center;padding:4vh}
-.tv-gate b{display:block;font-family:var(--display);font-weight:400;font-size:6vh;color:var(--gold);margin-bottom:2vh}
-.tv-gate span{color:var(--muted);font-size:2.2vh;display:block;margin-top:2vh;line-height:1.7}
 .tv-sync{position:absolute;right:2vw;bottom:1.2vh;font-size:1.6vh;color:rgba(255,255,255,.35);z-index:4}
 @media (prefers-reduced-motion:reduce){.tv-light{animation:none}}
 /* ---------- TV effects: sweep, lamps, 確定, reach, cut-in, result, attract ---------- */
@@ -443,7 +440,6 @@ details.fold[open] > summary .fs:empty::before{content:"閉じる"}
   <div id="blackout"></div>
   <div id="flash"></div>
   <div class="tv-sync" id="syncT"></div>
-  <button class="tv-gate" id="tvGate"><div><b>タップしてスタート</b>効果音をONにして全画面表示にします<span>このあとはスタッフのスマホから操作します。<br>テレビには触らなくてOKです。</span></div></button>
 </section>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -751,7 +747,7 @@ window.addEventListener("hashchange",route);
 function onState(src){
   if(mode==="staff")renderStaff(src);
   else if(mode==="pick")renderPick();
-  else if(mode==="tv")tvSync();
+  else if(mode==="tv"){tvAutoStart();tvSync()}
 }
 
 /* ---------- STAFF ---------- */
@@ -1068,12 +1064,22 @@ function tick(){
 /* ---------- TV ---------- */
 const tv=$("#tv"),tgrid=$("#tgrid"),stage=$("#tvStage"),stChest=$("#stChest"),meter=$("#meter"),result=$("#result");
 let shownKey="",playToken=0;
-$("#tvGate").addEventListener("click",()=>{
+/* The TV is never touched: start sound and keep the screen awake on our own. Browsers that block audio until an
+   interaction keep it muted; any remote-control key or click (if one ever happens) unlocks it and goes fullscreen. */
+var tvStarted=false;
+function tvAutoStart(){
+  if(tvStarted)return;tvStarted=true;
   A.init();
-  $("#tvGate").hidden=true;
-  const de=document.documentElement;try{const p=de.requestFullscreen&&de.requestFullscreen();if(p&&p.catch)p.catch(()=>{})}catch(e){}
   try{navigator.wakeLock&&navigator.wakeLock.request("screen").catch(()=>{})}catch(e){}
-});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden){A.init();try{navigator.wakeLock&&navigator.wakeLock.request("screen").catch(()=>{})}catch(e){}}});
+  const unlock=()=>{
+    if(mode!=="tv")return;
+    A.init();
+    const de=document.documentElement;
+    if(!document.fullscreenElement)try{const p=de.requestFullscreen&&de.requestFullscreen();if(p&&p.catch)p.catch(()=>{})}catch(e){}
+  };
+  ["pointerdown","keydown","touchstart"].forEach(ev=>document.addEventListener(ev,unlock,{passive:true}));
+}
 function showSec(id){["tvIdle","tvGrid","tvStage"].forEach(s=>$("#"+s).classList.toggle("on",s===id))}
 function renderTvLeft(){
   const r=S.round;
