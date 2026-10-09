@@ -1,6 +1,7 @@
 // LINE トークのコマンド処理。勤怠・シフトのサービス関数だけを呼ぶ（LINEの都合を業務ロジックに持ち込まない）
 import { addMonths, businessDateOf, formatDurationJa, formatYearMonthJa, yearMonthOf } from "@/lib/time";
 import { monthlyAttendance } from "../attendance";
+import { payrollFor } from "../payroll";
 import { getSettings } from "../settings";
 import { activeRequestMonth, formatDeadline, getPeriod, isAcceptingRequests } from "../shifts/periods";
 import { myShifts } from "../shifts/staff";
@@ -12,6 +13,7 @@ export const HELP_TEXT =
   "・「シフト提出」… 希望シフトの提出\n" +
   "・「シフト確認」… 確定シフトの確認\n" +
   "・「勤務時間」… 今月の勤務時間\n" +
+  "・「給与目安」… 今月の給与の目安\n" +
   "※ 初めての方は、店長から受け取った6桁の連携コードを送ってください。";
 
 const normalize = (s: string) =>
@@ -43,6 +45,19 @@ export async function handleText(lineUserId: string, input: string, displayName 
       return `現在、シフト希望の受付期間ではありません。\n（${formatYearMonthJa(ym)}分の受付は毎月中旬に案内します）`;
     }
     return `${formatYearMonthJa(ym)}の希望シフトを ${formatDeadline(period.deadline)} までに提出してください。\n\n▼提出はこちら（${employee.name}さん専用）\n${staffUrl(employee, "submit", now, period.deadline)}`;
+  }
+
+  if (text.includes("給与") || text.includes("給料")) {
+    const settings = await getSettings();
+    const ym = yearMonthOf(businessDateOf(now, settings.dayChangeHour));
+    const p = await payrollFor(employee.id, ym);
+    if (!p) return "時給が登録されていないため、給与目安を計算できません。店長に確認してください。";
+    return (
+      `${employee.name}さんの${formatYearMonthJa(ym)}の給与目安（${formatDurationJa(p.workMinutes)}勤務）\n` +
+      `約 ${p.total.toLocaleString("ja-JP")}円\n` +
+      `（基本 ${p.base.toLocaleString("ja-JP")}円＋深夜・時間外割増 ${(p.nightPremium + p.overtimePremium).toLocaleString("ja-JP")}円）\n` +
+      "※ 交通費・控除などは含まない目安です。確定額は給与明細で確認してください。"
+    );
   }
 
   // 「勤務時間確認」のような入力は勤務時間を優先する

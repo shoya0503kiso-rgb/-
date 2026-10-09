@@ -146,3 +146,30 @@ describe("自動生成 → 編集 → 公開", () => {
     expect(cond.saved).toBe(false);
   });
 });
+
+describe("Phase 4：給与目安・分析", () => {
+  it("LINE で給与目安を確認できる（時給未設定なら案内）", async () => {
+    const { handleText } = await import("@/server/line/commands");
+    const { issueLinkCode } = await import("@/server/line/link");
+    const e = await makeEmployee("給与", { hourlyWage: 1200 });
+    const code = await issueLinkCode(e.id, t("2026-10-10 12:00"));
+    await handleText("UP", code.code, "", t("2026-10-10 12:00"));
+    await punch({ employeeId: e.id, type: "CLOCK_IN", source: "KIOSK", now: t("2026-10-12 20:00") });
+    await punch({ employeeId: e.id, type: "CLOCK_OUT", source: "KIOSK", now: t("2026-10-13 01:00") });
+    // 実働5h=6000円、深夜3h×1200×25%=900円
+    expect(await handleText("UP", "給与目安", "", t("2026-10-20 12:00"))).toContain("約 6,900円");
+    await prisma.employee.update({ where: { id: e.id }, data: { hourlyWage: null } });
+    expect(await handleText("UP", "給与目安", "", t("2026-10-20 12:00"))).toContain("時給が登録されていない");
+  });
+
+  it("月別分析", async () => {
+    const { monthlyAnalytics } = await import("@/server/analytics");
+    const e = await makeEmployee("分析");
+    await punch({ employeeId: e.id, type: "CLOCK_IN", source: "KIOSK", now: t("2026-10-12 20:00") });
+    await punch({ employeeId: e.id, type: "CLOCK_OUT", source: "KIOSK", now: t("2026-10-13 01:00") });
+    const a = await monthlyAnalytics("2026-10", 3);
+    expect(a.months).toEqual(["2026-08", "2026-09", "2026-10"]);
+    expect(a.byMonth[2]).toMatchObject({ workMinutes: 300, personDays: 1, staffCount: 1 });
+    expect(a.byStaff.find((r) => r.employee.id === e.id)!.months[2]).toMatchObject({ workMinutes: 300, workDays: 1 });
+  });
+});

@@ -10,6 +10,8 @@ const ITEMS = [
   { href: "/admin/shifts", label: "シフト" },
   { href: "/admin/employees", label: "従業員" },
   { href: "/admin/export", label: "出力" },
+  { href: "/admin/payroll", label: "給与目安" },
+  { href: "/admin/analytics", label: "分析" },
   { href: "/admin/line", label: "LINE" },
   { href: "/admin/settings", label: "設定" },
 ];

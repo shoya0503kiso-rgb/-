@@ -85,3 +85,13 @@ test("シフト枠・必要人数の画面", async ({ page }) => {
   await page.getByRole("button", { name: "必要人数を保存" }).click();
   await expect(page.getByText("必要人数を保存しました")).toBeVisible();
 });
+
+test("Phase 4: 給与目安・分析の画面", async ({ page }) => {
+  await login(page);
+  await page.goto("/admin/payroll");
+  await expect(page.getByRole("heading", { name: "給与目安" })).toBeVisible();
+  await expect(page.getByText(/合計 [\d,]+円/)).toBeVisible();
+  await page.goto("/admin/analytics");
+  await expect(page.getByRole("heading", { name: "勤怠分析" })).toBeVisible();
+  await expect(page.getByText("スタッフ別 実働時間（勤務日数・遅刻）")).toBeVisible();
+});

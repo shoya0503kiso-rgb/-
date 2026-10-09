@@ -1,6 +1,7 @@
 import { Alert, Card } from "@/components/ui";
 import { addMonths, businessDateOf, formatDateJa, formatDuration, formatDurationJa, formatHmRange, formatTime, formatYearMonthJa, yearMonthOf } from "@/lib/time";
 import { monthlyAttendance } from "@/server/attendance";
+import { payrollFor } from "@/server/payroll";
 import { getSettings } from "@/server/settings";
 import { myShifts } from "@/server/shifts/staff";
 import { resolveStaffToken } from "@/server/staff-link";
@@ -23,6 +24,7 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
   const months = [ym, addMonths(ym, 1)];
   const shifts = await Promise.all(months.map((m) => myShifts(employee.id, m)));
   const attendance = await monthlyAttendance(employee.id, ym);
+  const pay = await payrollFor(employee.id, ym);
 
   return (
     <main className="mx-auto max-w-xl space-y-4 p-4">
@@ -62,6 +64,15 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
         </ul>
         <p className="mt-2 text-xs text-slate-500">打刻の間違いに気づいたら店長に伝えてください。</p>
       </Card>
+      {pay && (
+        <Card title={`${formatYearMonthJa(ym)}の給与目安`}>
+          <div className="text-3xl font-bold">約 {pay.total.toLocaleString("ja-JP")}円</div>
+          <p className="mt-1 text-sm text-slate-600">
+            基本 {pay.base.toLocaleString("ja-JP")}円 ＋ 深夜割増 {pay.nightPremium.toLocaleString("ja-JP")}円 ＋ 時間外割増 {pay.overtimePremium.toLocaleString("ja-JP")}円
+          </p>
+          <p className="mt-2 text-xs text-slate-500">交通費・控除などを含まない目安です。確定額は給与明細で確認してください。</p>
+        </Card>
+      )}
     </main>
   );
 }
