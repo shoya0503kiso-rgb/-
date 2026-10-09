@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "e2e": "playwright test"
+    "e2e": "PW_CHROMIUM=${PW_CHROMIUM:-} playwright test"
   },
   "dependencies": {
     "@holiday-jp/holiday_jp": "^2.5.2",
