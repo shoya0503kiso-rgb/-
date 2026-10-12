@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Alert, Button, Field, Input } from "@/components/ui";
 import type { ActionResult } from "@/server/errors";
-import { changePasswordAction, createAdminAction, setAdminActiveAction } from "./actions";
+import { changePasswordAction, createAdminAction, resetAdminPasswordAction, setAdminActiveAction } from "./actions";
 
 function useRun() {
   const router = useRouter();
@@ -75,6 +75,17 @@ export function AdminActiveButton({ id, active }: { id: string; active: boolean 
   return (
     <span className="flex items-center gap-2">
       {view}
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={pending}
+        onClick={() => {
+          const temp = prompt("仮パスワード（8文字以上）を入力してください。本人に伝え、次回ログイン時に変更してもらいます。");
+          if (temp) run(() => resetAdminPasswordAction(id, temp));
+        }}
+      >
+        仮パスワード再発行
+      </Button>
       <Button
         size="sm"
         variant="ghost"

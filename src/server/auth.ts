@@ -95,13 +95,15 @@ export async function getAdmin(): Promise<AdminSession | null> {
   if (!session) return null;
   const user = await prisma.adminUser.findUnique({ where: { id: session.adminId } });
   if (!user || !user.active || user.tokenVersion !== (session.ver ?? 0)) return null;
-  return { adminId: user.id, name: user.name };
+  return { adminId: user.id, name: user.name, mustChange: user.mustChangePassword };
 }
 
 /** 管理者必須（画面・サーバーアクションの先頭で呼ぶ） */
-export async function requireAdmin(): Promise<AdminSession> {
+export async function requireAdmin(opts: { allowMustChange?: boolean } = {}): Promise<AdminSession> {
   const admin = await getAdmin();
   if (!admin) redirect("/login");
+  // 初期・仮パスワードのままなら、パスワード変更以外の操作はさせない（middleware を通らないサーバーアクションも含めて）
+  if (admin.mustChange && !opts.allowMustChange) redirect("/admin/settings/admins?first=1");
   return admin;
 }
 

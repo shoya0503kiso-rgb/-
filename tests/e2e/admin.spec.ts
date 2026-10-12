@@ -24,6 +24,14 @@ test("管理者の追加 → 仮パスワードでは変更画面以外に入れ
   await page.goto("/admin/attendance");
   await expect(page).toHaveURL(/\/admin\/settings\/admins/);
   expect((await page.request.get("/api/admin/export?ym=2026-10")).status()).toBe(403);
+  // 変更画面にいても、パスワード変更以外の操作（管理者の追加）はできない
+  await page.getByLabel("名前").fill("勝手に追加");
+  await page.getByLabel("ログインID").fill("intruder");
+  await page.getByLabel("仮パスワード").fill("karipass-03");
+  await page.getByRole("button", { name: "追加" }).click();
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByText("管理者を追加しました")).toHaveCount(0);
+  await expect(page.getByText("勝手に追加")).toHaveCount(0);
 
   await page.getByLabel("現在のパスワード").fill("karipass-01");
   await page.getByLabel("新しいパスワード").first().fill("atarashii-pass-99");

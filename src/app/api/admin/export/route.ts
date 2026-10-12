@@ -5,7 +5,9 @@ import { getEmployee } from "@/server/employees";
 import { isValidYearMonth } from "@/lib/time";
 
 export async function GET(req: NextRequest) {
-  if (!(await getAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const admin = await getAdmin();
+  if (!admin) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (admin.mustChange) return NextResponse.json({ error: "password change required" }, { status: 403 });
   const ym = req.nextUrl.searchParams.get("ym") ?? "";
   const employeeId = req.nextUrl.searchParams.get("employeeId") || undefined;
   const format = req.nextUrl.searchParams.get("format") === "xlsx" ? "xlsx" : "csv";

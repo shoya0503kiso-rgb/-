@@ -31,3 +31,16 @@ describe("管理者アカウント", () => {
     await expect(setAdminActive(b.id, a.id, false)).rejects.toThrow("1人もいなくなる");
   });
 });
+
+describe("仮パスワード再発行", () => {
+  it("他の管理者のみ・再発行後は変更が必要・セッション失効", async () => {
+    const { resetAdminPassword } = await import("@/server/admins");
+    const a = await admin();
+    const b = await admin("b", "bbbbbbbb1");
+    await expect(resetAdminPassword(a.id, a.id, "karipass-02")).rejects.toThrow("自分のパスワード");
+    await resetAdminPassword(a.id, b.id, "karipass-02");
+    const u = await prisma.adminUser.findUniqueOrThrow({ where: { id: b.id } });
+    expect(u).toMatchObject({ mustChangePassword: true, tokenVersion: 1 });
+    expect(await bcrypt.compare("karipass-02", u.passwordHash)).toBe(true);
+  });
+});

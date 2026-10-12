@@ -89,7 +89,20 @@ npm run build && npm run e2e   # 画面のE2Eテスト（Playwright、prisma/e2e
    LINE_CHANNEL_ACCESS_TOKEN=xxxx node scripts/setup-line-richmenu.mjs
    ```
 
-7. 店舗の iPad で `https://<本番ドメイン>/kiosk/setup` を開いて端末登録 → Safari の共有ボタンから「ホーム画面に追加」
+7. 店舗の iPad の Safari で `https://<本番ドメイン>/kiosk` を開き「ホーム画面に追加」→ **ホーム画面のアイコンから開いて**「打刻端末として登録する」から登録（iOS ではホーム画面のアプリと Safari でログイン情報が共有されないことがあるため、アプリ側で登録します）
+
+### 管理者の復旧（管理者が1人で、パスワードを忘れたとき）
+
+本番DBに対して、別のIDで管理者を作り、その管理者でログインして元のアカウントに「仮パスワード再発行」をします。
+
+```bash
+export DATABASE_URL="<直接接続>" DIRECT_URL="<直接接続>"
+node scripts/use-postgres.mjs
+SEED_ADMIN_LOGIN=recovery SEED_ADMIN_PASSWORD='<一時的な強いパスワード>' npm run db:seed
+node scripts/use-postgres.mjs --sqlite
+```
+
+作業が終わったら、`recovery` は管理者一覧から停止してください。
 
 ## 毎月の運用
 

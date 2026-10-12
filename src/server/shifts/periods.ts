@@ -5,7 +5,7 @@ import { prisma } from "../db";
 import { UserError } from "../errors";
 import { enqueue } from "../notify";
 import { getSettings, loadCalendar } from "../settings";
-import { staffUrl } from "../staff-link";
+import { appBaseUrl, staffUrl } from "../staff-link";
 
 export const PERIOD_STATUS_LABELS: Record<string, string> = {
   PREPARING: "受付前",
@@ -69,6 +69,8 @@ async function activeEmployees() {
 
 /** 受付開始＋提出依頼通知（P-19）。既に通知済みの人には再送しない */
 export async function openCollection(ym: YearMonth, now = new Date()) {
+  // 公開URLが未設定なら、受付を開始する前に失敗させる（受付中にしたのに依頼が送られない状態を作らない）
+  appBaseUrl();
   const period = await getOrCreatePeriod(ym);
   if (period.status === "DRAFT" || period.status === "PUBLISHED") {
     throw new UserError("シフト作成後のため受付を再開できません");

@@ -51,8 +51,16 @@ export function ConditionsEditor({
       if (r.ok) router.refresh();
     });
 
-  const applySuggestion = (changes: { employeeId: string; after: ConditionValue }[]) => {
-    setValues((vs) => vs.map((v) => changes.find((c) => c.employeeId === v.employeeId)?.after ?? v));
+  // AIが変えた項目だけを今の入力値に重ねる（保存前の手入力を消さない）
+  const applySuggestion = (changes: { employeeId: string; before: ConditionValue; after: ConditionValue }[]) => {
+    setValues((vs) =>
+      vs.map((v) => {
+        const c = changes.find((x) => x.employeeId === v.employeeId);
+        if (!c) return v;
+        const keys = (Object.keys(c.after) as (keyof ConditionValue)[]).filter((k) => c.after[k] !== c.before[k]);
+        return { ...v, ...Object.fromEntries(keys.map((k) => [k, c.after[k]])) } as ConditionValue;
+      }),
+    );
     setMsg({ message: "案を入力欄に反映しました。内容を確認して「条件を保存」を押してください" });
   };
 
@@ -196,7 +204,7 @@ function AiAssist({
 }: {
   ym: string;
   enabled: boolean;
-  onApply: (changes: { employeeId: string; after: ConditionValue }[]) => void;
+  onApply: (changes: { employeeId: string; before: ConditionValue; after: ConditionValue }[]) => void;
   onAddPair: (p: { a: string; b: string; strength: "HARD" | "SOFT"; memo: string }) => void;
 }) {
   const [text, setText] = useState("");
@@ -214,6 +222,7 @@ function AiAssist({
     <Card title="AI補助：文章から条件の案を作る">
       <p className="mb-2 text-sm text-slate-600">
         今月の方針を普段の言葉で書くと、AIが条件の案を作ります。<b>AIは書かれた指示を変換するだけ</b>で、勤怠などから勝手に判断はしません。反映前に必ず確認してください。
+        （案を作るとき、スタッフ名・今の条件・この文章が Anthropic 社の AI に送信されます）
       </p>
       <textarea
         className="w-full rounded-lg border border-slate-300 p-2 text-sm"

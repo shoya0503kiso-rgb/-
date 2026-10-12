@@ -5,7 +5,7 @@ import { AdminActiveButton, ChangePasswordForm, NewAdminForm } from "./AdminForm
 
 export default async function AdminsPage({ searchParams }: { searchParams: Promise<{ first?: string }> }) {
   const { first } = await searchParams;
-  const me = await requireAdmin();
+  const me = await requireAdmin({ allowMustChange: true });
   const admins = await listAdmins();
   return (
     <div className="space-y-5">

@@ -57,3 +57,13 @@ export async function setAdminActive(actorId: string, targetId: string, active: 
 export async function mustChangePassword(adminId: string) {
   return (await prisma.adminUser.findUnique({ where: { id: adminId } }))?.mustChangePassword ?? false;
 }
+
+/** 他の管理者がパスワードを忘れたとき：仮パスワードを再発行（本人は次回ログイン時に変更） */
+export async function resetAdminPassword(actorId: string, targetId: string, temp: string) {
+  if (actorId === targetId) throw new UserError("自分のパスワードは「パスワードを変更」から変えてください");
+  checkPassword(temp);
+  await prisma.adminUser.update({
+    where: { id: targetId },
+    data: { passwordHash: await bcrypt.hash(temp, 10), mustChangePassword: true, tokenVersion: { increment: 1 } },
+  });
+}

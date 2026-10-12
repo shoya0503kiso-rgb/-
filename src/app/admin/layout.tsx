@@ -6,7 +6,7 @@ import { AdminNav } from "./AdminNav";
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin({ allowMustChange: true }); // 画面ごとの強制は middleware
   return (
     <div className="min-h-dvh">
       <header className="no-print sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
