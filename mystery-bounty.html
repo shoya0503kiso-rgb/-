@@ -31,6 +31,8 @@ body[data-mode="home"] #home, body[data-mode="staff"] #staff, body[data-mode="pi
 .chest[data-look="blue"]{--c1:#2d6cdf;--c2:#122a60;--band:#cfe0ff;--glow:#3fa0ff}
 .chest[data-look="silver"]{--c1:#9aa4b4;--c2:#4a525f;--band:#f2f5fa;--glow:#cfe2ff}
 .chest[data-look="rusty"]{--c1:#5a4c40;--c2:#251d17;--band:#6e3f22}
+/* every chest wears this while it is being chosen; its real look appears only once the picked one is blown up on the TV */
+.chest[data-look="mystery"]{--c1:#5b2346;--c2:#22091a;--band:#e9b949;--glow:#f1c45a}
 .ch-shadow{fill:rgba(0,0,0,.45)}
 .ch-body{fill:var(--c1)}
 .ch-band{fill:var(--band);stroke:var(--c2);stroke-width:.8}
@@ -348,7 +350,9 @@ details.fold[open] > summary .fs:empty::before{content:"閉じる"}
 .chest[data-look]:not([data-look="rusty"]) svg{animation:none;filter:none}
 .chest::before{content:"";position:absolute;left:-8%;right:-8%;top:4%;bottom:-4%;border-radius:50%;background:radial-gradient(closest-side,var(--glow),transparent 72%);opacity:0;pointer-events:none}
 .chest[data-look="gold"]::before,.chest[data-look="red"]::before,.chest[data-look="blue"]::before,.chest[data-look="rainbow"]::before{opacity:.6;animation:glowP 1.8s ease-in-out infinite;will-change:opacity}
-.chest[data-look="silver"]::before{opacity:.3}
+.chest[data-look="silver"]::before,.chest[data-look="mystery"]::before{opacity:.3}
+.chest.reveal{animation:lookPop .5s cubic-bezier(.2,1.8,.4,1)}
+@keyframes lookPop{40%{transform:scale(1.15)}}
 @keyframes glowP{50%{opacity:.2}}
 .tcell .chest,.pcell .chest,.ticker .tk-in{will-change:transform}
 .tv-light{animation:none!important}   /* the full-screen rotating rays alone cost about a third of the frame rate on slow devices */
@@ -416,7 +420,7 @@ details.fold[open] > summary .fs:empty::before{content:"閉じる"}
       <summary><h2>演出のヒミツ（スタッフ用）</h2><span class="fs"></span></summary>
       <div class="card">
         <ul class="legend">
-          <li><b>宝箱の見た目</b>：金・虹は当たりやすいが、ハズレが紛れることも。ボロ箱から特大が出ることもあります。</li>
+          <li><b>宝箱の見た目</b>：選ぶときは全部同じ見た目。テレビで大きく映った瞬間に本当の色が出ます。金・虹は当たりやすいが、ハズレが紛れることも。ボロ箱から特大が出ることもあります。</li>
           <li><b>期待度ランプ</b>：白→青→緑→赤→金→虹。虹まで行けば特大当たり。</li>
           <li><b>鍵が固くて開かない</b>（「開かない…!?」→「ガチャン!!」）は大当たり以上確定。</li>
           <li><b>画面が真っ暗になるフリーズ</b>は特大当たり確定のプレミアム演出。</li>
@@ -966,9 +970,9 @@ function renderPick(){
   if(r.id!==pickRound){pickRound=r.id;pickSel=-1}
   if(r.phase==="ready"){
     const n=r.boxes.length,pc=n<=4?2:n<=12?3:4;
-    el.innerHTML='<div class="pick-head">'+(r.player?'<div class="who">'+esc(r.player)+'</div>':'')+'<h2>宝箱をひとつ選んでください</h2><p>光り方や見た目はヒント…かも？</p></div>'+
-      '<div class="pgrid'+(pickSel>=0?" has-sel":"")+'" style="--pc:'+pc+'">'+r.boxes.map((b,i)=>'<button class="pcell'+(i===pickSel?" sel":"")+'" data-pick="'+i+'" style="--d:'+((i*0.37)%2.6).toFixed(2)+'s" aria-label="'+(i+1)+'番の宝箱"><span class="num">'+(i+1)+'</span>'+chest(b.look)+'</button>').join("")+'</div>'+
-      '<div class="confirm">'+(pickSel>=0?'<button class="big" id="pickGo" disabled><span class="mini">'+chest(r.boxes[pickSel].look)+'</span><span>'+(pickSel+1)+'番の宝箱を開ける！</span></button><button type="button" class="redo" id="pickRedo">えらび直す</button>':'<button class="big" disabled>宝箱をタップして選択</button>')+STAFFX+'</div>';
+    el.innerHTML='<div class="pick-head">'+(r.player?'<div class="who">'+esc(r.player)+'</div>':'')+'<h2>宝箱をひとつ選んでください</h2><p>見た目は全部同じ。中身はバラバラ！</p></div>'+
+      '<div class="pgrid'+(pickSel>=0?" has-sel":"")+'" style="--pc:'+pc+'">'+r.boxes.map((b,i)=>'<button class="pcell'+(i===pickSel?" sel":"")+'" data-pick="'+i+'" style="--d:'+((i*0.37)%2.6).toFixed(2)+'s" aria-label="'+(i+1)+'番の宝箱"><span class="num">'+(i+1)+'</span>'+chest("mystery")+'</button>').join("")+'</div>'+
+      '<div class="confirm">'+(pickSel>=0?'<button class="big" id="pickGo" disabled><span class="mini">'+chest("mystery")+'</span><span>'+(pickSel+1)+'番の宝箱を開ける！</span></button><button type="button" class="redo" id="pickRedo">えらび直す</button>':'<button class="big" disabled>宝箱をタップして選択</button>')+STAFFX+'</div>';
     const go_=$("#pickGo");   // short delay after a selection absorbs a quick double tap
     if(go_){const wait=400-(Date.now()-pickSelAt);if(wait<=0)go_.disabled=false;else pickGoTimer=setTimeout(()=>{go_.disabled=false},wait)}
     return;
@@ -1131,7 +1135,7 @@ function renderGrid(r,quiet){
   tgrid.className="tgrid"+(quiet?" noanim":"");
   tgrid.dataset.rid=r.id;
   $("#tvWho").textContent=r.player||"";
-  tgrid.innerHTML=r.boxes.map((b,i)=>'<div class="tcell" style="--in:'+(i*0.07).toFixed(2)+'s;--d:'+((i*0.37)%2.6).toFixed(2)+'s"><span class="num">'+(i+1)+'</span>'+chest(b.look)+'</div>').join("");
+  tgrid.innerHTML=r.boxes.map((b,i)=>'<div class="tcell" style="--in:'+(i*0.07).toFixed(2)+'s;--d:'+((i*0.37)%2.6).toFixed(2)+'s"><span class="num">'+(i+1)+'</span>'+chest("mystery")+'</div>').join("");
   if(A.ctx&&!quiet)r.boxes.forEach((_,i)=>popTimers.push(setTimeout(()=>A.pop(i),i*70)));
 }
 function resetStage(){
@@ -1174,6 +1178,21 @@ function ring(color){const d=document.createElement("div");d.className="ring";d.
 function flash(color){const f=$("#flash");f.style.background=color||"#fff";f.classList.remove("go");void f.offsetWidth;f.classList.add("go")}
 function shake(){tv.classList.remove("shake");void tv.offsetWidth;tv.classList.add("shake")}
 const RB=["#ff4d6a","#ffcc33","#3dff8b","#3fa0ff","#c06bff","#ffffff"];
+/* the picked chest drops its plain disguise and shows its real colour (the look is the hint, not the answer) */
+const LOOKFX={
+  rainbow:{c:"#ff6bf0",t:"虹の宝箱!!!",cls:"rb"},gold:{c:"#ffcc33",t:"金の宝箱!!",cls:"gold"},
+  red:{c:"#ff3355",t:"赤の宝箱!"},blue:{c:"#3fa0ff",t:"青の宝箱"},silver:{c:"#dfe8ff",t:"銀の宝箱"},
+  wood:{c:"#c08a5a",t:"木の宝箱…"},rusty:{c:"#8a7a6a",t:"ボロボロの宝箱…"}
+};
+function revealLook(ch,look){
+  const fxl=LOOKFX[look]||LOOKFX.wood;
+  ch.dataset.look=look;
+  ch.classList.remove("reveal");void ch.offsetWidth;ch.classList.add("reveal");
+  if(look==="rainbow"){RB.forEach((c,k)=>setTimeout(()=>ring(c),k*90));flash("#ffd6ff")}
+  else{ring(fxl.c);if(look==="gold"||look==="red")flash(fxl.c)}
+  if(look==="rusty"||look==="wood")A.tone(220,.25,"triangle",.12,0,160);else A.select();
+  cap(fxl.t,fxl.cls?fxl.cls:"small",900);
+}
 
 async function playReveal(r,instant,skip){
   const my=++playToken;const alive=()=>my===playToken;
@@ -1189,6 +1208,8 @@ async function playReveal(r,instant,skip){
   let from=0,acc=0;
   if(skip>0){while(from<steps.length-1&&acc+steps[from][1]<=skip){acc+=steps[from][1];from++}}
   let carry=skip>0?skip-acc:0;
+  const fi=steps.findIndex(s=>s[0]==="focus");
+  if(fi>=0&&from<=fi)ch.dataset.look="mystery";   // stays plain until the focus step shows its real colour
   if(from>0){   // put the stage in the state the skipped steps would have left it in, without their sounds/effects
     showSec("tvStage");stChest.style.transform="";meter.classList.add("on");
     for(const [name] of steps.slice(0,from)){
@@ -1242,6 +1263,8 @@ async function playReveal(r,instant,skip){
         requestAnimationFrame(()=>{stChest.style.transform=""});
       }else $("#tvGrid").classList.remove("on");
       meter.classList.add("on");
+      await sleep(650);if(!alive())return;
+      revealLook(ch,b.look);
     }else if(name==="freeze"){
       const bo=$("#blackout");bo.classList.add("on");
       await sleep(1200);if(!alive())return;
