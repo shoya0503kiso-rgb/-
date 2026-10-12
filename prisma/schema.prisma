@@ -13,15 +13,17 @@ datasource db {
 // ───────────────────────── 管理者・店舗設定 ─────────────────────────
 
 model AdminUser {
-  id           String   @id @default(cuid())
-  loginId      String   @unique
-  name         String
-  passwordHash String
-  active       Boolean  @default(true)
+  id                 String   @id @default(cuid())
+  loginId            String   @unique
+  name               String
+  passwordHash       String
+  active             Boolean  @default(true)
   /// ログアウト・パスワード変更で +1 し、発行済みセッションを失効させる
-  tokenVersion Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  tokenVersion       Int      @default(0)
+  /// 初期パスワードのまま（変更するまでダッシュボードで警告）
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 /// 店舗設定（単一店舗前提。id = 1 の1行のみ）

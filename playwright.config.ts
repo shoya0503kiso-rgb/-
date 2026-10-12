@@ -20,7 +20,7 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     locale: "ja-JP",
     timezoneId: "Asia/Tokyo",
-    launchOptions: { executablePath: process.env.PW_CHROMIUM ?? undefined },
+    launchOptions: { executablePath: process.env.PW_CHROMIUM || undefined },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {

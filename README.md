@@ -7,6 +7,8 @@
 - 要確認勤怠の自動検出（退勤漏れ・退勤のみ・長時間・営業時間外・日跨ぎの異常・休憩不足・**休日の休憩チェック**）
 - LINE 公式アカウント「シフト管理くん」：提出依頼・リマインド・確定通知・自分のシフト/勤務時間/給与目安の確認
 - 希望 × 店舗の月次条件 × 必要人数から **シフト案を自動作成** → 店長が確認・修正 → 公開
+- 給与目安・勤怠分析、AI補助（店長の文章から月次条件の案。任意）
+- GitHub Actions で型チェック・Lint・テスト・ビルド・E2E を自動実行
 
 ## ドキュメント
 
@@ -19,6 +21,8 @@
 | [04 LINE連携設計](docs/04-line.md) | LINE 側の準備手順もここ |
 | [05 自動シフト生成ロジック](docs/05-shift-generation.md) | 絶対条件・希望条件・アルゴリズム |
 | [06 実装計画](docs/06-plan.md) | Phase 1〜4 と進捗 |
+| [07 店長向けマニュアル](docs/07-manual-manager.md) | 毎日・毎月の操作手順 |
+| [08 スタッフ向けマニュアル](docs/08-manual-staff.md) | 打刻・LINE の使い方（そのまま配布できます） |
 
 ## ローカルで動かす
 
@@ -32,7 +36,7 @@ SEED_DEMO=1 npm run db:seed   # 管理者 admin / admin1234 とデモ用スタ�
 npm run dev                   # http://localhost:3000
 ```
 
-1. `http://localhost:3000/login` で管理者ログイン（**初期パスワードは必ず変更**：`SEED_ADMIN_PASSWORD=... npm run db:seed` で作成時に指定）
+1. `http://localhost:3000/login` で管理者ログイン。初期パスワードのままだと、最初にパスワード変更画面が開きます
 2. 店舗の iPad で同じ URL を開き、管理者ログイン → 「設定 → 打刻端末 → この端末を登録」。以後その iPad は打刻専用（管理者ログインは自動で解除）
 3. LINE 未設定のときは通知が **モック送信**（送らずに「LINE」画面の通知履歴に記録）になるので、LINE なしで全機能を試せます
 
@@ -42,26 +46,50 @@ npm run dev                   # http://localhost:3000
 npm test            # ユニット・サービステスト（Vitest、prisma/test.db を使用）
 npm run typecheck
 npm run lint
-npx next build && npm run e2e   # 画面のE2Eテスト（Playwright、prisma/e2e.db を使用）
+npm run build && npm run e2e   # 画面のE2Eテスト（Playwright、prisma/e2e.db を使用）
 ```
 
 ## 本番環境（推奨構成：Vercel + PostgreSQL）
 
-1. PostgreSQL を用意（Neon / Supabase など）
-2. `node scripts/use-postgres.mjs` で `prisma/schema.prisma` の provider を `postgresql` に切り替えてコミット
-3. 環境変数を設定
+リポジトリの `prisma/schema.prisma` は **SQLite のままコミット**します。ビルド時（`npm run build`）に `scripts/use-postgres.mjs` が `DATABASE_URL` を見て自動で PostgreSQL 用に切り替え、`prisma generate` も実行します。
+
+1. PostgreSQL を用意（Neon / Supabase など）。接続文字列を2つ控える
+   - **プール経由**（サーバーレスからの通常接続用）：末尾に `?pgbouncer=true&connection_limit=1`
+   - **直接接続**（テーブル作成用）
+2. Vercel にリポジトリを接続し、環境変数を設定
 
    | 変数 | 内容 |
    |---|---|
-   | `DATABASE_URL` | PostgreSQL の接続文字列 |
-   | `SESSION_SECRET` | 32文字以上のランダム文字列（管理者セッション・本人専用リンクの署名） |
-   | `CRON_SECRET` | 定期実行の認証用ランダム文字列 |
-   | `APP_BASE_URL` | 公開URL（例 `https://shift.example.com`。LINE で送るリンクに使用） |
-   | `LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` | LINE Messaging API（docs/04-line.md） |
+   | `DATABASE_URL` | プール経由の接続文字列（`?pgbouncer=true&connection_limit=1` 付き） |
+   | `DIRECT_URL` | 直接接続の接続文字列 |
+   | `SESSION_SECRET` | 32文字以上のランダム文字列（例：`openssl rand -base64 48`）。`.env.example` の値のままだと起動しません |
+   | `CRON_SECRET` | 定期実行の認証用ランダム文字列（Vercel Cron が自動で `Authorization: Bearer` に付けます） |
+   | `APP_BASE_URL` | 公開URL（例 `https://shift.example.com`）。未設定だと LINE のリンクを作れずエラーになります |
+   | `LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` | LINE Messaging API（docs/04-line.md）。未設定ならモック送信 |
+   | `ANTHROPIC_API_KEY` | 任意。設定すると「月次条件」画面の AI補助（文章から条件案）が使えます |
 
-4. `npx prisma db push` でテーブル作成、`npm run db:seed` で管理者作成
-5. 定期実行：`vercel.json` の設定で毎日 10:00（JST）に `/api/cron/daily` が呼ばれます（`Authorization: Bearer CRON_SECRET`）。Vercel 以外では外部の cron から同じ URL を叩いてください
-6. LINE Developers で Webhook URL を `https://<本番ドメイン>/api/line/webhook` に設定
+3. テーブル作成と管理者作成（手元のPCから本番DBに対して1回だけ）
+
+   ```bash
+   export DATABASE_URL="<直接接続の接続文字列>" DIRECT_URL="<直接接続の接続文字列>"
+   node scripts/use-postgres.mjs        # 一時的に PostgreSQL 用へ（コミットしない）
+   npx prisma db push
+   SEED_ADMIN_PASSWORD='<8文字以上の強いパスワード>' npm run db:seed
+   node scripts/use-postgres.mjs --sqlite   # 元に戻す
+   ```
+
+   本番では `SEED_ADMIN_PASSWORD` を指定しないと seed は失敗します（`admin1234` では作りません）。
+   スキーマを変えたときも同じ手順で `npx prisma db push` を実行してください。
+
+4. デプロイ（Vercel の Build Command は既定の `npm run build` のままでOK）
+5. 定期実行：`vercel.json` の設定で毎日 10:00（JST）に `/api/cron/daily` が呼ばれます。Vercel 以外では外部の cron から `Authorization: Bearer <CRON_SECRET>` 付きで同じ URL を呼んでください
+6. LINE Developers で Webhook URL を `https://<本番ドメイン>/api/line/webhook` に設定し、リッチメニューを登録
+
+   ```bash
+   LINE_CHANNEL_ACCESS_TOKEN=xxxx node scripts/setup-line-richmenu.mjs
+   ```
+
+7. 店舗の iPad で `https://<本番ドメイン>/kiosk/setup` を開いて端末登録 → Safari の共有ボタンから「ホーム画面に追加」
 
 ## 毎月の運用
 

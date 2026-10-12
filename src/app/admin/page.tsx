@@ -6,6 +6,7 @@ import { dashboard } from "@/server/dashboard";
 
 export default async function AdminHome() {
   const d = await dashboard();
+
   const hm = (date: Date | null) => formatTime(date, d.today);
 
   return (
@@ -21,6 +22,7 @@ export default async function AdminHome() {
         <Stat label="未打刻" value={`${d.notClockedIn.length}人`} tone={d.notClockedIn.length > 0 ? "alert" : "default"} sub="シフト開始を過ぎて出勤なし" />
         <Stat label={`${formatYearMonthJa(d.ym)}の総実働`} value={formatDuration(d.monthTotalMinutes)} href={`/admin/attendance?ym=${d.ym}`} sub="全スタッフ合計" />
       </div>
+
 
       {d.lineFailed > 0 && (
         <Link href="/admin/line" className="block rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">

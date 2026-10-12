@@ -6,7 +6,8 @@ import { dispatchPending } from "@/server/notify";
 import { closeCollection, extendDeadline, openCollection, sendReminders } from "@/server/shifts/periods";
 import { submitRequest, type RequestDayInput } from "@/server/shifts/requests";
 import { isValidDateStr, isValidYearMonth } from "@/lib/time";
-import { addPair, copyFromPreviousMonth, removePair, saveConditions, type ConditionValue } from "@/server/shifts/conditions";
+import { addPair, copyFromPreviousMonth, listConditions, removePair, saveConditions, type ConditionValue } from "@/server/shifts/conditions";
+import { suggestConditions } from "@/server/ai/conditions-assist";
 import { runGeneration, setAssignment } from "@/server/shifts/board";
 import { createPattern, saveStaffingRules, setStaffingOverride, updatePattern, type PatternInput } from "@/server/shifts/patterns";
 import { publishPeriod } from "@/server/shifts/publish";
@@ -190,4 +191,16 @@ export async function publishAction(ym: string) {
   });
   done(ym);
   return r;
+}
+
+export async function suggestConditionsAction(ym: string, instruction: string) {
+  await requireAdmin();
+  return runAction(async () => {
+    checkYm(ym);
+    const rows = await listConditions(ym);
+    return suggestConditions(
+      rows.map((r) => ({ id: r.employee.id, name: r.employee.name, current: r.value })),
+      instruction,
+    );
+  });
 }

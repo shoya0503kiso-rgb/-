@@ -15,9 +15,11 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
   const total = rows.reduce((s, r) => s + (r.estimate?.total ?? 0), 0);
   return (
     <>
-      <PageHeader title="給与目安" description="時給 × 実働 ＋ 深夜割増（22:00〜翌5:00 25%）＋ 時間外割増（1勤務8時間超 25%）の概算です" />
+      <PageHeader title="給与目安" description="現在の時給 × 実働 ＋ 深夜割増（22:00〜翌5:00 25%）＋ 時間外割増（1日8時間超 25%）の概算です" />
       <div className="mb-4">
-        <Alert kind="warn">交通費・週40時間超・休日の割増、控除は含みません。実際の給与計算は社労士の確認によります（P-27）。</Alert>
+        <Alert kind="warn">
+          交通費・週40時間超・休日の割増、控除は含みません。時給は<b>現在の設定値</b>で計算するため、時給を変えると過去の月の目安も変わります。日をまたぐ勤務は出勤した営業日の月に入ります。実際の給与計算は社労士の確認によります（P-27）。
+        </Alert>
       </div>
       <Card title={`${formatYearMonthJa(ym)}　合計 ${yen(total)}`} actions={<AutoSubmitForm action="/admin/payroll"><Input type="month" name="ym" defaultValue={ym} className="w-auto" /></AutoSubmitForm>}>
         <TableWrap>
@@ -28,7 +30,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
                 <th className={th}>時給</th>
                 <th className={th}>実働</th>
                 <th className={th}>深夜</th>
-                <th className={th}>8h超</th>
+                <th className={th}>1日8h超</th>
                 <th className={`${th} text-right`}>基本</th>
                 <th className={`${th} text-right`}>割増</th>
                 <th className={`${th} text-right`}>目安合計</th>

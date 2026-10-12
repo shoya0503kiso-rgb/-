@@ -22,7 +22,8 @@ export async function clientIp() {
   return (h.get("x-forwarded-for")?.split(",").pop() ?? "").trim();
 }
 
-export async function loginAdmin(loginId: string, password: string, now = new Date(), ip?: string): Promise<void> {
+/** ログイン。戻り値はパスワード変更が必要か（初期・仮パスワードのまま） */
+export async function loginAdmin(loginId: string, password: string, now = new Date(), ip?: string): Promise<{ mustChange: boolean }> {
   const id = loginId.trim();
   const from = ip ?? (await clientIp());
   await assertNotLocked(id, from, now);
@@ -32,7 +33,28 @@ export async function loginAdmin(loginId: string, password: string, now = new Da
     throw new UserError("IDまたはパスワードが違います");
   }
   await prisma.loginFailure.deleteMany({ where: { loginId: id, ip: from } });
-  const token = await signAdminSession({ adminId: user.id, name: user.name, ver: user.tokenVersion }, ADMIN_MAX_AGE);
+  const token = await signAdminSession(
+    { adminId: user.id, name: user.name, ver: user.tokenVersion, mustChange: user.mustChangePassword },
+    ADMIN_MAX_AGE,
+  );
+  (await cookies()).set(ADMIN_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: ADMIN_MAX_AGE,
+  });
+  return { mustChange: user.mustChangePassword };
+}
+
+/** パスワード変更後など、この端末のセッションを新しい世代で発行し直す */
+export async function reissueAdminSession(adminId: string) {
+  const user = await prisma.adminUser.findUnique({ where: { id: adminId } });
+  if (!user) return;
+  const token = await signAdminSession(
+    { adminId: user.id, name: user.name, ver: user.tokenVersion, mustChange: user.mustChangePassword },
+    ADMIN_MAX_AGE,
+  );
   (await cookies()).set(ADMIN_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",

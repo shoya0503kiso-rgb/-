@@ -6,8 +6,7 @@ import { prisma } from "../db";
 import { UserError } from "../errors";
 import { getSettings } from "../settings";
 
-export const PRIORITY_LABELS = { HIGH: "高", MID: "中", LOW: "低" } as const;
-export const VOLUME_LABELS = { MORE: "多め", NORMAL: "普通", LESS: "少なめ" } as const;
+export { PRIORITY_LABELS, VOLUME_LABELS } from "./conditions-labels";
 
 export interface ConditionValue {
   employeeId: string;
@@ -124,7 +123,7 @@ export async function referenceStats(ym: YearMonth, now = new Date()) {
   const [sessions, period, anomalies] = await Promise.all([
     prisma.workSession.findMany({ where: { deletedAt: null, businessDate: { gte: dates[0], lte: dates[dates.length - 1] } }, include: { breaks: true } }),
     prisma.shiftPeriod.findUnique({ where: { yearMonth: prev }, include: { publications: { orderBy: { version: "desc" }, take: 1 } } }),
-    listOpenAnomalies({ from: dates[0], now }),
+    listOpenAnomalies({ from: dates[0], to: dates[dates.length - 1], now }),
   ]);
   const shifts: { date: string; employeeId: string; startTime: string; endTime: string }[] = period?.publications[0]
     ? JSON.parse(period.publications[0].snapshot)

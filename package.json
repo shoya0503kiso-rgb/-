@@ -4,16 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/use-postgres.mjs && prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "e2e": "PW_CHROMIUM=${PW_CHROMIUM:-} playwright test"
+    "e2e": "playwright test",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@holiday-jp/holiday_jp": "^2.5.2",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",

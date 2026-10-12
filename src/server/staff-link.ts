@@ -15,6 +15,9 @@ export interface LinkSubject {
 function secret() {
   const s = process.env.SESSION_SECRET;
   if (!s || s.length < 32) throw new Error("SESSION_SECRET を32文字以上で設定してください");
+  if (process.env.NODE_ENV === "production" && s.startsWith("change-me")) {
+    throw new Error("SESSION_SECRET が .env.example の値のままです。ランダムな文字列に変更してください");
+  }
   return s;
 }
 
@@ -54,7 +57,14 @@ export async function resolveStaffToken(token: string, purpose: StaffLinkPurpose
   return employee;
 }
 
+/** 公開URL。本番で未設定なら、開けない localhost のリンクを LINE で送らないようエラーにする */
+export function appBaseUrl() {
+  const v = process.env.APP_BASE_URL;
+  if (!v && process.env.NODE_ENV === "production") throw new Error("APP_BASE_URL（公開URL）が設定されていません");
+  return (v || "http://localhost:3000").replace(/\/$/, "");
+}
+
 export function staffUrl(employee: LinkSubject, purpose: StaffLinkPurpose, now = new Date(), expiresAt?: Date) {
-  const base = (process.env.APP_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const base = appBaseUrl();
   return `${base}/${purpose === "submit" ? "s" : "me"}/${createStaffToken(employee, purpose, now, expiresAt)}`;
 }

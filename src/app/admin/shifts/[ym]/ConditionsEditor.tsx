@@ -5,7 +5,8 @@ import { Alert, Badge, Button, Card, Input, Select, TableWrap, td, th } from "@/
 import { formatDuration } from "@/lib/time";
 import type { ActionResult } from "@/server/errors";
 import type { ConditionValue } from "@/server/shifts/conditions";
-import { addPairAction, copyConditionsAction, removePairAction, saveConditionsAction } from "../actions";
+import { addPairAction, copyConditionsAction, removePairAction, saveConditionsAction, suggestConditionsAction } from "../actions";
+import { PRIORITY_LABELS, VOLUME_LABELS } from "@/server/shifts/conditions-labels";
 
 interface Row {
   employee: { id: string; name: string };
@@ -23,12 +24,14 @@ export function ConditionsEditor({
   pairs,
   refLabel,
   refHasShifts,
+  aiEnabled,
 }: {
   ym: string;
   rows: Row[];
   pairs: { id: string; a: string; b: string; strength: "HARD" | "SOFT"; memo: string }[];
   refLabel: string;
   refHasShifts: boolean;
+  aiEnabled: boolean;
 }) {
   const router = useRouter();
   const [values, setValues] = useState(rows.map((r) => r.value));
@@ -48,9 +51,15 @@ export function ConditionsEditor({
       if (r.ok) router.refresh();
     });
 
+  const applySuggestion = (changes: { employeeId: string; after: ConditionValue }[]) => {
+    setValues((vs) => vs.map((v) => changes.find((c) => c.employeeId === v.employeeId)?.after ?? v));
+    setMsg({ message: "案を入力欄に反映しました。内容を確認して「条件を保存」を押してください" });
+  };
+
   return (
     <div className="space-y-4">
       {msg && <Alert kind={msg.error ? "error" : "success"}>{msg.error ?? msg.message}</Alert>}
+      <AiAssist ym={ym} enabled={aiEnabled} onApply={applySuggestion} onAddPair={(p) => run(() => addPairAction(ym, p.a, p.b, p.strength, p.memo))} />
       <Card
         title="スタッフ別の条件（この月だけ）"
         actions={<Button size="sm" variant="secondary" disabled={pending} onClick={() => run(() => copyConditionsAction(ym))}>前月の条件をコピー</Button>}
@@ -160,5 +169,101 @@ export function ConditionsEditor({
         )}
       </Card>
     </div>
+  );
+}
+
+type Suggestion = Extract<Awaited<ReturnType<typeof suggestConditionsAction>>, { ok: true }>["data"];
+
+function describe(v: ConditionValue) {
+  return [
+    `優先度${PRIORITY_LABELS[v.priority]}`,
+    VOLUME_LABELS[v.volume],
+    v.maxDays !== null ? `最大${v.maxDays}日` : "",
+    v.minDays !== null ? `最低${v.minDays}日` : "",
+    v.fillAll ? "全部入れる" : "",
+    v.memo ? `「${v.memo}」` : "",
+  ]
+    .filter(Boolean)
+    .join("・");
+}
+
+/** AI補助：店長の自然文の指示 → 条件の案（P-26）。反映・保存は店長が行う */
+function AiAssist({
+  ym,
+  enabled,
+  onApply,
+  onAddPair,
+}: {
+  ym: string;
+  enabled: boolean;
+  onApply: (changes: { employeeId: string; after: ConditionValue }[]) => void;
+  onAddPair: (p: { a: string; b: string; strength: "HARD" | "SOFT"; memo: string }) => void;
+}) {
+  const [text, setText] = useState("");
+  const [result, setResult] = useState<Suggestion | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  if (!enabled) {
+    return (
+      <p className="rounded-lg border border-dashed border-slate-300 px-4 py-3 text-xs text-slate-500">
+        AI補助（店長メモの文章から条件の案を作る機能）は未設定です。使う場合は環境変数 ANTHROPIC_API_KEY を設定してください。
+      </p>
+    );
+  }
+  return (
+    <Card title="AI補助：文章から条件の案を作る">
+      <p className="mb-2 text-sm text-slate-600">
+        今月の方針を普段の言葉で書くと、AIが条件の案を作ります。<b>AIは書かれた指示を変換するだけ</b>で、勤怠などから勝手に判断はしません。反映前に必ず確認してください。
+      </p>
+      <textarea
+        className="w-full rounded-lg border border-slate-300 p-2 text-sm"
+        rows={3}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="例：山田さんは今月多めに。田中さんは遅刻が続いたので最大8日。佐藤さんと鈴木さんはなるべく別の日に。"
+      />
+      <Button
+        className="mt-2"
+        variant="secondary"
+        disabled={pending || !text.trim()}
+        onClick={() =>
+          start(async () => {
+            setError(null);
+            const r = await suggestConditionsAction(ym, text);
+            if (r.ok && r.data) setResult(r.data);
+            else if (!r.ok) setError(r.error);
+          })
+        }
+      >
+        {pending ? "作成中…" : "案を作る"}
+      </Button>
+      {error && <div className="mt-2"><Alert kind="error">{error}</Alert></div>}
+      {result && (
+        <div className="mt-3 space-y-2 text-sm">
+          {result.changes.length === 0 && result.pairs.length === 0 && <p>変更点はありませんでした。</p>}
+          {result.changes.length > 0 && (
+            <div>
+              <ul className="space-y-1">
+                {result.changes.map((c) => (
+                  <li key={c.employeeId}>
+                    <b>{c.name}</b>：<span className="text-slate-500 line-through">{describe(c.before)}</span> → {describe(c.after)}
+                  </li>
+                ))}
+              </ul>
+              <Button size="sm" className="mt-2" onClick={() => onApply(result.changes)}>この案を入力欄に反映</Button>
+            </div>
+          )}
+          {result.pairs.map((p, i) => (
+            <div key={i} className="flex items-center gap-2">
+              相性条件の案：{p.aName} × {p.bName}（{p.strength === "HARD" ? "絶対" : "なるべく"}別の日）
+              <Button size="sm" variant="ghost" onClick={() => onAddPair(p)}>追加</Button>
+            </div>
+          ))}
+          {result.unresolved.length > 0 && (
+            <Alert kind="warn">反映できなかった指示：{result.unresolved.join(" / ")}</Alert>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }

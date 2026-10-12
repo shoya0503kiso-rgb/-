@@ -276,10 +276,13 @@ export interface AnomalyItem {
 }
 
 /** 未確認の要確認勤怠（新しい順）。from を省略すると全期間（ダッシュボード等は直近3か月を渡す） */
-export async function listOpenAnomalies(opts: { from?: DateStr; now?: Date } = {}): Promise<AnomalyItem[]> {
+export async function listOpenAnomalies(opts: { from?: DateStr; to?: DateStr; now?: Date } = {}): Promise<AnomalyItem[]> {
   const now = opts.now ?? new Date();
   const sessions = await prisma.workSession.findMany({
-    where: { deletedAt: null, ...(opts.from ? { businessDate: { gte: opts.from } } : {}) },
+    where: {
+      deletedAt: null,
+      ...(opts.from || opts.to ? { businessDate: { ...(opts.from ? { gte: opts.from } : {}), ...(opts.to ? { lte: opts.to } : {}) } } : {}),
+    },
     include: { breaks: true, acks: true, employee: true },
     orderBy: [{ businessDate: "desc" }, { clockIn: "desc" }],
   });

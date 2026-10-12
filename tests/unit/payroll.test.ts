@@ -27,6 +27,18 @@ describe("給与目安", () => {
     expect(nightMinutes(workRanges(s))).toBe(120);
   });
 
+  it("同じ営業日に2回働いた場合も合算して8時間超を判定", () => {
+    const pay = estimatePay(
+      [
+        { businessDate: "2026-10-12", clockIn: t("2026-10-12 10:00"), clockOut: t("2026-10-12 15:00"), breaks: [] },
+        { businessDate: "2026-10-12", clockIn: t("2026-10-12 16:00"), clockOut: t("2026-10-12 21:00"), breaks: [] },
+      ],
+      1200,
+    );
+    expect(pay.overtimeMinutes).toBe(120);
+    expect(pay.overtimePremium).toBe(600);
+  });
+
   it("日中のみ・未完了の勤怠", () => {
     const pay = estimatePay(
       [

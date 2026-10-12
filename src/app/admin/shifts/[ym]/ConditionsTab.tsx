@@ -2,6 +2,7 @@ import { formatYearMonthJa } from "@/lib/time";
 import { listConditions, listPairs, referenceStats } from "@/server/shifts/conditions";
 import { periodOverview } from "@/server/shifts/periods";
 import { ConditionsEditor } from "./ConditionsEditor";
+import { isAiConfigured } from "@/server/ai/conditions-assist";
 
 export async function ConditionsTab({ ym }: { ym: string }) {
   const [conditions, pairs, ref, overview] = await Promise.all([listConditions(ym), listPairs(ym), referenceStats(ym), periodOverview(ym)]);
@@ -9,6 +10,7 @@ export async function ConditionsTab({ ym }: { ym: string }) {
   return (
     <ConditionsEditor
       ym={ym}
+      aiEnabled={isAiConfigured()}
       refLabel={formatYearMonthJa(ref.month)}
       refHasShifts={ref.hasShifts}
       rows={conditions.map((c) => ({

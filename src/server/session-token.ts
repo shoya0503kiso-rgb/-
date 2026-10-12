@@ -9,16 +9,21 @@ export interface AdminSession {
   name: string;
   /** AdminUser.tokenVersion と一致する間だけ有効 */
   ver?: number;
+  /** 初期・仮パスワードのまま（パスワード変更画面以外に入れない） */
+  mustChange?: boolean;
 }
 
 function secret() {
   const s = process.env.SESSION_SECRET;
   if (!s || s.length < 32) throw new Error("SESSION_SECRET を32文字以上で設定してください");
+  if (process.env.NODE_ENV === "production" && s.startsWith("change-me")) {
+    throw new Error("SESSION_SECRET が .env.example の値のままです。ランダムな文字列に変更してください");
+  }
   return new TextEncoder().encode(s);
 }
 
 export async function signAdminSession(session: AdminSession, maxAgeSec: number) {
-  return new SignJWT({ name: session.name, ver: session.ver ?? 0 })
+  return new SignJWT({ name: session.name, ver: session.ver ?? 0, mc: !!session.mustChange })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(session.adminId)
     .setAudience("admin")
@@ -31,7 +36,7 @@ export async function verifyAdminSession(token: string): Promise<AdminSession | 
   try {
     const { payload } = await jwtVerify(token, secret(), { audience: "admin" });
     if (!payload.sub) return null;
-    return { adminId: payload.sub, name: String(payload.name ?? ""), ver: Number(payload.ver ?? 0) };
+    return { adminId: payload.sub, name: String(payload.name ?? ""), ver: Number(payload.ver ?? 0), mustChange: payload.mc === true };
   } catch {
     return null;
   }

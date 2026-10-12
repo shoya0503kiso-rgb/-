@@ -10,10 +10,16 @@ async function main() {
   await prisma.storeSetting.upsert({ where: { id: 1 }, create: { id: 1, storeName: "ポーカー店" }, update: {} });
 
   const loginId = process.env.SEED_ADMIN_LOGIN ?? "admin";
+  const isProduction = process.env.NODE_ENV === "production" || /^postgres(ql)?:\/\//.test(process.env.DATABASE_URL ?? "");
+  if (isProduction && !process.env.SEED_ADMIN_PASSWORD) {
+    throw new Error("本番では SEED_ADMIN_PASSWORD（8文字以上）を指定して実行してください。初期パスワード admin1234 では作成しません。");
+  }
   const password = process.env.SEED_ADMIN_PASSWORD ?? "admin1234";
   const exists = await prisma.adminUser.findUnique({ where: { loginId } });
   if (!exists) {
-    await prisma.adminUser.create({ data: { loginId, name: "店長", passwordHash: await bcrypt.hash(password, 10) } });
+    await prisma.adminUser.create({
+      data: { loginId, name: "店長", passwordHash: await bcrypt.hash(password, 10), mustChangePassword: !process.env.SEED_ADMIN_PASSWORD },
+    });
     console.log(`管理者を作成しました: ID=${loginId}${process.env.SEED_ADMIN_PASSWORD ? "" : " / パスワード=admin1234（必ず変更してください）"}`);
   }
 

@@ -222,7 +222,7 @@ async function checkAssignment(ym: YearMonth, periodId: string, date: string, em
   const [sub, calendar, cond, count, pairs, sameDay, mine] = await Promise.all([
     prisma.shiftRequestSubmission.findUnique({ where: { periodId_employeeId: { periodId, employeeId } }, include: { days: { where: { date } } } }),
     loadCalendar(date, date),
-    prisma.monthlyCondition.findUnique({ where: { yearMonth_employeeId: { yearMonth: ym, employeeId } } }),
+    listConditions(ym).then((rows) => rows.find((r) => r.employee.id === employeeId)?.value ?? null),
     prisma.shiftAssignment.count({ where: { periodId, employeeId } }),
     prisma.pairConstraint.findMany({ where: { yearMonth: ym, strength: "HARD", OR: [{ employeeAId: employeeId }, { employeeBId: employeeId }] }, include: { employeeA: true, employeeB: true } }),
     prisma.shiftAssignment.findMany({ where: { periodId, date } }),
@@ -259,7 +259,8 @@ export async function findViolations(ym: YearMonth) {
   const [assignments, submissions, conditions, pairs, calendar, patterns] = await Promise.all([
     prisma.shiftAssignment.findMany({ where: { periodId: period.id }, include: { employee: true } }),
     prisma.shiftRequestSubmission.findMany({ where: { periodId: period.id }, include: { days: true } }),
-    prisma.monthlyCondition.findMany({ where: { yearMonth: ym } }),
+    // 月次条件を保存していない人は基本条件（固定プロフィール）が効いている
+    listConditions(ym).then((rows) => rows.map((r) => r.value)),
     prisma.pairConstraint.findMany({ where: { yearMonth: ym, strength: "HARD" }, include: { employeeA: true, employeeB: true } }),
     loadCalendar(dates[0], dates[dates.length - 1]),
     prisma.shiftPattern.findMany(),

@@ -1,5 +1,5 @@
 // 給与目安の計算（DB非依存）。P-27
-// 時給 × 実働 ＋ 深夜割増（22:00〜翌5:00 の実働に25%）＋ 時間外割増（1勤務 8時間を超えた実働に25%）。
+// 時給 × 実働 ＋ 深夜割増（22:00〜翌5:00 の実働に25%）＋ 時間外割増（1日＝1営業日の実働が8時間を超えた分に25%）。
 // 交通費・週40時間超の割増・休日割増・控除は含まない「目安」。最終的な給与計算は社労士の確認による。
 import { summarize, type SessionLike } from "./attendance/calc";
 import { jstAt, jstDateStr, addDays } from "./time";
@@ -64,8 +64,9 @@ export interface PayEstimate {
 export function estimatePay(sessions: SessionLike[], hourlyWage: number): PayEstimate {
   let workMinutes = 0;
   let night = 0;
-  let overtime = 0;
   let incompleteCount = 0;
+  // 同じ営業日に複数回働いた場合も合算して8時間超を判定する
+  const perDay = new Map<string, number>();
   for (const s of sessions) {
     const sum = summarize(s);
     if (sum.workMinutes === null || sum.workMinutes < 0) {
@@ -74,8 +75,9 @@ export function estimatePay(sessions: SessionLike[], hourlyWage: number): PayEst
     }
     workMinutes += sum.workMinutes;
     night += nightMinutes(workRanges(s));
-    overtime += Math.max(0, sum.workMinutes - DAILY_LIMIT_MINUTES);
+    perDay.set(s.businessDate, (perDay.get(s.businessDate) ?? 0) + sum.workMinutes);
   }
+  const overtime = [...perDay.values()].reduce((a, m) => a + Math.max(0, m - DAILY_LIMIT_MINUTES), 0);
   const perMinute = hourlyWage / 60;
   const base = Math.floor(workMinutes * perMinute);
   const nightPremium = Math.floor(night * perMinute * NIGHT_RATE);

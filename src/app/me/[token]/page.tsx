@@ -29,6 +29,7 @@ export default async function MePage({ params }: { params: Promise<{ token: stri
   return (
     <main className="mx-auto max-w-xl space-y-4 p-4">
       <h1 className="text-xl font-bold">{employee.name}さん</h1>
+      <p className="text-xs text-slate-500">このページは{employee.name}さん専用です。リンクを他の人に送らないでください（有効期限7日）。</p>
       {months.map((m, i) => (
         <Card key={m} title={`${formatYearMonthJa(m)}の確定シフト`}>
           {!shifts[i].published ? (

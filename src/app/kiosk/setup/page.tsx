@@ -27,6 +27,7 @@ export default async function KioskSetupPage() {
           <p className="text-sm text-slate-600">
             登録すると、この端末のブラウザでは管理者ログインなしで打刻画面を使えます。
             <b>登録後、この端末の管理者ログインは自動で解除されます。</b>
+            iPad では Safari の共有ボタン →「ホーム画面に追加」で、アプリのように全画面で開けます。
             紛失時は「店舗設定」から登録を解除してください。
           </p>
           <Button type="submit" className="w-full">この端末を登録して打刻画面へ</Button>

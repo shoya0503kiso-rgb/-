@@ -4,6 +4,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "シフト管理くん",
   description: "勤怠打刻・シフト管理",
+  icons: { icon: "/icon-192.png", apple: "/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "シフト管理", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {

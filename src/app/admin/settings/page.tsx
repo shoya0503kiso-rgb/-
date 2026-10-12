@@ -64,6 +64,10 @@ export default async function SettingsPage() {
         )}
       </Card>
 
+      <Card title="管理者アカウント" actions={<LinkButton size="sm" variant="secondary" href="/admin/settings/admins">パスワード変更・管理者の追加</LinkButton>}>
+        <p className="text-sm text-slate-600">店長・シフト担当など、管理画面に入れる人を管理します。</p>
+      </Card>
+
       <Card title="管理者セッション">
         <p className="mb-3 text-sm text-slate-600">スマホの紛失時などは、すべての端末の管理者ログインを無効にできます（この端末も再ログインが必要です）。</p>
         <form action={logoutEverywhereAction}>

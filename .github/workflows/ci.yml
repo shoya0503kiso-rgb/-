@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: file:./ci.db
+      SESSION_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      CRON_SECRET: ci-cron
+      APP_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - name: 型チェック
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: ユニット・サービステスト
+        run: npm test
+      - name: ビルド
+        run: npx next build
+      - name: E2E（Playwright）
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: test-results/
+          retention-days: 7
