@@ -66,30 +66,20 @@ npm run build && npm run e2e   # 画面のE2Eテスト（Playwright、prisma/e2e
    | `CRON_SECRET` | 定期実行の認証用ランダム文字列（Vercel Cron が自動で `Authorization: Bearer` に付けます） |
    | `APP_BASE_URL` | 公開URL（例 `https://shift.example.com`）。未設定だと LINE のリンクを作れずエラーになります |
    | `LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` | LINE Messaging API（docs/04-line.md）。未設定ならモック送信 |
+   | `SETUP_TOKEN` | 初回の管理者作成用のキー（16文字以上）。作成後は削除してもかまいません |
    | `ANTHROPIC_API_KEY` | 任意。設定すると「月次条件」画面の AI補助（文章から条件案）が使えます |
 
-3. テーブル作成と管理者作成（手元のPCから本番DBに対して1回だけ）
-
-   ```bash
-   export DATABASE_URL="<直接接続の接続文字列>" DIRECT_URL="<直接接続の接続文字列>"
-   node scripts/use-postgres.mjs        # 一時的に PostgreSQL 用へ（コミットしない）
-   npx prisma db push
-   SEED_ADMIN_PASSWORD='<8文字以上の強いパスワード>' npm run db:seed
-   node scripts/use-postgres.mjs --sqlite   # 元に戻す
-   ```
-
-   本番では `SEED_ADMIN_PASSWORD` を指定しないと seed は失敗します（`admin1234` では作りません）。
-   スキーマを変えたときも同じ手順で `npx prisma db push` を実行してください。
-
-4. デプロイ（Vercel の Build Command は既定の `npm run build` のままでOK）
-5. 定期実行：`vercel.json` の設定で毎日 10:00（JST）に `/api/cron/daily` が呼ばれます。Vercel 以外では外部の cron から `Authorization: Bearer <CRON_SECRET>` 付きで同じ URL を呼んでください
-6. LINE Developers で Webhook URL を `https://<本番ドメイン>/api/line/webhook` に設定し、リッチメニューを登録
+3. 環境変数 `SETUP_TOKEN` に16文字以上のランダムな文字列を設定（最初の管理者を作るときのキー）
+4. デプロイ（Vercel の Build Command は既定の `npm run build` のままでOK）。ビルド時に `scripts/db-sync.mjs` が本番DBのテーブルを自動で作成・更新します（データが消える変更は止まります）
+5. `https://<本番ドメイン>/setup` を開き、`SETUP_TOKEN` の値を入れて最初の管理者を作成（管理者が1人でもいると、この画面は使えません）
+6. 定期実行：`vercel.json` の設定で毎日 10:00（JST）に `/api/cron/daily` が呼ばれます。Vercel 以外では外部の cron から `Authorization: Bearer <CRON_SECRET>` 付きで同じ URL を呼んでください
+7. LINE Developers で Webhook URL を `https://<本番ドメイン>/api/line/webhook` に設定し、リッチメニューを登録
 
    ```bash
    LINE_CHANNEL_ACCESS_TOKEN=xxxx node scripts/setup-line-richmenu.mjs
    ```
 
-7. 店舗の iPad の Safari で `https://<本番ドメイン>/kiosk` を開き「ホーム画面に追加」→ **ホーム画面のアイコンから開いて**「打刻端末として登録する」から登録（iOS ではホーム画面のアプリと Safari でログイン情報が共有されないことがあるため、アプリ側で登録します）
+8. 店舗の iPad の Safari で `https://<本番ドメイン>/kiosk` を開き「ホーム画面に追加」→ **ホーム画面のアイコンから開いて**「打刻端末として登録する」から登録（iOS ではホーム画面のアプリと Safari でログイン情報が共有されないことがあるため、アプリ側で登録します）
 
 ### 管理者の復旧（管理者が1人で、パスワードを忘れたとき）
 
