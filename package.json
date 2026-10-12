@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/use-postgres.mjs && prisma generate && next build",
+    "build": "node scripts/use-postgres.mjs && prisma generate && node scripts/db-sync.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

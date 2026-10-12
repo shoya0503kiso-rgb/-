@@ -67,3 +67,29 @@ export async function resetAdminPassword(actorId: string, targetId: string, temp
     data: { passwordHash: await bcrypt.hash(temp, 10), mustChangePassword: true, tokenVersion: { increment: 1 } },
   });
 }
+
+/** 管理者が1人もいないか（初回セットアップ画面を出すか） */
+export async function needsSetup() {
+  return (await prisma.adminUser.count()) === 0;
+}
+
+/**
+ * 最初の管理者を作る（本番の初回だけ）。環境変数 SETUP_TOKEN と一致するキーが必要。
+ * 管理者が既にいる場合は作らない（同時に送られても1人目だけ）
+ */
+export async function createFirstAdmin(input: { setupToken: string; loginId: string; name: string; password: string }) {
+  const expected = process.env.SETUP_TOKEN;
+  if (!expected || expected.length < 16) throw new UserError("SETUP_TOKEN（16文字以上）が設定されていません");
+  if (input.setupToken.trim() !== expected) throw new UserError("セットアップキーが違います");
+  const loginId = input.loginId.trim();
+  const name = input.name.trim();
+  if (!/^[A-Za-z0-9_.-]{3,32}$/.test(loginId)) throw new UserError("ログインIDは半角英数字3〜32文字で入力してください");
+  if (!name) throw new UserError("名前を入力してください");
+  checkPassword(input.password);
+  const hash = await bcrypt.hash(input.password, 10);
+  return prisma.$transaction(async (tx) => {
+    if ((await tx.adminUser.count()) > 0) throw new UserError("管理者は既に作成されています。ログイン画面からログインしてください");
+    await tx.storeSetting.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} });
+    return tx.adminUser.create({ data: { loginId, name, passwordHash: hash } });
+  });
+}

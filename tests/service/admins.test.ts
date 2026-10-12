@@ -44,3 +44,20 @@ describe("仮パスワード再発行", () => {
     expect(await bcrypt.compare("karipass-02", u.passwordHash)).toBe(true);
   });
 });
+
+describe("本番の初回セットアップ（最初の管理者）", () => {
+  it("SETUP_TOKEN が一致したときだけ、管理者がいない間に1人だけ作れる", async () => {
+    const { createFirstAdmin, needsSetup } = await import("@/server/admins");
+    const input = { setupToken: "", loginId: "tencho", name: "店長", password: "tsuyoi-pass-1" };
+    delete process.env.SETUP_TOKEN;
+    await expect(createFirstAdmin(input)).rejects.toThrow("SETUP_TOKEN");
+    process.env.SETUP_TOKEN = "setup-token-0123456789";
+    await expect(createFirstAdmin({ ...input, setupToken: "wrong" })).rejects.toThrow("セットアップキーが違います");
+    expect(await needsSetup()).toBe(true);
+    const u = await createFirstAdmin({ ...input, setupToken: "setup-token-0123456789" });
+    expect(u.mustChangePassword).toBe(false);
+    expect(await needsSetup()).toBe(false);
+    await expect(createFirstAdmin({ ...input, loginId: "second", setupToken: "setup-token-0123456789" })).rejects.toThrow("既に作成");
+    delete process.env.SETUP_TOKEN;
+  });
+});

@@ -1,7 +1,11 @@
+import { redirect } from "next/navigation";
+import { needsSetup } from "@/server/admins";
 import { LoginForm } from "./LoginForm";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;
+  // 管理者がまだいない（本番の初回）なら初期設定へ
+  if (await needsSetup()) redirect("/setup");
   return (
     <main className="flex min-h-dvh items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
