@@ -77,6 +77,8 @@ npm run build && npm run e2e   # 画面のE2Eテスト（Playwright、prisma/e2e
    LINE_CHANNEL_ACCESS_TOKEN=xxxx node scripts/setup-line-richmenu.mjs
    ```
 
+   ターミナルを使わない場合は、LINE Official Account Manager の「リッチメニュー」で、テンプレート「大・4分割（2×2）」に `assets/line/richmenu-large-2x2.jpg` をアップロードし、各ボタンのアクションをテキスト（左上から `シフト提出` / `シフト確認` / `勤務時間` / `給与目安`）にします。
+
 8. 店舗の iPad の Safari で `https://<本番ドメイン>/kiosk` を開き「ホーム画面に追加」→ **ホーム画面のアイコンから開いて**「打刻端末として登録する」から登録（iOS ではホーム画面のアプリと Safari でログイン情報が共有されないことがあるため、アプリ側で登録します）
 
 ### 管理者の復旧（管理者が1人で、パスワードを忘れたとき）
