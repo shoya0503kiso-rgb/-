@@ -3,9 +3,10 @@
 //   それ以外（file:）なら SQLite のまま。リポジトリには SQLite 版をコミットしておく。
 // 明示指定: node scripts/use-postgres.mjs --postgres | --sqlite
 import { readFileSync, writeFileSync } from "node:fs";
+import { cleanDbUrl } from "./db-url.mjs";
 
 const path = new URL("../prisma/schema.prisma", import.meta.url);
-const url = process.env.DATABASE_URL ?? "";
+const url = cleanDbUrl(process.env.DATABASE_URL);
 const pg = process.argv.includes("--postgres") || (!process.argv.includes("--sqlite") && /^postgres(ql)?:\/\//.test(url));
 
 const src = readFileSync(path, "utf8");
