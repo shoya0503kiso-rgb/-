@@ -53,15 +53,13 @@ npm run build && npm run e2e   # 画面のE2Eテスト（Playwright、prisma/e2e
 
 リポジトリの `prisma/schema.prisma` は **SQLite のままコミット**します。ビルド時（`npm run build`）に `scripts/use-postgres.mjs` が `DATABASE_URL` を見て自動で PostgreSQL 用に切り替え、`prisma generate` も実行します。
 
-1. PostgreSQL を用意（Neon / Supabase など）。接続文字列を2つ控える
-   - **プール経由**（サーバーレスからの通常接続用）：末尾に `?pgbouncer=true&connection_limit=1`
-   - **直接接続**（テーブル作成用）
+1. PostgreSQL を用意（Neon 推奨）。Neon の **Connect** で「Connection pooling: ON」の接続文字列をコピー（そのまま貼ればOK。`pgbouncer=true&connection_limit=1` の付加と、直接接続URLの作成はアプリが自動で行います）
 2. Vercel にリポジトリを接続し、環境変数を設定
 
    | 変数 | 内容 |
    |---|---|
-   | `DATABASE_URL` | プール経由の接続文字列（`?pgbouncer=true&connection_limit=1` 付き） |
-   | `DIRECT_URL` | 直接接続の接続文字列 |
+   | `DATABASE_URL` | Neon でコピーしたプール経由の接続文字列（`psql '...'` の形でも可） |
+   | `DIRECT_URL` | 任意。Neon 以外で直接接続URLが別の場合のみ |
    | `SESSION_SECRET` | 32文字以上のランダム文字列（例：`openssl rand -base64 48`）。`.env.example` の値のままだと起動しません |
    | `CRON_SECRET` | 定期実行の認証用ランダム文字列（Vercel Cron が自動で `Authorization: Bearer` に付けます） |
    | `APP_BASE_URL` | 公開URL（例 `https://shift.example.com`）。未設定だと LINE のリンクを作れずエラーになります |
