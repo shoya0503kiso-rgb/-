@@ -3,23 +3,123 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2a0f45">
 <title>ハイハンドスロット 管理</title>
+<link rel="stylesheet" href="admin.css">
 </head>
 <body>
-<h1>ハイハンドスロット 管理</h1>
-<p>接続: <span id="status">未接続</span></p>
-<p>接続中の画面: <span id="clients">-</span></p>
-<button id="ping">通信テスト</button>
-<ul id="log"></ul>
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
-  const role = 'admin';
-  socket.on('connect', () => { document.getElementById('status').textContent = '接続OK'; socket.emit('hello', role); });
-  socket.on('disconnect', () => { document.getElementById('status').textContent = '切断'; });
-  socket.on('clients', (c) => { document.getElementById('clients').textContent = 'テレビ ' + c.tv + ' / 操作 ' + c.control + ' / 管理 ' + c.admin; });
-  socket.on('pong-test', (m) => { const li = document.createElement('li'); li.textContent = m.from + ' から受信 ' + new Date(m.at).toLocaleTimeString(); document.getElementById('log').prepend(li); });
-  document.getElementById('ping').onclick = () => socket.emit('ping-test', role);
-</script>
+<header class="bar">
+  <div class="title">HIGH HAND SLOT <small>管理</small></div>
+  <button id="logoutBtn" class="link hidden" type="button">ログアウト</button>
+</header>
+
+<!-- ログイン -->
+<main id="loginView" class="wrap">
+  <section class="card narrow">
+    <h2>店長ログイン</h2>
+    <form id="loginForm">
+      <label class="lbl" for="pw">パスワード</label>
+      <input id="pw" type="password" autocomplete="current-password" required>
+      <button class="primary" type="submit">ログイン</button>
+      <p id="loginMsg" class="msg err"></p>
+    </form>
+  </section>
+</main>
+
+<main id="appView" class="wrap hidden">
+  <nav class="tabs" id="tabs">
+    <button type="button" data-tab="prizes" class="on">景品・確率</button>
+    <button type="button" data-tab="rules">ルール</button>
+    <button type="button" data-tab="log">ログ</button>
+    <button type="button" data-tab="jackpot">7️⃣獲得者</button>
+    <button type="button" data-tab="sim">理論値チェック</button>
+    <button type="button" data-tab="password">パスワード</button>
+  </nav>
+
+  <!-- 景品・確率 -->
+  <section class="card tab" id="tab-prizes">
+    <h2>景品・確率・絵柄</h2>
+    <p class="hint">上から順にリールに並びます。確率の合計が 100% のときだけ保存できます。「演出」は当たったときの派手さです(小🍺 &lt; 中⭐ &lt; 大🪙 &lt; 特大7️⃣。「ハズレ」にした絵柄はハズレ扱い)。</p>
+    <div class="sym-head"><span>絵柄</span><span>景品(表示名)</span><span>確率(%)</span><span>演出</span><span></span></div>
+    <div id="symRows"></div>
+    <button id="addSym" class="secondary" type="button">+ 絵柄を追加</button>
+    <div id="sumBox" class="sum"></div>
+    <p id="tvNote" class="hint"></p>
+    <label class="lbl" for="royalFirst">ロイヤルフラッシュ1回目に確定させる絵柄</label>
+    <select id="royalFirst"></select>
+    <div class="actions">
+      <button id="saveSyms" class="primary" type="button">保存する</button>
+      <button id="simDraft" class="secondary" type="button">この内容で理論値チェック</button>
+    </div>
+    <p id="symMsg" class="msg"></p>
+    <div id="simDraftBox"></div>
+  </section>
+
+  <!-- ルール -->
+  <section class="card tab hidden" id="tab-rules">
+    <h2>ルール</h2>
+    <h3>役ごとの回転数</h3>
+    <div id="spinRows" class="form-grid"></div>
+    <h3>ガセリーチ率</h3>
+    <p class="hint">ハズレのうち、1・2リール目が揃ってリーチになる割合です。</p>
+    <div class="inline"><input id="fakeReach" type="number" min="0" max="100" step="1" inputmode="decimal"> %</div>
+    <h3>対象ゲーム</h3>
+    <div class="radios" id="targetGame">
+      <label><input type="radio" name="tg" value="both"> 両方</label>
+      <label><input type="radio" name="tg" value="tournament"> トーナメントのみ</label>
+      <label><input type="radio" name="tg" value="cash"> キャッシュのみ</label>
+    </div>
+    <div class="actions"><button id="saveRules" class="primary" type="button">保存する</button></div>
+    <p id="rulesMsg" class="msg"></p>
+  </section>
+
+  <!-- ログ -->
+  <section class="card tab hidden" id="tab-log">
+    <h2>ログ</h2>
+    <div class="inline wrap-row">
+      <select id="logMonth"></select>
+      <button id="csvBtn" class="secondary" type="button">CSVダウンロード</button>
+      <button id="logReload" class="link" type="button">更新</button>
+    </div>
+    <div id="logSummary" class="summary"></div>
+    <div class="table-wrap">
+      <table class="tbl" id="logTable">
+        <thead><tr><th>日時</th><th>名前</th><th>役</th><th>回</th><th>結果</th><th>景品</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p id="logMore" class="hint"></p>
+  </section>
+
+  <!-- 7️⃣ 獲得者 -->
+  <section class="card tab hidden" id="tab-jackpot">
+    <h2>月別の 7️⃣ 獲得者</h2>
+    <div id="jackpotBox"></div>
+  </section>
+
+  <!-- 理論値チェック -->
+  <section class="card tab hidden" id="tab-sim">
+    <h2>理論値チェック</h2>
+    <p class="hint">保存されている今の設定で 10万回 抽選し、実際の出現率を確かめます(ログには残りません)。</p>
+    <button id="simBtn" class="primary" type="button">10万回まわす</button>
+    <div id="simBox"></div>
+  </section>
+
+  <!-- パスワード -->
+  <section class="card tab hidden narrow-tab" id="tab-password">
+    <h2>パスワード変更</h2>
+    <form id="pwForm">
+      <label class="lbl" for="pwCur">今のパスワード</label>
+      <input id="pwCur" type="password" autocomplete="current-password" required>
+      <label class="lbl" for="pwNew">新しいパスワード(4文字以上)</label>
+      <input id="pwNew" type="password" autocomplete="new-password" required minlength="4">
+      <label class="lbl" for="pwNew2">新しいパスワード(もう一度)</label>
+      <input id="pwNew2" type="password" autocomplete="new-password" required minlength="4">
+      <button class="primary" type="submit">変更する</button>
+      <p id="pwMsg" class="msg"></p>
+    </form>
+  </section>
+</main>
+<script src="admin.js"></script>
 </body>
 </html>

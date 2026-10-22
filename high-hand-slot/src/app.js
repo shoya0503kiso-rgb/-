@@ -8,6 +8,7 @@ const { Store } = require('./store');
 const { defaultSettings } = require('./defaults');
 const { normalizeStored } = require('./settings');
 const { Game } = require('./game');
+const { createAdminRouter } = require('./admin');
 
 const ROLES = ['tv', 'control', 'admin'];
 
@@ -33,6 +34,17 @@ function createApp({ dataDir, timeScale = 1 }) {
     app.use(`/${page}`, express.static(path.join(pub, page)));
   }
   app.get('/', (_req, res) => res.redirect('/control/'));
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
+  app.use('/api/admin', createAdminRouter({ store, game }));
+  // 壊れた JSON などはエラー画面ではなく JSON で返す
+  app.use((err, _req, res, next) => {
+    void next;
+    console.error('[http]', err.message);
+    res.status(err.status || 500).json({ error: err.status === 400 ? '送られた内容が正しくありません' : 'サーバーでエラーが起きました' });
+  });
 
   // socket.io のハンドラ。ack(返事)が無くても落ちないようにする
   function on(socket, event, handler) {

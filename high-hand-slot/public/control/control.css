@@ -33,7 +33,7 @@ button { font-family: inherit; }
   .title { font-size: 15px; }
   .title small { display: none; }
 }
-.offline-note { background: #991b1b; color: #fff; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; font-weight: 700; text-align: center; }
+.offline-note { position: sticky; top: 52px; z-index: 4; background: #991b1b; color: #fff; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; font-weight: 700; text-align: center; }
 .conn.ok { background: #14532d; }
 .conn.warn { background: #92400e; }
 .conn.ng { background: #991b1b; }
