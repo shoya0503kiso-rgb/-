@@ -399,7 +399,7 @@
 
     if (s.phase === 'idle' || !entry) {
       showScreen('idle');
-      if (shown.phase !== 'idle') clearFx();
+      clearFx();
       stopSpinVisuals();
       shown = { announce: null, spin: null, result: null, finale: null, phase: 'idle' };
       return;

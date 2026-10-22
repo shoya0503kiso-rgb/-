@@ -2,24 +2,56 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2a0f45">
 <title>ハイハンドスロット 操作</title>
+<link rel="stylesheet" href="control.css">
 </head>
 <body>
-<h1>ハイハンドスロット 操作</h1>
-<p>接続: <span id="status">未接続</span></p>
-<p>接続中の画面: <span id="clients">-</span></p>
-<button id="ping">通信テスト</button>
-<ul id="log"></ul>
+<header class="bar">
+  <div class="title">HIGH HAND SLOT <small>操作</small></div>
+  <div id="conn" class="conn">接続中…</div>
+</header>
+
+<main>
+  <!-- いまの番 -->
+  <section id="nowCard" class="card now hidden">
+    <div class="now-label">いまの番</div>
+    <div class="now-name"><span id="nowName"></span><small>さん</small></div>
+    <div class="now-hand"><span id="nowHand"></span> ・ <span id="nowCount"></span></div>
+    <button id="spinBtn" class="spin-btn" type="button" disabled>回す</button>
+    <div id="nowStatus" class="now-status"></div>
+  </section>
+
+  <!-- 登録 -->
+  <section class="card">
+    <h2>当選を登録</h2>
+    <label class="lbl" for="name">① プレイヤー名</label>
+    <input id="name" class="name" type="text" maxlength="20" autocomplete="off" placeholder="例:やまだ" enterkeyhint="done">
+    <div id="suggest" class="suggest"></div>
+
+    <div class="lbl">② 役をえらぶ</div>
+    <div id="hands" class="hands"></div>
+
+    <p class="warn">⚠ プレイ・ザ・ボード(ボードだけで役が完成)は対象外です</p>
+    <p class="target" id="target"></p>
+
+    <button id="registerBtn" class="register-btn" type="button" disabled>③ 登録してテレビに出す</button>
+    <div id="formMsg" class="form-msg"></div>
+  </section>
+
+  <!-- 待機列 -->
+  <section class="card">
+    <h2>待機列 <span id="queueCount" class="badge"></span></h2>
+    <ol id="queue" class="queue"></ol>
+  </section>
+
+  <p class="foot">景品は店内サービスに限ります。換金はできません。</p>
+</main>
+
+<div id="toast" class="toast"></div>
+
 <script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
-  const role = 'control';
-  socket.on('connect', () => { document.getElementById('status').textContent = '接続OK'; socket.emit('hello', role); });
-  socket.on('disconnect', () => { document.getElementById('status').textContent = '切断'; });
-  socket.on('clients', (c) => { document.getElementById('clients').textContent = 'テレビ ' + c.tv + ' / 操作 ' + c.control + ' / 管理 ' + c.admin; });
-  socket.on('pong-test', (m) => { const li = document.createElement('li'); li.textContent = m.from + ' から受信 ' + new Date(m.at).toLocaleTimeString(); document.getElementById('log').prepend(li); });
-  document.getElementById('ping').onclick = () => socket.emit('ping-test', role);
-</script>
+<script src="control.js"></script>
 </body>
 </html>
