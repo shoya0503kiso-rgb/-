@@ -6,9 +6,16 @@ const express = require('express');
 const { Server } = require('socket.io');
 const { Store } = require('./store');
 const { defaultSettings } = require('./defaults');
+const { normalizeStored } = require('./settings');
 
 function createApp({ dataDir }) {
   const store = new Store(dataDir, { settings: defaultSettings() });
+  const norm = normalizeStored(store.settings);
+  if (norm.problems.length) {
+    const dest = store.backup('settings');
+    if (dest) console.error(`[settings] 元の設定ファイルは ${path.basename(dest)} に残しています`);
+  }
+  if (norm.changed) store.saveSettings(norm.settings);
   const app = express();
   const server = http.createServer(app);
   const io = new Server(server);

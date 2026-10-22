@@ -40,7 +40,7 @@ function renameWithRetry(from, to) {
   }
 }
 
-// 足りないキーを初期値で補う(配列は丸ごと採用、オブジェクトはキー単位で補う)
+// 足りないキーだけを初期値で補う(配列は丸ごと採用、オブジェクトはキー単位で補う)
 function fillDefaults(value, defaults) {
   if (Array.isArray(defaults)) return Array.isArray(value) ? value : structuredClone(defaults);
   if (defaults && typeof defaults === 'object') {
@@ -49,7 +49,8 @@ function fillDefaults(value, defaults) {
     for (const [k, d] of Object.entries(defaults)) out[k] = fillDefaults(src[k], d);
     return out;
   }
-  return value === undefined || (value !== null && typeof value !== typeof defaults) ? defaults : value;
+  // 値の中身の検証は settings.js の normalizeStored が行う(不正なら退避してから戻す)
+  return value === undefined ? defaults : value;
 }
 
 function readJson(file, fallback) {
@@ -107,6 +108,18 @@ class Store {
       return structuredClone(initial);
     }
     return value;
+  }
+
+  // 上書き前に元ファイルを残しておく(設定を直したときの保険)
+  backup(key) {
+    const file = this.files[key];
+    const dest = `${file}.broken-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+    try {
+      fs.copyFileSync(file, dest);
+      return dest;
+    } catch {
+      return null;
+    }
   }
 
   saveSettings(settings) {
