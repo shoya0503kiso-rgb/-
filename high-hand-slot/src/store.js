@@ -77,6 +77,7 @@ class Store {
       settings: path.join(dataDir, 'settings.json'),
       log: path.join(dataDir, 'log.json'),
       players: path.join(dataDir, 'players.json'),
+      queue: path.join(dataDir, 'queue.json'),
     };
     fs.mkdirSync(dataDir, { recursive: true });
     this._cleanupTmp();
@@ -85,6 +86,7 @@ class Store {
     if (JSON.stringify(filled) !== JSON.stringify(this.settings)) this.saveSettings(filled);
     this.log = this._init('log', []);
     this.players = this._init('players', []);
+    this.queue = this._init('queue', []);
   }
 
   // 電源断などで残った一時ファイルを掃除する
@@ -130,6 +132,11 @@ class Store {
   appendLog(entry) {
     this.log.push(entry);
     writeJsonAtomic(this.files.log, this.log);
+  }
+
+  saveQueue(queue) {
+    writeJsonAtomic(this.files.queue, queue);
+    this.queue = queue;
   }
 
   savePlayers(players) {

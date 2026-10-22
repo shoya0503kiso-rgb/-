@@ -178,3 +178,35 @@ test('当選履歴と今月の 7️⃣ 獲得者が状態に含まれる', async
     await srv.close();
   }
 });
+
+test('PCを再起動しても待機列が残り、回転途中の人は続きから回せる(ロイヤル確定は付け直さない)', async () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const { createApp } = require('../src/app');
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hhs-restore-'));
+  try {
+    const a = createApp({ dataDir, timeScale: 0.005 });
+    const r = a.game.register({ name: 'R', hand: 'royal' }).entry;
+    a.game.register({ name: 'B', hand: 'fullhouse' });
+    await new Promise((res) => setTimeout(res, 60));
+    assert.ok(a.game.spin(r.id).result.forced);
+    a.dispose();
+    a.io.close();
+
+    const b = createApp({ dataDir, timeScale: 0.005 });
+    try {
+      assert.deepStrictEqual(b.game.queue.map((e) => e.name), ['R', 'B']);
+      assert.strictEqual(b.game.queue[0].spinsDone, 1);
+      assert.strictEqual(b.game.phase, 'ready');
+      const res = b.game.spin(r.id).result;
+      assert.strictEqual(res.spinNo, 2);
+      assert.strictEqual(res.forced, false);
+    } finally {
+      b.dispose();
+      b.io.close();
+    }
+  } finally {
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
+});

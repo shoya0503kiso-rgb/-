@@ -32,7 +32,11 @@ function monthKey(date) {
 class Game {
   constructor({ store, onChange = () => {}, timeScale = 1 }) {
     this.store = store;
-    this.onChange = onChange;
+    // 状態が変わるたびに待機列を保存してから画面へ知らせる
+    this.onChange = () => {
+      this._saveQueue();
+      onChange();
+    };
     this.timeScale = timeScale;
     this.queue = [];
     // phase: idle(待機) / announce(告知) / ready(回す待ち) / spinning(回転中) / result(結果) / finale(まとめ)
@@ -40,6 +44,29 @@ class Game {
     this.phaseAt = Date.now();
     this.currentSpin = null;
     this.timer = null;
+  }
+
+  _saveQueue() {
+    try {
+      this.store.saveQueue(this.queue);
+    } catch (err) {
+      console.error('[queue] 保存に失敗しました', err.message);
+    }
+  }
+
+  // PC を再起動したとき、保存しておいた待機列から再開する(回し終わった人は除く)
+  restore() {
+    const saved = Array.isArray(this.store.queue) ? this.store.queue : [];
+    this.queue = saved.filter(
+      (e) => e && typeof e.id === 'string' && HANDS.some((h) => h.id === e.hand) && Number.isInteger(e.spinsDone) && e.spinsDone < e.spinsTotal,
+    );
+    for (const e of this.queue) if (!Array.isArray(e.results)) e.results = [];
+    if (!this.queue.length) {
+      this._saveQueue();
+      return;
+    }
+    if (this.queue[0].spinsDone > 0) this._setPhase('ready');
+    else this._startAnnounce();
   }
 
   dispose() {

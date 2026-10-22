@@ -33,7 +33,7 @@
         resolve({ error: 'サーバーと接続できていません' });
         return;
       }
-      const timer = setTimeout(() => resolve({ error: '応答がありません。電波を確認してください' }), 8000);
+      const timer = setTimeout(() => resolve({ error: '応答がありません。テレビの画面を確認してください' }), 8000);
       socket.emit(event, payload, (res) => {
         clearTimeout(timer);
         resolve(res || {});
@@ -43,9 +43,10 @@
 
   // ---------- 接続表示 ----------
   function renderConn() {
+    $('offlineNote').classList.toggle('hidden', socket.connected);
     const c = $('conn');
     if (!socket.connected) {
-      c.textContent = 'サーバー未接続';
+      c.textContent = '未接続';
       c.className = 'conn ng';
     } else if (!clients.tv) {
       c.textContent = 'テレビ未接続';
@@ -105,12 +106,14 @@
   }
 
   function renderForm() {
-    $('registerBtn').disabled = registerPending || !$('name').value.trim() || !hand;
+    $('registerBtn').disabled = !socket.connected || registerPending || !$('name').value.trim() || !hand;
   }
 
   async function register() {
     const name = $('name').value.trim();
     if (!name || !hand || registerPending) return;
+    // 2台から同じ人を二重に登録するのを防ぐ
+    if (state && state.queue.some((e) => e.name === name) && !window.confirm(`${name}さんはすでに待機列にいます。もう一度登録しますか?`)) return;
     registerPending = true;
     renderForm();
     const res = await emit('register', { name, hand });
@@ -122,7 +125,8 @@
     } else {
       msg.textContent = '';
       msg.className = 'form-msg';
-      toast(`${res.entry.name}さん(${res.entry.handName})を登録しました`);
+      const pos = state ? state.queue.findIndex((e) => e.id === res.entry.id) : -1;
+      toast(pos > 0 ? `${res.entry.name}さんを待機列 ${pos + 1} 番目に登録しました` : `${res.entry.name}さん(${res.entry.handName})を登録しました`);
       $('name').value = '';
       hand = null;
       renderHands();
@@ -148,11 +152,14 @@
     $('nowCount').textContent = `${Math.min(doing, entry.spinsTotal)} / ${entry.spinsTotal} 回転目`;
 
     const btn = $('spinBtn');
-    const canSpin = ['announce', 'ready'].includes(state.phase) && entry.spinsDone < entry.spinsTotal;
+    const canSpin = socket.connected && ['announce', 'ready'].includes(state.phase) && entry.spinsDone < entry.spinsTotal;
     btn.disabled = !canSpin || spinPending;
     btn.classList.toggle('ready', canSpin && !spinPending);
     const status = $('nowStatus');
-    if (spinPending) {
+    if (!socket.connected) {
+      btn.textContent = '接続待ち…';
+      status.textContent = 'サーバーにつながっていません(Wi-Fiを確認)';
+    } else if (spinPending) {
       btn.textContent = '…';
       status.textContent = '';
     } else if (canSpin) {
@@ -203,6 +210,7 @@
       if (!locked) {
         const b = el('button', 'cancel', '取り消し');
         b.type = 'button';
+        b.disabled = !socket.connected;
         b.onclick = async () => {
           if (!window.confirm(`${e.name}さん(${e.handName})の登録を取り消しますか?`)) return;
           const res = await emit('cancel', { entryId: e.id });
@@ -236,8 +244,14 @@
     socket.emit('hello', 'control');
     loadPlayers();
     renderConn();
+    if (state) render();
+    renderForm();
   });
-  socket.on('disconnect', renderConn);
+  socket.on('disconnect', () => {
+    renderConn();
+    render();
+    renderForm();
+  });
   socket.on('clients', (c) => {
     clients = c;
     renderConn();

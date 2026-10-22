@@ -24,7 +24,7 @@ test('3画面のページと socket.io クライアントが返る', async () =>
 test('初回起動で data/ の3ファイルが作られる', async () => {
   const srv = await startTestServer();
   try {
-    for (const f of ['settings.json', 'log.json', 'players.json']) {
+    for (const f of ['settings.json', 'log.json', 'players.json', 'queue.json']) {
       assert.ok(fs.existsSync(path.join(srv.dataDir, f)), f);
     }
     const s = JSON.parse(fs.readFileSync(path.join(srv.dataDir, 'settings.json'), 'utf8'));

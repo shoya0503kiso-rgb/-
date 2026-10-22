@@ -24,6 +24,7 @@ function createApp({ dataDir, timeScale = 1 }) {
   const server = http.createServer(app);
   const io = new Server(server);
   const game = new Game({ store, timeScale, onChange: () => io.emit('state', game.snapshot()) });
+  game.restore();
 
   const pub = path.join(__dirname, '..', 'public');
   app.use(express.json({ limit: '1mb' }));

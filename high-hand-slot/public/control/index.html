@@ -14,11 +14,12 @@
 </header>
 
 <main>
+  <div id="offlineNote" class="offline-note hidden">サーバーにつながっていません。Wi-Fi と店のPCを確認してください(自動でつなぎ直します)</div>
   <!-- いまの番 -->
   <section id="nowCard" class="card now hidden">
     <div class="now-label">いまの番</div>
     <div class="now-name"><span id="nowName"></span><small>さん</small></div>
-    <div class="now-hand"><span id="nowHand"></span> ・ <span id="nowCount"></span></div>
+    <div class="now-hand"><span id="nowHand"></span> ・ <span id="nowCount" class="nw"></span></div>
     <button id="spinBtn" class="spin-btn" type="button" disabled>回す</button>
     <div id="nowStatus" class="now-status"></div>
   </section>
