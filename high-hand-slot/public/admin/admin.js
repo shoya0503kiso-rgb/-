@@ -47,6 +47,16 @@
     return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
   }
   const units = (r) => Math.round(Number(r) * 100);
+  // 表は狭い画面でも収まるように、日時は 月/日 時:分、役は略称で出す
+  function fmtShort(iso) {
+    const d = new Date(iso);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+  function shortHand(l) {
+    const h = hands.find((x) => x.id === l.hand);
+    return h ? h.short : l.handName;
+  }
 
   async function api(method, path, body) {
     const res = await fetch(`/api/admin${path}`, {
@@ -133,7 +143,6 @@
       const emoji = el('input', 'emoji');
       emoji.type = 'text';
       emoji.value = s.emoji;
-      emoji.maxLength = 8;
       emoji.setAttribute('aria-label', '絵柄');
       emoji.oninput = () => {
         s.emoji = emoji.value.trim();
@@ -361,12 +370,12 @@
     for (const l of data.log) {
       const tr = el('tr', l.tier === 4 ? 'jp' : l.win ? 'win' : '');
       tr.append(
-        el('td', '', fmtDate(l.at)),
-        el('td', '', l.name),
-        el('td', '', l.handName),
+        el('td', '', fmtShort(l.at)),
+        el('td', 'wrap', l.name),
+        el('td', '', shortHand(l)),
         el('td', '', `${l.spinNo}/${l.spinsTotal}`),
         el('td', 'e', l.emoji),
-        el('td', '', l.prize + (l.forced ? '(確定)' : '')),
+        el('td', 'wrap', l.prize + (l.forced ? '(確定)' : '')),
       );
       tb.append(tr);
     }
@@ -406,11 +415,13 @@
       const tb = el('tbody');
       for (const l of m.list) {
         const tr = el('tr');
-        tr.append(el('td', '', fmtDate(l.at)), el('td', '', `${l.name}さん`), el('td', '', l.handName), el('td', 'e', l.emoji), el('td', '', l.prize + (l.forced ? '(ロイヤル確定)' : '')));
+        tr.append(el('td', '', fmtShort(l.at)), el('td', 'wrap', `${l.name}さん`), el('td', '', shortHand(l)), el('td', 'e', l.emoji), el('td', 'wrap', l.prize + (l.forced ? '(確定)' : '')));
         tb.append(tr);
       }
       t.append(tb);
-      blk.append(t);
+      const tw = el('div', 'table-wrap');
+      tw.append(t);
+      blk.append(tw);
       box.append(blk);
     }
   }
@@ -421,7 +432,7 @@
     const t = el('table', 'tbl');
     const thead = el('thead');
     const hr = el('tr');
-    for (const h of ['絵柄', '景品', '設定', '実際', 'ずれ', '回数']) hr.append(el('th', ['設定', '実際', 'ずれ', '回数'].includes(h) ? 'num' : '', h));
+    for (const h of ['絵柄', '景品', '設定', '実際', 'ずれ', '回数']) hr.append(el('th', h === '回数' ? 'num cnt' : ['設定', '実際', 'ずれ'].includes(h) ? 'num' : '', h));
     thead.append(hr);
     const tb = el('tbody');
     let allOk = true;
@@ -432,11 +443,11 @@
       const tr = el('tr');
       tr.append(
         el('td', 'e', s.emoji),
-        el('td', '', s.prize),
+        el('td', 'wrap', s.prize),
         el('td', 'num', `${s.setRate}%`),
         el('td', 'num', `${s.actualRate.toFixed(2)}%`),
         el('td', `num ${ok ? 'okc' : 'ngc'}`, `${diff >= 0 ? '+' : ''}${diff.toFixed(2)}`),
-        el('td', 'num', s.count.toLocaleString()),
+        el('td', 'num cnt', s.count.toLocaleString()),
       );
       tb.append(tr);
     }
@@ -444,12 +455,16 @@
     const tw = el('div', 'table-wrap');
     tw.append(t);
     wrap.append(tw);
-    const ok = allOk && r.missAllSame === 0 && r.winNotAligned === 0;
+    const problems = [];
+    if (!allOk) problems.push('設定値から1%以上ずれた絵柄があります');
+    if (r.missAllSame) problems.push('ハズレなのに3つ揃ったことがあります');
+    if (r.winNotAligned) problems.push('当たりなのに揃わなかったことがあります');
+    const ok = !problems.length;
     wrap.append(
       el(
         'div',
         `verdict ${ok ? 'ok' : 'ng'}`,
-        `${r.n.toLocaleString()}回中:ハズレで3つ揃った回数 ${r.missAllSame}回 / ガセリーチ率 設定${r.fakeReachSetRate}% → 実際${r.fakeReachActualRate.toFixed(2)}% / ${ok ? '問題なし(全絵柄 ±1% 以内)' : '設定値から1%以上ずれた絵柄があります'}`,
+        `${r.n.toLocaleString()}回中:ハズレで3つ揃った回数 ${r.missAllSame}回 / ガセリーチ率 設定${r.fakeReachSetRate}% → 実際${r.fakeReachActualRate.toFixed(2)}% / ${ok ? '問題なし(全絵柄 ±1% 以内)' : problems.join('、')}`,
       ),
     );
     return wrap;

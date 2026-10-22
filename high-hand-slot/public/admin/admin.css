@@ -94,6 +94,12 @@ form .primary { width: 100%; margin-top: 18px; }
 .tbl th, .tbl td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .tbl th { color: var(--muted); font-size: 13px; }
 .tbl td.e { font-family: var(--emoji); font-size: 18px; }
+.tbl td.wrap { white-space: normal; word-break: break-all; min-width: 4.5em; }
+@media (max-width: 640px) {
+  .tbl { font-size: 13px; }
+  .tbl th, .tbl td { padding: 7px 4px; }
+  .tbl .cnt { display: none; }
+}
 .tbl td.num, .tbl th.num { text-align: right; }
 .tbl tr.win td { background: #fffbea; }
 .tbl tr.jp td { background: #ffe9a8; font-weight: 800; }
