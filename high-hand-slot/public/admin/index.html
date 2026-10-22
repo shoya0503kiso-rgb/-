@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ハイハンドスロット 管理</title>
+</head>
+<body>
+<h1>ハイハンドスロット 管理</h1>
+<p>接続: <span id="status">未接続</span></p>
+<p>接続中の画面: <span id="clients">-</span></p>
+<button id="ping">通信テスト</button>
+<ul id="log"></ul>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const role = 'admin';
+  socket.on('connect', () => { document.getElementById('status').textContent = '接続OK'; socket.emit('hello', role); });
+  socket.on('disconnect', () => { document.getElementById('status').textContent = '切断'; });
+  socket.on('clients', (c) => { document.getElementById('clients').textContent = 'テレビ ' + c.tv + ' / 操作 ' + c.control + ' / 管理 ' + c.admin; });
+  socket.on('pong-test', (m) => { const li = document.createElement('li'); li.textContent = m.from + ' から受信 ' + new Date(m.at).toLocaleTimeString(); document.getElementById('log').prepend(li); });
+  document.getElementById('ping').onclick = () => socket.emit('ping-test', role);
+</script>
+</body>
+</html>
