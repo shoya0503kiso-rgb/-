@@ -53,6 +53,34 @@
     for (const s of document.querySelectorAll('.screen')) s.classList.toggle('show', s.id === id);
   }
 
+  // 待機画面のパネル:中身がはみ出すときはパネルの文字サイズを縮める(中身は em 指定)
+  function fitPanels() {
+    for (const p of document.querySelectorAll('.fitp')) {
+      p.style.fontSize = '';
+      let size = parseFloat(getComputedStyle(p).fontSize);
+      let guard = 0;
+      while (p.scrollHeight > p.clientHeight + 1 && size > 12 && guard < 60) {
+        size *= 0.95;
+        p.style.fontSize = `${size}px`;
+        guard += 1;
+      }
+    }
+  }
+
+  // まとめ画面:回転数が多くてもカードが画面に収まるように一覧の文字サイズを縮める
+  function fitFinale() {
+    const card = document.querySelector('.finale-card');
+    const wrap = $('fnWrap');
+    wrap.style.fontSize = '';
+    let size = parseFloat(getComputedStyle(wrap).fontSize);
+    let guard = 0;
+    while (card.scrollHeight > 900 && size > 14 && guard < 60) {
+      size *= 0.94;
+      wrap.style.fontSize = `${size}px`;
+      guard += 1;
+    }
+  }
+
   // 長い名前でもはみ出さないように文字サイズを縮める(.fit と data-max の幅に収める)
   function fitAll() {
     for (const e of document.querySelectorAll('.fit')) {
@@ -262,9 +290,10 @@
           add({ type: 'rect', x: left ? 0 : 1920, y: 1000, vx: (left ? 1 : -1) * R(8, 22), vy: R(-30, -14), gy: 0.35, vr: R(-0.3, 0.3), size: R(16, 28), color: COLORS[i % COLORS.length], life: 300 });
         }
       },
+      // 結果カード(中央)の文字を隠さないよう、画面の両脇に降らせる
       rain(emoji, n = 40, size = 90) {
         for (let i = 0; i < n; i += 1) {
-          add({ type: 'emoji', emoji, x: R(40, 1880), y: R(-900, -60), vx: R(-1, 1), vy: R(3, 7), gy: 0.12, vr: R(-0.05, 0.05), size: R(size * 0.7, size * 1.2), life: 500 });
+          add({ type: 'emoji', emoji, x: i % 2 ? R(20, 200) : R(1720, 1900), y: R(-900, -60), vx: R(-1, 1), vy: R(3, 7), gy: 0.12, vr: R(-0.05, 0.05), size: R(size * 0.7, size * 1.2), life: 500 });
         }
       },
       // 画面の両脇から噴き上げる(結果カードの文字を隠さないように)
@@ -305,11 +334,11 @@
   function renderIdle(s) {
     const prob = $('probTable');
     prob.replaceChildren();
-    prob.classList.toggle('small', s.settings.symbols.length > 7);
+    prob.classList.toggle('two', s.settings.symbols.length > 8);
     for (const sym of s.settings.symbols) {
-      const tr = el('tr');
-      tr.append(el('td', 'e', sym.emoji), el('td', 'p', sym.prize), el('td', 'r', fmtRate(sym.rate)));
-      prob.append(tr);
+      const row = el('div', 'row');
+      row.append(el('span', 'e', sym.emoji), el('span', 'p', sym.prize), el('span', 'r', fmtRate(sym.rate)));
+      prob.append(row);
     }
     const spins = $('spinTable');
     spins.replaceChildren();
@@ -330,24 +359,22 @@
     if (!s.recentWins.length) rw.append(el('li', 'empty', 'まだ当選はありません'));
     for (const w of s.recentWins) {
       const li = el('li');
-      const t = el('span', 't');
-      t.append(el('span', 'e', w.emoji), document.createTextNode(`${w.name}さん`));
-      li.append(t, el('span', 's', `${w.prize} ・ ${fmtDate(w.at, true)}`));
+      li.append(el('span', 'e', w.emoji), document.createTextNode(`${w.name}さん`), el('span', 'pz', w.prize));
       rw.append(li);
     }
     $('monthLabel').textContent = `${Number(s.month.slice(5))}月`;
     const jl = $('jackpotList');
     jl.replaceChildren();
     if (!s.jackpotWinners.length) jl.append(el('li', 'empty', '今月はまだいません。あなたが1人目に!'));
+    // 新しい順に最大10人(2列)。それ以上は人数だけ出す
     const jw = s.jackpotWinners.slice().reverse();
-    for (const w of jw.slice(0, 4)) {
+    for (const w of jw.slice(0, 10)) {
       const li = el('li');
-      const t = el('span', 't');
-      t.append(el('span', 'd', fmtDate(w.at, true)), el('span', 'e', w.emoji), document.createTextNode(`${w.name}さん`));
-      li.append(t);
+      li.append(el('span', 'e', w.emoji), document.createTextNode(`${w.name}さん`));
       jl.append(li);
     }
-    if (jw.length > 4) jl.append(el('li', 'empty', `ほか ${jw.length - 4} 人`));
+    if (jw.length > 10) jl.append(el('li', 'more', `ほか ${jw.length - 10} 人(今月 ${jw.length} 人)`));
+    fitPanels();
   }
 
   function renderNextUp(s) {
@@ -372,6 +399,7 @@
 
     if (s.phase === 'idle' || !entry) {
       showScreen('idle');
+      if (shown.phase !== 'idle') clearFx();
       stopSpinVisuals();
       shown = { announce: null, spin: null, result: null, finale: null, phase: 'idle' };
       return;
@@ -389,6 +417,12 @@
         Sound.announce();
       }
     } else if (s.phase === 'ready') {
+      if (shown.phase !== 'ready') {
+        // 前の結果の演出・金枠を片付ける(リールの位置はそのまま)
+        clearFx();
+        stopSpinVisuals();
+        for (const r of reels) r.reset();
+      }
       showScreen('slot');
       renderSlotHeader(s, entry);
       prepareReels(s);
@@ -421,6 +455,10 @@
       }
       if (shown.result !== s.currentSpin.id) {
         shown.result = s.currentSpin.id;
+        // 手元のリールが少し遅れていても、ここで最終位置にそろえて止める
+        if (spinRun) cancelAnimationFrame(spinRun.raf);
+        spinRun = null;
+        for (const r of reels) r.update(Infinity);
         finishSpin();
         showResult(s.currentSpin, entry);
       }
@@ -570,7 +608,6 @@
           fx.confetti(250);
           fx.cannon(120);
         });
-        laterFx(6000, () => fx.rain(spin.emoji, 50, 110));
     }
   }
 
@@ -584,12 +621,13 @@
     $('fnDate').textContent = fmtDate(entry.results.length ? entry.results[entry.results.length - 1].at : Date.now());
     const list = $('fnList');
     list.replaceChildren();
-    list.classList.toggle('many', entry.results.length > 6);
     entry.results.forEach((r, i) => {
       const li = el('li', r.win ? 'win' : '');
       li.append(el('span', 'n', `${i + 1}回目`), el('span', 'e', r.emoji), el('span', '', r.prize));
       list.append(li);
     });
+    fitAll();
+    fitFinale();
     if (best) {
       fx.sparkle(60);
       if (best.tier >= 3) fx.confetti(150);

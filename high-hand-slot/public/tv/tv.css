@@ -77,38 +77,41 @@ html, body {
   justify-content: center;
   margin-top: 40px;
 }
+/* パネルの中身は em 指定。はみ出すときは tv.js の fitPanels() がパネルの文字サイズを縮める */
 .panel {
   background: rgba(0, 0, 0, .35);
   border: 3px solid rgba(255, 213, 74, .55);
   border-radius: 28px;
-  padding: 26px 32px;
+  padding: 24px 30px;
   height: 640px;
   overflow: hidden;
+  font-size: 34px;
 }
-.panel h2 { margin: 0 0 16px; font-size: 38px; color: var(--gold); }
-.panel h2.mt { margin-top: 26px; }
-.prob, .spins { width: 100%; border-collapse: collapse; font-size: 34px; }
-.prob td, .spins td { padding: 9px 4px; border-bottom: 1px solid rgba(255, 255, 255, .15); }
-.prob td.e { font-family: var(--emoji); font-size: 50px; width: 80px; text-align: center; }
-.prob td.r, .spins td.r { text-align: right; font-weight: 800; color: var(--gold); white-space: nowrap; }
-.prob td.p { word-break: break-all; }
-.prob.small { font-size: 26px; }
-.prob.small td.e { font-size: 36px; }
-.note { font-size: 26px; margin: 18px 0 0; opacity: .9; }
-.list { list-style: none; margin: 0; padding: 0; font-size: 30px; }
-.list li { padding: 7px 0; border-bottom: 1px solid rgba(255, 255, 255, .12); line-height: 1.25; }
-.list li .t { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.list li .s { display: block; font-size: 23px; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.list li .e { font-family: var(--emoji); margin-right: 10px; }
-.list li .d { opacity: .7; font-size: 24px; margin-right: 10px; }
+.stack { display: flex; flex-direction: column; gap: 20px; height: 640px; }
+.stack .panel.recent { height: 350px; font-size: 30px; }
+.stack .panel.jackpot { height: 270px; font-size: 30px; }
+.panel h2 { margin: 0 0 .4em; font-size: 1.12em; color: var(--gold); white-space: nowrap; }
+.prob { display: grid; grid-template-columns: 1fr; column-gap: 1em; }
+.prob.two { grid-template-columns: 1fr 1fr; }
+.prob .row {
+  display: grid; grid-template-columns: 1.5em 1fr auto; align-items: center; gap: .3em;
+  padding: .22em 0; border-bottom: 1px solid rgba(255, 255, 255, .15);
+}
+.prob .e { font-family: var(--emoji); font-size: 1.4em; text-align: center; line-height: 1.1; }
+.prob .p { word-break: break-all; line-height: 1.2; }
+.prob .r, .spins td.r { text-align: right; font-weight: 800; color: var(--gold); white-space: nowrap; }
+.spins { width: 100%; border-collapse: collapse; font-size: 1em; }
+.spins td { padding: .26em .1em; border-bottom: 1px solid rgba(255, 255, 255, .15); }
+.note { font-size: .76em; margin: .6em 0 0; opacity: .9; }
+.list { list-style: none; margin: 0; padding: 0; font-size: 1em; }
+.list li { padding: .2em 0; border-bottom: 1px solid rgba(255, 255, 255, .12); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list li .e { font-family: var(--emoji); margin-right: .3em; }
+.list li .d { opacity: .7; font-size: .8em; margin-right: .4em; }
+.list li .pz { opacity: .85; font-size: .85em; margin-left: .4em; }
 .list .empty { opacity: .6; white-space: normal; }
+.jackpot-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 1em; }
 .jackpot-list li { color: var(--gold); font-weight: 800; }
-.next-up {
-  position: absolute; left: 30px; bottom: 64px; z-index: 7; max-width: 1860px;
-  font-size: 30px; color: var(--gold); background: rgba(0, 0, 0, .45); padding: 6px 22px; border-radius: 20px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.next-up:empty { display: none; }
+.jackpot-list li.empty, .jackpot-list li.more { grid-column: 1 / -1; }
 
 /* ---------- 告知 ---------- */
 #announce { display: flex; align-items: center; justify-content: center; }
@@ -125,7 +128,8 @@ html, body {
   font-size: 110px; font-weight: 900; font-style: italic; color: var(--red);
   text-shadow: 0 6px 0 #fff, 0 0 40px rgba(255, 59, 92, .8);
 }
-.fit { white-space: nowrap; }
+.fit { white-space: nowrap; width: max-content; max-width: none; margin-left: auto; margin-right: auto; }
+.slot-top .fit { margin: 0; }
 .announce-name { font-size: 170px; font-weight: 900; line-height: 1.15; text-shadow: 0 8px 0 rgba(0, 0, 0, .5); }
 .announce-name small, .who small, .result-who small, .finale-who small { font-size: .5em; margin-left: .1em; }
 .announce-hand { font-size: 140px; font-weight: 900; color: var(--gold); text-shadow: 0 8px 0 #a1340a; }
@@ -256,22 +260,21 @@ html, body {
 /* ---------- まとめ ---------- */
 #finale { display: flex; align-items: center; justify-content: center; }
 .finale-card {
-  width: 1500px; max-height: 960px; padding: 40px 60px 30px; text-align: center; border-radius: 50px;
+  width: 1600px; max-height: 960px; overflow: hidden; padding: 40px 60px 30px; text-align: center; border-radius: 50px;
   background: rgba(0, 0, 0, .4); border: 6px solid var(--gold);
 }
 .finale-title { font-size: 90px; font-weight: 900; color: var(--gold); text-shadow: 0 6px 0 #a1340a; }
 .finale-who { font-size: 110px; font-weight: 900; line-height: 1.2; }
 .finale-hand { font-size: 64px; font-weight: 800; margin: 0 0 20px; }
-.finale-list { list-style: none; padding: 0; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 18px 24px; }
+.finale-list-wrap { font-size: 42px; }
+.finale-list { list-style: none; padding: 0; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; gap: .4em .55em; }
 .finale-list li {
-  min-width: 380px; padding: 14px 24px; border-radius: 24px; background: rgba(255, 255, 255, .1);
-  font-size: 42px; font-weight: 800; display: flex; align-items: center; gap: 16px;
+  min-width: 9em; padding: .3em .55em; border-radius: .55em; background: rgba(255, 255, 255, .1);
+  font-weight: 800; display: flex; align-items: center; gap: .35em; white-space: nowrap;
 }
-.finale-list li .e { font-family: var(--emoji); font-size: 70px; }
-.finale-list li .n { opacity: .7; font-size: 30px; }
+.finale-list li .e { font-family: var(--emoji); font-size: 1.6em; line-height: 1.1; }
+.finale-list li .n { opacity: .7; font-size: .7em; }
 .finale-list li.win { background: rgba(255, 213, 74, .25); border: 3px solid var(--gold); }
-.finale-list.many li { min-width: 300px; font-size: 32px; }
-.finale-list.many li .e { font-size: 52px; }
 
 /* ---------- 共通 ---------- */
 #fx { position: absolute; inset: 0; pointer-events: none; z-index: 8; }

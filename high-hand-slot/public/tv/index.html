@@ -17,21 +17,25 @@
       <div class="sublogo">9High福山 ・ フルハウス以上でショーダウン勝ちしたらスロットに挑戦!</div>
     </header>
     <div class="idle-grid">
-      <div class="panel">
+      <div class="panel fitp">
         <h2>景品と確率</h2>
-        <table id="probTable" class="prob"></table>
+        <div id="probTable" class="prob"></div>
       </div>
-      <div class="panel">
+      <div class="panel fitp">
         <h2>役と回転数</h2>
         <table id="spinTable" class="spins"></table>
         <p class="note" id="targetNote"></p>
         <p class="note">※プレイ・ザ・ボード(ボードだけで役が完成)は対象外</p>
       </div>
-      <div class="panel">
-        <h2>直近の当選</h2>
-        <ol id="recentWins" class="list"></ol>
-        <h2 class="mt"><span id="monthLabel"></span>の 7️⃣ 獲得者</h2>
-        <ol id="jackpotList" class="list jackpot-list"></ol>
+      <div class="stack">
+        <div class="panel fitp recent">
+          <h2>直近の当選</h2>
+          <ol id="recentWins" class="list"></ol>
+        </div>
+        <div class="panel fitp jackpot">
+          <h2><span id="monthLabel"></span>の 7️⃣ 獲得者</h2>
+          <ol id="jackpotList" class="list jackpot-list"></ol>
+        </div>
       </div>
     </div>
   </section>
@@ -84,7 +88,7 @@
       <div class="finale-title fit" data-max="1370" id="fnTitle"></div>
       <div class="finale-who fit" data-max="1370"><span id="fnName"></span><small>さん</small></div>
       <div class="finale-hand" id="fnHand"></div>
-      <ol class="finale-list" id="fnList"></ol>
+      <div class="finale-list-wrap" id="fnWrap"><ol class="finale-list" id="fnList"></ol></div>
       <div class="result-foot"><span>HIGH HAND SLOT</span><span>9High福山</span><span id="fnDate"></span></div>
     </div>
   </section>
