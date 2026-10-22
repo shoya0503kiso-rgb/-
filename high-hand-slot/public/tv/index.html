@@ -4,22 +4,101 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ハイハンドスロット テレビ</title>
+<link rel="stylesheet" href="tv.css">
 </head>
 <body>
-<h1>ハイハンドスロット テレビ</h1>
-<p>接続: <span id="status">未接続</span></p>
-<p>接続中の画面: <span id="clients">-</span></p>
-<button id="ping">通信テスト</button>
-<ul id="log"></ul>
+<div id="stage">
+  <div class="bg"></div>
+
+  <!-- 待機画面 -->
+  <section id="idle" class="screen">
+    <header class="logo-wrap">
+      <div class="logo">HIGH HAND SLOT</div>
+      <div class="sublogo">9High福山 ・ フルハウス以上でショーダウン勝ちしたらスロットに挑戦!</div>
+    </header>
+    <div class="idle-grid">
+      <div class="panel">
+        <h2>景品と確率</h2>
+        <table id="probTable" class="prob"></table>
+      </div>
+      <div class="panel">
+        <h2>役と回転数</h2>
+        <table id="spinTable" class="spins"></table>
+        <p class="note" id="targetNote"></p>
+        <p class="note">※プレイ・ザ・ボード(ボードだけで役が完成)は対象外</p>
+      </div>
+      <div class="panel">
+        <h2>直近の当選</h2>
+        <ol id="recentWins" class="list"></ol>
+        <h2 class="mt"><span id="monthLabel"></span>の 7️⃣ 獲得者</h2>
+        <ol id="jackpotList" class="list jackpot-list"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 告知 -->
+  <section id="announce" class="screen">
+    <div class="announce-rays"></div>
+    <div class="announce-box">
+      <div class="announce-label">HIGH HAND!</div>
+      <div class="announce-name fit" data-max="1800"><span id="anName"></span><small>さん</small></div>
+      <div class="announce-hand fit" data-max="1800" id="anHand"></div>
+      <div class="announce-spins" id="anSpins"></div>
+    </div>
+  </section>
+
+  <!-- スロット -->
+  <section id="slot" class="screen">
+    <div class="slot-top">
+      <div class="who fit" data-max="1340"><span id="slName"></span><small>さん</small> <span class="hand" id="slHand"></span></div>
+      <div class="count" id="slCount"></div>
+    </div>
+    <div class="machine">
+      <div class="machine-title">HIGH HAND SLOT</div>
+      <div class="reels">
+        <div class="reel" id="reel0"></div>
+        <div class="reel" id="reel1"></div>
+        <div class="reel" id="reel2"></div>
+        <div class="payline"></div>
+      </div>
+      <div class="lamps"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div id="slMessage" class="slot-message"></div>
+    <div id="reachBanner" class="reach-banner">リーチ!</div>
+
+    <!-- 結果(写真を撮ってSNSに載せられるレイアウト) -->
+    <div id="result" class="result">
+      <div class="result-card">
+        <div class="result-head" id="rsHead"></div>
+        <div class="result-emoji" id="rsEmoji"></div>
+        <div class="result-prize" id="rsPrize"></div>
+        <div class="result-who fit" data-max="1370"><span id="rsName"></span><small>さん</small> <span id="rsHand"></span></div>
+        <div class="result-foot"><span>HIGH HAND SLOT</span><span>9High福山</span><span id="rsDate"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 全回転終了のまとめ -->
+  <section id="finale" class="screen">
+    <div class="finale-card">
+      <div class="finale-title fit" data-max="1370" id="fnTitle"></div>
+      <div class="finale-who fit" data-max="1370"><span id="fnName"></span><small>さん</small></div>
+      <div class="finale-hand" id="fnHand"></div>
+      <ol class="finale-list" id="fnList"></ol>
+      <div class="result-foot"><span>HIGH HAND SLOT</span><span>9High福山</span><span id="fnDate"></span></div>
+    </div>
+  </section>
+
+  <canvas id="fx" width="1920" height="1080"></canvas>
+  <div id="flash"></div>
+
+  <div id="nextUp" class="next-up"></div>
+  <footer class="disclaimer">景品は店内サービスに限ります。換金はできません。</footer>
+  <div id="soundHint" class="sound-hint">🔇 画面をクリック(またはリモコンの決定ボタン)で音が出ます</div>
+  <div id="offline" class="offline">サーバーと接続できません。店のPCで起動しているか確認してください…</div>
+</div>
 <script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
-  const role = 'tv';
-  socket.on('connect', () => { document.getElementById('status').textContent = '接続OK'; socket.emit('hello', role); });
-  socket.on('disconnect', () => { document.getElementById('status').textContent = '切断'; });
-  socket.on('clients', (c) => { document.getElementById('clients').textContent = 'テレビ ' + c.tv + ' / 操作 ' + c.control + ' / 管理 ' + c.admin; });
-  socket.on('pong-test', (m) => { const li = document.createElement('li'); li.textContent = m.from + ' から受信 ' + new Date(m.at).toLocaleTimeString(); document.getElementById('log').prepend(li); });
-  document.getElementById('ping').onclick = () => socket.emit('ping-test', role);
-</script>
+<script src="/common/sound.js"></script>
+<script src="tv.js"></script>
 </body>
 </html>

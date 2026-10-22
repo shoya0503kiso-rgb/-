@@ -35,14 +35,14 @@ test('初回起動で data/ の3ファイルが作られる', async () => {
   }
 });
 
-test('socket.io で画面間の通信ができる', async () => {
+test('socket.io で画面間がつながり、接続台数が配信される', async () => {
   const srv = await startTestServer();
   try {
     const tv = await srv.connect('tv');
-    const control = await srv.connect('control');
+    const got = waitFor(tv, 'state', (s) => s.phase === 'announce');
+    await srv.connect('control');
     await waitFor(tv, 'clients', (c) => c.tv === 1 && c.control === 1);
-    const got = waitFor(tv, 'pong-test', (m) => m.from === 'control');
-    control.emit('ping-test', 'control');
+    srv.game.register({ name: 'テスト', hand: 'fullhouse' });
     await got;
   } finally {
     await srv.close();
