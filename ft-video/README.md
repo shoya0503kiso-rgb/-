@@ -53,6 +53,20 @@ npm run render:all          # 両方
 
 書き出しの前に、素材の不足や `players.json` の書き間違いを自動チェックします（`npm run check` で単体実行も可）。
 
+### 大会当日：作り置きして速く書き出す
+
+書き出しで一番時間がかかるのは本人動画のパートです。本人動画のパートは持ち点に関係ないので、**持ち点が決まる前に作り置き**しておけます。
+
+1. 残っている全員分（FT前で多めでもOK）の名前・キャッチコピー・動画を `players.json` と `assets/` に入れる。持ち点は仮の数字でOK
+2. `npm run prerender` … 全員分の本人動画パートを作り置き（横型は `npm run prerender:horizontal`）
+3. 飛んだ人を `players.json` から消していく（作り置きはそのまま使えます）
+4. FTメンバーが決まったら、持ち点・席番号を入れて `npm run fast`（横型は `npm run fast:horizontal`）
+
+`npm run fast` は、オープニング・キャラ紹介・チップリーダー入場・エンディングだけを書き出し、作り置きとつなげて BGM を乗せます → `out/ft-vertical.mp4`。
+作り置きは `out/cache/` に保存され、名前・動画・大会名・プログラムが変わったパートだけ作り直します。
+
+> `npm run render:vertical` との違いは書き出し方だけで、見た目は同じです。
+
 ---
 
 ## 実際の素材を入れる手順（毎大会これだけ）
@@ -79,6 +93,7 @@ ft-video/
 
 **キャラ画像のコツ**
 - 縦長（3:4 くらい。ChatGPT なら 1024×1536 の縦長）がおすすめ。枠に合わせて上寄せでトリミングされます
+- 画像がない人は `image` を書かなければ、本人動画の1コマを自動で切り出して使います（`assets/images/_auto/`）
 - 正方形でも使えますが、左右が少し切れます
 - png / jpg / webp が使えます
 
@@ -116,7 +131,7 @@ ft-video/
 | `players[].title` | 肩書き・キャッチコピー（任意） |
 | `players[].seat` | 席番号（任意） |
 | `players[].chips` | 持ち点。**数字だけ**（`125000`。カンマや `""` は付けない）。表示は自動で `125,000` |
-| `players[].video` / `image` | `assets/videos/`・`assets/images/` 内のファイル名 |
+| `players[].video` / `image` | `assets/videos/`・`assets/images/` 内のファイル名（`image` は省略可） |
 | `players[].videoSeconds` | この人だけ動画の秒数を変えたいとき（任意） |
 | `settings.videoSeconds` | 本人動画を流す秒数（既定 5） |
 | `settings.bgm` | `assets/` からのBGMのパス。BGMなしは `null` |

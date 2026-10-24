@@ -4,7 +4,7 @@ import { layoutOf, shake } from "../components/effects";
 import { Flash } from "../components/Flash";
 import { GoldText } from "../components/GoldText";
 import { FONT_EN, FONT_JP, FONT_NUM, GOLD } from "../theme";
-import type { PlayerSlot } from "../timeline";
+import { imageOf, type PlayerSlot } from "../timeline";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
@@ -66,7 +66,7 @@ export const LeaderIntro: React.FC<{ slot: PlayerSlot }> = ({ slot }) => {
       {/* 暗がりにうっすら見える本人（まだはっきりは見せない） */}
       <AbsoluteFill style={{ alignItems: "center", justifyContent: vertical ? "flex-end" : "center", opacity: silhouette }}>
         <Img
-          src={staticFile(`images/${slot.player.image}`)}
+          src={staticFile(imageOf(slot.player))}
           style={{
             height: (vertical ? 1250 : 900) * u,
             filter: `grayscale(1) brightness(0.35) contrast(1.3) blur(${4 * u}px) sepia(0.6)`,
@@ -123,6 +123,7 @@ export const LeaderIntro: React.FC<{ slot: PlayerSlot }> = ({ slot }) => {
       </AbsoluteFill>
 
       <Flash at={SLAM} before={1} after={16} />
+      <Flash at={0} after={6} peak={0.35} color="#F7D98A" />
     </AbsoluteFill>
   );
 };

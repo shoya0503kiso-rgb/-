@@ -1,7 +1,7 @@
 // players.json と素材ファイルのチェック（書き出し前に自動で実行される）
 // 使い方: npm run check
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -39,6 +39,7 @@ players.forEach((p, i) => {
   if (!p.name) errors.push(`${who}: name がありません`);
   if (typeof p.chips !== "number" || !Number.isFinite(p.chips)) errors.push(`${who}: chips は数字で書いてください（例: 125000。"" やカンマは不要）`);
   for (const [key, dir] of [["video", "videos"], ["image", "images"]]) {
+    if (key === "image" && !p.image) continue; // 画像なし → 下で動画から切り出す
     if (!p[key]) {
       errors.push(`${who}: ${key} がありません`);
       continue;
@@ -52,6 +53,24 @@ players.forEach((p, i) => {
     }
   }
 });
+
+// image を省略した人は、本人動画の真ん中あたりの1コマを画像として使う
+const autoDir = path.join(assets, "images", "_auto");
+for (const p of players) {
+  if (p.image || !p.video) continue;
+  const src = path.join(assets, "videos", p.video);
+  const out = path.join(autoDir, `${p.video.replace(/\.[^.]+$/, "")}.jpg`);
+  if (!existsSync(src)) continue;
+  if (existsSync(out) && statSync(out).mtimeMs >= statSync(src).mtimeMs) continue;
+  try {
+    mkdirSync(autoDir, { recursive: true });
+    const sec = Math.min(2.5, (p.videoSeconds ?? defaultSeconds) / 2);
+    execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", "-ss", String(sec), "-i", src, "-frames:v", "1", "-q:v", "2", out]);
+    console.log(`・${p.name}: 画像がないので動画から切り出しました（assets/images/_auto/）`);
+  } catch {
+    errors.push(`${p.name}: image がなく、動画からの切り出しにも失敗しました（ffmpeg が必要）。image を指定してください`);
+  }
+}
 
 const seats = players.map((p) => p.seat).filter((s) => s != null);
 if (new Set(seats).size !== seats.length) warnings.push("席番号が重複しています");

@@ -9,8 +9,8 @@ export type Player = {
   chips: number;
   /** assets/videos/ 内のファイル名 */
   video: string;
-  /** assets/images/ 内のファイル名 */
-  image: string;
+  /** assets/images/ 内のファイル名（省略すると本人動画の1コマを自動で使う） */
+  image?: string;
   /** この人だけ動画の秒数を変えたいとき（任意） */
   videoSeconds?: number;
 };

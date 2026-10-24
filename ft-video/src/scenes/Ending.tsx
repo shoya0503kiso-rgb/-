@@ -3,8 +3,10 @@ import { AbsoluteFill, Easing, Img, interpolate, spring, staticFile, useCurrentF
 import { Background } from "../components/Background";
 import { layoutOf } from "../components/effects";
 import { GoldText } from "../components/GoldText";
+import { Flash } from "../components/Flash";
 import { Crown } from "../components/Icons";
 import { FONT_EN, FONT_JP, FONT_NUM, formatChips, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_H } from "../theme";
+import { imageOf } from "../timeline";
 import type { Player, Tournament } from "../types";
 import { fitSize } from "./PlayerReveal";
 
@@ -34,6 +36,7 @@ export const Ending: React.FC<{ ranking: Player[]; tournament: Tournament }> = (
   return (
     <AbsoluteFill style={{ opacity: fadeOut }}>
       <Background intensity={0.8} particles={40} />
+      <Flash at={0} after={10} peak={0.6} />
 
       <div style={{ position: "absolute", top: (vertical ? 80 : 26) * u, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 * u, transform: `scale(${0.6 + 0.4 * titleIn})`, opacity: titleIn }}>
         <GoldText size={(vertical ? 110 : 100) * u} font={FONT_EN} letterSpacing={8 * u} shine={interpolate(frame, [10, 50], [-20, 130], clamp)}>
@@ -90,7 +93,7 @@ export const Ending: React.FC<{ ranking: Player[]; tournament: Tournament }> = (
               )}
             </div>
             <div style={{ width: thumb, height: thumb, flexShrink: 0, padding: 3 * u, background: GOLD_GRADIENT, boxSizing: "border-box" }}>
-              <Img src={staticFile(`images/${p.image}`)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block" }} />
+              <Img src={staticFile(imageOf(p))} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block" }} />
             </div>
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 * u }}>
               {p.title && rowH > 120 * u ? (

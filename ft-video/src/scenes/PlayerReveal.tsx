@@ -8,7 +8,7 @@ import { GoldText } from "../components/GoldText";
 import { ChipIcon, Crown } from "../components/Icons";
 import { LightRays } from "../components/LightRays";
 import { FONT_EN, FONT_JP, FONT_NUM, formatChips, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_H } from "../theme";
-import type { PlayerSlot } from "../timeline";
+import { imageOf, type PlayerSlot } from "../timeline";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
@@ -124,7 +124,7 @@ export const PlayerReveal: React.FC<{ slot: PlayerSlot }> = ({ slot }) => {
         />
         <div style={{ position: "absolute", inset: 0, overflow: "hidden", backgroundColor: "#111" }}>
           <GlitchSlices intensity={glitch}>
-            <Img src={staticFile(`images/${player.image}`)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} />
+            <Img src={staticFile(imageOf(player))} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} />
           </GlitchSlices>
           {/* 光が走る */}
           <AbsoluteFill
@@ -201,6 +201,8 @@ export const PlayerReveal: React.FC<{ slot: PlayerSlot }> = ({ slot }) => {
       </div>
 
       <Flash at={COUNT_END} before={1} after={10} peak={isLeader ? 0.6 : 0.25} />
+      {/* 動画からの切り替わりのフラッシュ */}
+      {slot.transition !== "glitch" ? <Flash at={0} after={14} /> : <Flash at={0} after={4} peak={0.5} />}
     </AbsoluteFill>
   );
 };

@@ -21,7 +21,10 @@ export type PlayerSlot = {
   intro?: Span;
   video: Span;
   reveal: Span;
+  /** 画像側の切り替え演出（チップリーダーは auto だと both） */
   transition: Exclude<Transition, "auto">;
+  /** 動画側の切り替え演出。持ち点に左右されないので動画パートを作り置きできる */
+  videoTransition: Exclude<Transition, "auto">;
 };
 
 export type Timeline = {
@@ -33,6 +36,13 @@ export type Timeline = {
 
 /** 持ち点の多い順（同点は席番号順） */
 export const byChipsDesc = (a: Player, b: Player) => b.chips - a.chips || (a.seat ?? 99) - (b.seat ?? 99);
+
+/** 名前から決まるフラッシュ/グリッチ（持ち点や紹介順に左右されない） */
+export const autoTransitionOf = (name: string): "flash" | "glitch" =>
+  [...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 2 === 0 ? "flash" : "glitch";
+
+/** 画像ファイル名。省略時は check.mjs が本人動画から切り出す画像 */
+export const imageOf = (p: Player) => (p.image ? `images/${p.image}` : `images/_auto/${p.video.replace(/\.[^.]+$/, "")}.jpg`);
 
 export const buildTimeline = (data: FTData, fps = FPS): Timeline => {
   const settings = data.settings ?? {};
@@ -59,9 +69,10 @@ export const buildTimeline = (data: FTData, fps = FPS): Timeline => {
     cursor += revealFrames;
 
     const t = settings.transition ?? "auto";
-    const transition = t === "auto" ? (isLeader ? "both" : i % 2 === 0 ? "flash" : "glitch") : t;
+    const videoTransition = t === "auto" ? autoTransitionOf(player.name) : t;
+    const transition = t === "auto" && isLeader ? "both" : videoTransition;
 
-    return { player, order: i, rank: ranking.indexOf(player) + 1, isLeader, intro, video, reveal, transition };
+    return { player, order: i, rank: ranking.indexOf(player) + 1, isLeader, intro, video, reveal, transition, videoTransition };
   });
 
   const ending = { from: cursor, duration: ENDING_FRAMES };

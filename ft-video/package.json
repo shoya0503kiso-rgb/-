@@ -4,9 +4,13 @@
   "private": true,
   "description": "9High福山 ファイナルテーブル進出者紹介動画ジェネレーター（Remotion）",
   "scripts": {
-    "start": "remotion studio",
+    "start": "node scripts/check.mjs && remotion studio",
     "check": "node scripts/check.mjs",
     "dummy": "node scripts/make-dummy.mjs",
+    "prerender": "node scripts/render-fast.mjs --prerender",
+    "prerender:horizontal": "node scripts/render-fast.mjs --prerender --horizontal",
+    "fast": "node scripts/render-fast.mjs",
+    "fast:horizontal": "node scripts/render-fast.mjs --horizontal",
     "render": "npm run render:vertical",
     "render:vertical": "node scripts/check.mjs && remotion render FT-Vertical out/ft-vertical.mp4",
     "render:horizontal": "node scripts/check.mjs && remotion render FT-Horizontal out/ft-horizontal.mp4",
@@ -14,8 +18,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@remotion/bundler": "^4.0.538",
     "@remotion/cli": "^4.0.538",
     "@remotion/fonts": "^4.0.538",
+    "@remotion/renderer": "^4.0.538",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "remotion": "^4.0.538"

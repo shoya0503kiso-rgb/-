@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { AbsoluteFill, Audio, interpolate, Sequence, staticFile, useVideoConfig } from "remotion";
-import { Flash } from "./components/Flash";
 import "./fonts";
 import { Ending } from "./scenes/Ending";
 import { LeaderIntro } from "./scenes/LeaderIntro";
@@ -48,7 +47,7 @@ export const FinalTable: React.FC<FTData> = (data) => {
             </Sequence>
           ) : null}
           <Sequence from={slot.video.from} durationInFrames={slot.video.duration} name={`動画 ${slot.player.name}`}>
-            <PlayerVideo slot={slot} total={timeline.slots.length} volume={videoVolume} />
+            <PlayerVideo player={slot.player} transition={slot.videoTransition} label={data.tournament.title} volume={videoVolume} />
           </Sequence>
           <Sequence from={slot.reveal.from} durationInFrames={slot.reveal.duration} name={`紹介 ${slot.player.name}`}>
             <PlayerReveal slot={slot} />
@@ -59,15 +58,6 @@ export const FinalTable: React.FC<FTData> = (data) => {
       <Sequence from={timeline.ending.from} durationInFrames={timeline.ending.duration} name="エンディング">
         <Ending ranking={ranking} tournament={data.tournament} />
       </Sequence>
-
-      {/* 場面の切り替わりのフラッシュ */}
-      {timeline.slots.map((slot) => (
-        <React.Fragment key={`fx-${slot.order}`}>
-          {slot.transition !== "glitch" ? <Flash at={slot.reveal.from} before={3} after={14} /> : <Flash at={slot.reveal.from} before={1} after={4} peak={0.5} />}
-          <Flash at={(slot.intro ?? slot.video).from} before={4} after={6} peak={0.35} color="#F7D98A" />
-        </React.Fragment>
-      ))}
-      <Flash at={timeline.ending.from} before={4} after={10} peak={0.6} />
 
       {s.bgm ? <Audio src={staticFile(s.bgm)} loop volume={bgmVolumeAt} /> : null}
     </AbsoluteFill>
