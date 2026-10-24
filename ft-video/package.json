@@ -1,0 +1,27 @@
+{
+  "name": "ft-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "9High福山 ファイナルテーブル進出者紹介動画ジェネレーター（Remotion）",
+  "scripts": {
+    "start": "remotion studio",
+    "check": "node scripts/check.mjs",
+    "dummy": "node scripts/make-dummy.mjs",
+    "render": "npm run render:vertical",
+    "render:vertical": "node scripts/check.mjs && remotion render FT-Vertical out/ft-vertical.mp4",
+    "render:horizontal": "node scripts/check.mjs && remotion render FT-Horizontal out/ft-horizontal.mp4",
+    "render:all": "npm run render:vertical && npm run render:horizontal",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.538",
+    "@remotion/fonts": "^4.0.538",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "remotion": "^4.0.538"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "typescript": "^5.9.3"
+  }
+}
