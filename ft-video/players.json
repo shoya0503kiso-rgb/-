@@ -15,61 +15,70 @@
   },
   "players": [
     {
-      "name": "Atsushi",
-      "title": "",
-      "chips": 0,
-      "video": "Atsushi.mp4",
-      "videoSeconds": 4.4,
-      "videoFocusX": 35
-    },
-    {
       "name": "かくとう",
       "title": "",
-      "chips": 0,
-      "video": "かくとう.mp4"
+      "chips": 570000,
+      "video": "かくとう.mp4",
+      "seat": 1
+    },
+    {
+      "name": "Atsushi",
+      "title": "",
+      "chips": 1075000,
+      "video": "Atsushi.mp4",
+      "videoSeconds": 4.4,
+      "videoFocusX": 35,
+      "seat": 2
     },
     {
       "name": "トルくん",
       "title": "",
-      "chips": 0,
-      "video": "トルくん.mp4"
-    },
-    {
-      "name": "りょうた",
-      "title": "",
-      "chips": 0,
-      "video": "りょうた.mp4",
-      "videoFocusX": 58
-    },
-    {
-      "name": "SHU",
-      "title": "",
-      "chips": 0,
-      "video": "SHU.mp4"
-    },
-    {
-      "name": "Daiki",
-      "title": "",
-      "chips": 0,
-      "video": "Daiki.mp4"
-    },
-    {
-      "name": "たね",
-      "title": "",
-      "chips": 0,
-      "video": "たね.mp4"
-    },
-    {
-      "name": "Ryusei",
-      "title": "",
-      "chips": 0,
-      "video": "Ryusei.mp4"
+      "chips": 175000,
+      "video": "トルくん.mp4",
+      "seat": 3
     },
     {
       "name": "ゆうや",
       "title": "",
-      "chips": 0,
-      "video": "ゆうや.mp4"
+      "chips": 70000,
+      "video": "ゆうや.mp4",
+      "seat": 4
+    },
+    {
+      "name": "SHU",
+      "title": "",
+      "chips": 345000,
+      "video": "SHU.mp4",
+      "seat": 5
+    },
+    {
+      "name": "Ryusei",
+      "title": "",
+      "chips": 220000,
+      "video": "Ryusei.mp4",
+      "seat": 6
+    },
+    {
+      "name": "たね",
+      "title": "",
+      "chips": 80000,
+      "video": "たね.mp4",
+      "seat": 7
+    },
+    {
+      "name": "りょうた",
+      "title": "",
+      "chips": 450000,
+      "video": "りょうた.mp4",
+      "videoFocusX": 58,
+      "seat": 8
+    },
+    {
+      "name": "Daiki",
+      "title": "",
+      "chips": 640000,
+      "video": "Daiki.mp4",
+      "seat": 9
     }
   ]
 }
