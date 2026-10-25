@@ -93,7 +93,7 @@ export const Ending: React.FC<{ ranking: Player[]; tournament: Tournament }> = (
               )}
             </div>
             <div style={{ width: thumb, height: thumb, flexShrink: 0, padding: 3 * u, background: GOLD_GRADIENT, boxSizing: "border-box" }}>
-              <Img src={staticFile(imageOf(p))} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block" }} />
+              <Img src={staticFile(imageOf(p))} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: `${p.image ? 50 : (p.videoFocusX ?? 50)}% top`, display: "block" }} />
             </div>
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 * u }}>
               {p.title && rowH > 120 * u ? (

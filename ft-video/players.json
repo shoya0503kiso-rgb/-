@@ -10,14 +10,17 @@
     "bgm": "bgm/dummy-bgm.mp3",
     "bgmVolume": 0.6,
     "bgmVolumeDuringVideo": 0.2,
-    "videoVolume": 1
+    "videoVolume": 1,
+    "videoZoom": 1.8
   },
   "players": [
     {
       "name": "Atsushi",
       "title": "",
       "chips": 0,
-      "video": "Atsushi.mp4"
+      "video": "Atsushi.mp4",
+      "videoSeconds": 4.4,
+      "videoFocusX": 35
     },
     {
       "name": "かくとう",

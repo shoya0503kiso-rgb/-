@@ -124,7 +124,7 @@ export const PlayerReveal: React.FC<{ slot: PlayerSlot }> = ({ slot }) => {
         />
         <div style={{ position: "absolute", inset: 0, overflow: "hidden", backgroundColor: "#111" }}>
           <GlitchSlices intensity={glitch}>
-            <Img src={staticFile(imageOf(player))} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} />
+            <Img src={staticFile(imageOf(player))} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: `${player.image ? 50 : (player.videoFocusX ?? 50)}% top` }} />
           </GlitchSlices>
           {/* 光が走る */}
           <AbsoluteFill

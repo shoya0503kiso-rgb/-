@@ -56,6 +56,7 @@ export const Segment: React.FC<SegmentProps> = (props) => {
           transition={findSlot(props).videoTransition}
           label={data.tournament.title}
           volume={data.settings?.videoVolume ?? 1}
+          zoom={data.settings?.videoZoom}
         />
       ) : null}
       {part === "leaderIntro" ? <LeaderIntro slot={findSlot(props)} /> : null}

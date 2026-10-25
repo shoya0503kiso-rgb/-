@@ -48,7 +48,12 @@ const fileStamp = (rel) => {
 const keyOf = (props, files) =>
   createHash("sha1").update(JSON.stringify({ codeHash, props, files: files.map(fileStamp) })).digest("hex").slice(0, 16);
 
-const settingsForParts = { videoSeconds: data.settings?.videoSeconds, videoVolume: data.settings?.videoVolume, transition: data.settings?.transition };
+const settingsForParts = {
+  videoSeconds: data.settings?.videoSeconds,
+  videoVolume: data.settings?.videoVolume,
+  videoZoom: data.settings?.videoZoom,
+  transition: data.settings?.transition,
+};
 const imageRel = (p) => (p.image ? `images/${p.image}` : `images/_auto/${p.video.replace(/\.[^.]+$/, "")}.jpg`);
 
 /** 本人動画パートは、その人の名前・動画と大会名だけで決まる（持ち点は無関係） */
@@ -58,7 +63,7 @@ const videoPart = (p) => ({
   data: {
     tournament: { ...data.tournament },
     settings: settingsForParts,
-    players: [{ name: p.name, chips: 0, video: p.video, videoSeconds: p.videoSeconds }],
+    players: [{ name: p.name, chips: 0, video: p.video, videoSeconds: p.videoSeconds, videoZoom: p.videoZoom, videoFocusX: p.videoFocusX }],
   },
   files: [`videos/${p.video}`],
 });

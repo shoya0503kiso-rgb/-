@@ -13,6 +13,10 @@ export type Player = {
   image?: string;
   /** この人だけ動画の秒数を変えたいとき（任意） */
   videoSeconds?: number;
+  /** この人だけ動画の拡大率を変えたいとき（任意。settings.videoZoom を上書き） */
+  videoZoom?: number;
+  /** 拡大したとき、横のどこを中心に見せるか 0（左端）〜100（右端）。既定 50 */
+  videoFocusX?: number;
 };
 
 export type Transition = "flash" | "glitch" | "both" | "auto";
@@ -28,6 +32,8 @@ export type Settings = {
   bgmVolumeDuringVideo?: number;
   /** 本人動画の音量 0〜1（0で消音） */
   videoVolume?: number;
+  /** 本人動画の拡大率。1 = 全体が収まる大きさ。横長の動画を縦型で大きく見せたいときに上げる */
+  videoZoom?: number;
   /** 動画→キャラ画像の切り替え演出。auto = フラッシュとグリッチを交互（チップリーダーは両方） */
   transition?: Transition;
 };

@@ -47,7 +47,7 @@ export const FinalTable: React.FC<FTData> = (data) => {
             </Sequence>
           ) : null}
           <Sequence from={slot.video.from} durationInFrames={slot.video.duration} name={`動画 ${slot.player.name}`}>
-            <PlayerVideo player={slot.player} transition={slot.videoTransition} label={data.tournament.title} volume={videoVolume} />
+            <PlayerVideo player={slot.player} transition={slot.videoTransition} label={data.tournament.title} volume={videoVolume} zoom={s.videoZoom} />
           </Sequence>
           <Sequence from={slot.reveal.from} durationInFrames={slot.reveal.duration} name={`紹介 ${slot.player.name}`}>
             <PlayerReveal slot={slot} />

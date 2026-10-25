@@ -18,11 +18,15 @@ export const PlayerVideo: React.FC<{
   transition: Exclude<Transition, "auto">;
   label: string;
   volume: number;
-}> = ({ player, transition, label, volume }) => {
+  /** 縦型での動画の拡大率 */
+  zoom?: number;
+}> = ({ player, transition, label, volume, zoom = 1 }) => {
   const frame = useCurrentFrame();
   const { width, height, durationInFrames } = useVideoConfig();
   const { u } = layoutOf(width, height);
   const src = staticFile(`videos/${player.video}`);
+  // 拡大は縦型のときだけ（横型では横長の動画がそのまま画面いっぱいに収まる）
+  const videoZoom = height > width ? (player.videoZoom ?? zoom) : 1;
 
   const end = durationInFrames;
   const glitchy = transition !== "flash";
@@ -46,7 +50,7 @@ export const PlayerVideo: React.FC<{
         <AbsoluteFill style={{ filter: "blur(40px) brightness(0.45)", transform: "scale(1.2)" }}>
           <OffthreadVideo src={src} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </AbsoluteFill>
-        <AbsoluteFill>
+        <AbsoluteFill style={{ transform: `scale(${videoZoom})`, transformOrigin: `${player.videoFocusX ?? 50}% 50%` }}>
           <OffthreadVideo src={src} volume={volume} muted={volume <= 0} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
         </AbsoluteFill>
       </AbsoluteFill>
