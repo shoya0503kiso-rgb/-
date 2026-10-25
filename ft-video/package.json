@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node scripts/check.mjs && remotion studio",
     "check": "node scripts/check.mjs",
+    "import": "node scripts/import-videos.mjs",
     "dummy": "node scripts/make-dummy.mjs",
     "prerender": "node scripts/render-fast.mjs --prerender",
     "prerender:horizontal": "node scripts/render-fast.mjs --prerender --horizontal",

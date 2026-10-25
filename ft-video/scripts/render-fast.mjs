@@ -11,6 +11,7 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,6 +22,7 @@ const orientation = argv.includes("--horizontal") ? "horizontal" : "vertical";
 const prerenderOnly = argv.includes("--prerender");
 const browserExecutable = argv.find((a) => a.startsWith("--browser="))?.slice(10) || process.env.REMOTION_BROWSER || null;
 const FPS = 30;
+const concurrency = Number(argv.find((a) => a.startsWith("--concurrency="))?.slice(14)) || os.cpus().length;
 
 execFileSync("node", [path.join(root, "scripts", "check.mjs")], { stdio: "inherit" });
 const data = JSON.parse(readFileSync(path.join(root, "players.json"), "utf8"));
@@ -115,6 +117,7 @@ if (missing.length > 0) {
       inputProps: t.inputProps,
       outputLocation: `${t.file}.tmp.mp4`,
       browserExecutable,
+      concurrency,
       onProgress: ({ progress }) => {
         const pct = Math.floor(progress * 10) * 10;
         if (pct !== last) {

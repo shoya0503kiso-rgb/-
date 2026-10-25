@@ -58,6 +58,8 @@ npm run render:all          # 両方
 書き出しで一番時間がかかるのは本人動画のパートです。本人動画のパートは持ち点に関係ないので、**持ち点が決まる前に作り置き**しておけます。
 
 1. 残っている全員分（FT前で多めでもOK）の名前・キャッチコピー・動画を `players.json` と `assets/` に入れる。持ち点は仮の数字でOK
+   - iPhone で撮った .MOV などは `npm run import -- <動画フォルダ>` で書き出し向けの mp4 に変換して `assets/videos/` に入れられます（ファイル名がそのまま名前になり、`players.json` にも自動で追加）
+   - Google ドライブのフォルダから取り込むときは `import/drive-files.json` にファイルIDを書いて `npm run import -- --drive`（フォルダは「リンクを知っている全員」に共有）
 2. `npm run prerender` … 全員分の本人動画パートを作り置き（横型は `npm run prerender:horizontal`）
 3. 飛んだ人を `players.json` から消していく（作り置きはそのまま使えます）
 4. FTメンバーが決まったら、持ち点・席番号を入れて `npm run fast`（横型は `npm run fast:horizontal`）
@@ -152,6 +154,8 @@ npm run render:vertical    # 書き出し → out/ft-vertical.mp4
 ```
 
 ---
+
+> 本番の動画・画像は本人の顔が映るので、`.gitignore` でリポジトリに入らないようにしています（ダミーの `player*` だけ管理）。
 
 ## ダミー素材について
 

@@ -1,3 +1,9 @@
 node_modules/
 out/
 assets/images/_auto/
+# 本番の素材（本人の顔が映るのでリポジトリには入れない）。ダミー素材 player*.* だけ管理する
+import/src/
+assets/videos/*
+!assets/videos/player*.mp4
+assets/images/*
+!assets/images/player*.png

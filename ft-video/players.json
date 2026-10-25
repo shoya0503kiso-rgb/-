@@ -14,76 +14,58 @@
   },
   "players": [
     {
-      "name": "ヒロシ",
-      "title": "福山の若き勝負師",
-      "seat": 1,
-      "chips": 284000,
-      "video": "player1.mp4",
-      "image": "player1.png"
+      "name": "Atsushi",
+      "title": "",
+      "chips": 0,
+      "video": "Atsushi.mp4"
     },
     {
-      "name": "TAKUMI",
-      "title": "冷静沈着のブラフマスター",
-      "seat": 2,
-      "chips": 96500,
-      "video": "player2.mp4",
-      "image": "player2.png"
+      "name": "かくとう",
+      "title": "",
+      "chips": 0,
+      "video": "かくとう.mp4"
     },
     {
-      "name": "あやか",
-      "title": "初FT進出",
-      "seat": 3,
-      "chips": 152000,
-      "video": "player3.mp4",
-      "image": "player3.png"
+      "name": "トルくん",
+      "title": "",
+      "chips": 0,
+      "video": "トルくん.mp4"
     },
     {
-      "name": "ケンジ",
-      "title": "オールインの鬼",
-      "seat": 4,
-      "chips": 48000,
-      "video": "player4.mp4",
-      "image": "player4.png"
+      "name": "りょうた",
+      "title": "",
+      "chips": 0,
+      "video": "りょうた.mp4"
     },
     {
-      "name": "ゆうき",
-      "title": "常連の実力者",
-      "seat": 5,
-      "chips": 213500,
-      "video": "player5.mp4",
-      "image": "player5.png"
+      "name": "SHU",
+      "title": "",
+      "chips": 0,
+      "video": "SHU.mp4"
     },
     {
-      "name": "RYO",
-      "title": "前回王者",
-      "seat": 6,
-      "chips": 177000,
-      "video": "player6.mp4",
-      "image": "player6.png"
+      "name": "Daiki",
+      "title": "",
+      "chips": 0,
+      "video": "Daiki.mp4"
     },
     {
-      "name": "まさひろ",
-      "title": "粘りのショートスタック",
-      "seat": 7,
-      "chips": 31000,
-      "video": "player7.mp4",
-      "image": "player7.png"
+      "name": "たね",
+      "title": "",
+      "chips": 0,
+      "video": "たね.mp4"
     },
     {
-      "name": "なつみ",
-      "title": "読みの鋭いアグレッサー",
-      "seat": 8,
-      "chips": 121000,
-      "video": "player8.mp4",
-      "image": "player8.png"
+      "name": "Ryusei",
+      "title": "",
+      "chips": 0,
+      "video": "Ryusei.mp4"
     },
     {
-      "name": "ダイスケ",
-      "title": "9High福山の主",
-      "seat": 9,
-      "chips": 342000,
-      "video": "player9.mp4",
-      "image": "player9.png"
+      "name": "ゆうや",
+      "title": "",
+      "chips": 0,
+      "video": "ゆうや.mp4"
     }
   ]
 }
