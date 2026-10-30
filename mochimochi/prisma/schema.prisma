@@ -1,0 +1,291 @@
+// もちもちアプリのDB設計。説明は docs/02-database.md を参照。
+// 開発は SQLite、本番は PostgreSQL（Neon）を想定。両方で動くよう enum / Json 型は使わず String で保持する。
+// 日付は「営業日」（JST・切替時刻より前は前日扱い）を "YYYY-MM-DD" の文字列で持つ。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── スタッフ・店舗設定 ─────────────────────────
+
+model AdminUser {
+  id                 String   @id @default(cuid())
+  loginId            String   @unique
+  name               String
+  passwordHash       String
+  active             Boolean  @default(true)
+  /// ログアウト・パスワード変更で +1 し、発行済みセッションを失効させる
+  tokenVersion       Int      @default(0)
+  /// 初期・仮パスワードのまま（変更するまで他の画面に入れない）
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+/// ログイン・引き継ぎコードの失敗記録（総当たり対策）
+model LoginFailure {
+  id        String   @id @default(cuid())
+  loginId   String
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([loginId, createdAt])
+  @@index([ip, createdAt])
+}
+
+/// 店舗設定（id = 1 の1行のみ）。管理画面「設定」から変更する
+model StoreSetting {
+  id                    Int       @id @default(1)
+  // ── 表示（ロゴ・店名は仮置き。管理画面から差し替え） ──
+  storeName             String    @default("アミューズメントバーもちもち")
+  /// 店名の下に小さく出す文字（読み・英字・キャッチコピーなど）
+  storeSubName          String    @default("Amusement Bar MOCHIMOCHI")
+  pointName             String    @default("もちもちポイント")
+  /// ロゴ画像（data URL）。null なら仮ロゴ
+  logoData              String?
+  /// 連打ゲームのボタンに出す文字と、鳴らす言葉
+  mochiLabel            String    @default("もちもち")
+  mochiWord             String    @default("もち")
+  /// 「もち」の音声（data URL）。null なら端末の読み上げで鳴らす
+  mochiSoundData        String?
+  brandVersion          Int       @default(0)
+  // ── 営業日 ──
+  /// 営業日の切替時刻（時・JST）。これより前は前日の営業日扱い
+  dayChangeHour         Int       @default(6)
+  // ── 来店・スタンプ ──
+  checkinPoints         Int       @default(10)
+  stampsPerCard         Int       @default(10)
+  stampCardBonus        Int       @default(100)
+  /// 変更すると今日のQRがすぐ切り替わる（QRが漏れたとき用）
+  qrSalt                String    @default("1")
+  /// 店内タブレットでQRを表示する画面のキー
+  qrDisplayKey          String    @default("")
+  geoEnabled            Boolean   @default(false)
+  geoLat                Float?
+  geoLng                Float?
+  geoRadiusM            Int       @default(300)
+  // ── デイリーミニゲーム ──
+  jankenWinPoints       Int       @default(10)
+  chinchiroWinPoints    Int       @default(20)
+  /// チンチロで役（ピンゾロ・ゾロ目・シゴロ）で勝ったとき
+  chinchiroBigWinPoints Int       @default(50)
+  // ── もちもち連打 ──
+  /// 1タップあたりの当選確率 = 1 / mochiWinOdds
+  mochiWinOdds          Int       @default(10000)
+  mochiWinPoints        Int       @default(100)
+  mochiDailyWinLimit    Int       @default(1)
+  // ── 会員登録 ──
+  /// LINE を使わない仮登録（ニックネームだけ）を許可する。LINE 連携を始めたらオフ推奨
+  guestSignupEnabled    Boolean   @default(true)
+  updatedAt             DateTime  @updatedAt
+}
+
+/// 来店ランク（来店回数 minVisits 以上でそのランク）
+model RankTier {
+  id        String @id @default(cuid())
+  name      String
+  minVisits Int
+  /// 表示色（#RRGGBB）
+  color     String @default("#94a3b8")
+}
+
+/// ダーツ・ポーカーの順位ごとの付与ポイント
+model PlacePointRule {
+  id     String @id @default(cuid())
+  game   String // darts | poker
+  place  Int
+  points Int
+
+  @@unique([game, place])
+}
+
+// ───────────────────────── 会員 ─────────────────────────
+
+model Member {
+  id                String    @id @default(cuid())
+  nickname          String
+  /// LINE ログイン（LIFF）で紐付けたユーザーID
+  lineUserId        String?   @unique
+  /// 引き継ぎコード（ハッシュ）。機種変更・LINE への移行用。管理画面で発行
+  linkCodeHash      String?   @unique
+  linkCodeExpiresAt DateTime?
+  points            Int       @default(0)
+  visitCount        Int       @default(0)
+  /// 今のスタンプカードに押されている数
+  stampCount        Int       @default(0)
+  completedCards    Int       @default(0)
+  mochiTotal        Int       @default(0)
+  active            Boolean   @default(true)
+  /// +1 で発行済みのログインを失効させる
+  tokenVersion      Int       @default(0)
+  memo              String    @default("")
+  lastVisitDate     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  visits       Visit[]
+  transactions PointTransaction[]
+  gamePlays    GamePlay[]
+  mochiDays    MochiDaily[]
+  matchEntries MatchEntry[]
+  submarines   SubmarineLog[]
+  redemptions  Redemption[]
+
+  @@index([nickname])
+}
+
+/// 来店（QRチェックイン）。1営業日1回
+model Visit {
+  id           String   @id @default(cuid())
+  memberId     String
+  businessDate String
+  points       Int
+  createdAt    DateTime @default(now())
+  member       Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, businessDate])
+  @@index([businessDate])
+}
+
+/// ポイントの増減履歴（残高 Member.points はこの合計と一致させる）
+model PointTransaction {
+  id           String   @id @default(cuid())
+  memberId     String
+  amount       Int
+  /// checkin | stamp_card | game | mochi | darts | poker | manual | redeem | refund
+  kind         String
+  note         String   @default("")
+  businessDate String
+  /// 手動操作・結果入力をしたスタッフ
+  adminId      String?
+  createdAt    DateTime @default(now())
+  member       Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, createdAt])
+}
+
+/// デイリーミニゲーム。1営業日1回（あいこは記録しない＝やり直し）
+model GamePlay {
+  id           String   @id @default(cuid())
+  memberId     String
+  businessDate String
+  game         String // janken | chinchiro
+  result       String // win | lose | draw
+  /// 出した手・出目など（JSON 文字列）
+  detail       String   @default("{}")
+  points       Int      @default(0)
+  createdAt    DateTime @default(now())
+  member       Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, businessDate])
+}
+
+/// もちもち連打の1日分
+model MochiDaily {
+  id           String   @id @default(cuid())
+  memberId     String
+  businessDate String
+  taps         Int      @default(0)
+  wins         Int      @default(0)
+  /// 最後にタップを受け付けた時刻（連打ツール対策の速度制限に使う）
+  lastTapAt    DateTime?
+  member       Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, businessDate])
+}
+
+// ───────────────────────── ランキング ─────────────────────────
+
+/// ダーツ・ポーカーの大会・ゲーム結果
+model Match {
+  id        String       @id @default(cuid())
+  game      String // darts | poker
+  date      String // YYYY-MM-DD
+  title     String       @default("")
+  adminId   String?
+  createdAt DateTime     @default(now())
+  entries   MatchEntry[]
+
+  @@index([game, date])
+}
+
+model MatchEntry {
+  id       String @id @default(cuid())
+  matchId  String
+  memberId String
+  place    Int
+  /// 付与したポイント（ランキングの点数）
+  points   Int
+  match    Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, memberId])
+}
+
+/// サブマリンの杯数（+1 / -1 の記録。月ごとに集計）
+model SubmarineLog {
+  id        String   @id @default(cuid())
+  memberId  String
+  month     String // YYYY-MM（営業日ベース）
+  delta     Int
+  adminId   String?
+  createdAt DateTime @default(now())
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+// ───────────────────────── カレンダー ─────────────────────────
+
+/// ポイント倍率デー
+model PointDay {
+  id    String @id @default(cuid())
+  date  String @unique
+  /// multiply = 来店・ゲームのポイントを value 倍 / fixed = 来店ポイントを value にする
+  mode  String @default("multiply")
+  value Float
+  label String @default("")
+}
+
+/// 店のイベント予定
+model Event {
+  id          String   @id @default(cuid())
+  date        String
+  title       String
+  startTime   String   @default("")
+  description String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+}
+
+// ───────────────────────── ポイント交換（枠だけ・仮置き） ─────────────────────────
+
+model Reward {
+  id          String  @id @default(cuid())
+  name        String
+  cost        Int
+  description String  @default("")
+  active      Boolean @default(true)
+  sortOrder   Int     @default(0)
+}
+
+model Redemption {
+  id         String    @id @default(cuid())
+  memberId   String
+  rewardName String
+  cost       Int
+  /// pending（スタッフに見せる）| done（提供済み）| cancelled（取消・返却）
+  status     String    @default("pending")
+  createdAt  DateTime  @default(now())
+  handledAt  DateTime?
+  handledBy  String?
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
