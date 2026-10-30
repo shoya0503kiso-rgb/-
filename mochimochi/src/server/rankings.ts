@@ -14,7 +14,10 @@ export interface RankingRow {
 
 /** 同点は同じ順位（1, 1, 3 …） */
 function toRows(totals: Map<string, number>, names: Map<string, string>): RankingRow[] {
-  const sorted = [...totals.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  // 同点はニックネーム順（表示順を毎回同じにする）
+  const sorted = [...totals.entries()]
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1] || (names.get(a[0]) ?? "").localeCompare(names.get(b[0]) ?? "", "ja"));
   let prev = Number.NaN;
   let rank = 0;
   return sorted.map(([memberId, value], i) => {

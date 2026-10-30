@@ -40,8 +40,17 @@ export async function recordTaps(memberId: string, requested: number, now = new 
   for (let i = 0; i < accepted && !hit; i++) hit = rng() < 1 / odds;
 
   let points = 0;
+  let stale = false;
   await prisma.$transaction(async (tx) => {
-    await tx.mochiDaily.update({ where: key, data: { taps: { increment: accepted }, lastTapAt: now } });
+    // 同時に送られたときは先に記録した方だけ受け付ける（速度制限のすり抜け防止）
+    const r = await tx.mochiDaily.updateMany({
+      where: { memberId, businessDate: date, lastTapAt: day.lastTapAt },
+      data: { taps: { increment: accepted }, lastTapAt: now },
+    });
+    if (r.count === 0) {
+      stale = true;
+      return;
+    }
     await tx.member.update({ where: { id: memberId }, data: { mochiTotal: { increment: accepted } } });
     if (hit && s.mochiWinPoints > 0) {
       // 1日の当選上限（同時送信でも超えないよう条件付きで加算）
@@ -55,5 +64,5 @@ export async function recordTaps(memberId: string, requested: number, now = new 
       }
     }
   });
-  return { accepted, won: points > 0, points, ...(await mochiStatus(memberId, now)) };
+  return { accepted: stale ? 0 : accepted, won: points > 0, points, ...(await mochiStatus(memberId, now)) };
 }

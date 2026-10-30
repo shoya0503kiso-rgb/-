@@ -63,3 +63,14 @@ it("距離", () => {
   expect(m).toBeGreaterThan(600);
   expect(m).toBeLessThan(900);
 });
+
+describe("LINE（LIFF）から開いたときの行き先", () => {
+  it("liff.state の行き先へ。外部サイトには飛ばさない", async () => {
+    const { liffStateTarget } = await import("@/lib/paths");
+    expect(liffStateTarget("/checkin?c=abc123")).toBe("/checkin?c=abc123");
+    expect(liffStateTarget(undefined)).toBe("/me");
+    expect(liffStateTarget("//evil.example.com/x")).toBe("/me");
+    expect(liffStateTarget("https://evil.example.com")).toBe("/me");
+    expect(liffStateTarget("/\\evil.example.com")).toBe("/me");
+  });
+});

@@ -124,6 +124,16 @@ describe("もちもち連打", () => {
     const big = await recordTaps(m.id, 5000, new Date(NIGHT.getTime() + 60_000), () => 0.99);
     expect(big.accepted).toBe(100);
   });
+
+  it("同時に送られても速度制限をすり抜けない", async () => {
+    const m = await makeMember();
+    await recordTaps(m.id, 1, NIGHT, () => 0.99);
+    const at = new Date(NIGHT.getTime() + 2000); // 2秒 → 最大40回
+    const rs = await Promise.all([1, 2, 3, 4].map(() => recordTaps(m.id, 40, at, () => 0.99)));
+    expect(rs.reduce((a, r) => a + r.accepted, 0)).toBeLessThanOrEqual(40);
+    const day = await prisma.mochiDaily.findFirstOrThrow({ where: { memberId: m.id } });
+    expect(day.taps).toBe(1 + rs.reduce((a, r) => a + r.accepted, 0));
+  });
 });
 
 describe("ランキング・結果入力", () => {

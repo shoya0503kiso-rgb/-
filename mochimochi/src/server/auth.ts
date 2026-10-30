@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "./db";
+export { safeNextPath } from "@/lib/paths";
 import { UserError } from "./errors";
 import { assertNotLocked, recordFailure } from "./rate-limit";
 import { ADMIN_COOKIE, signAdminSession, verifyAdminSession, type AdminSession } from "./session-token";
@@ -56,18 +57,6 @@ export async function reissueAdminSession(adminId: string) {
 
 export async function logoutAdmin() {
   (await cookies()).delete(ADMIN_COOKIE);
-}
-
-/** ログイン後の戻り先として安全なパスか（同一オリジンの相対パスのみ） */
-export function safeNextPath(next: string, fallback = "/admin"): string {
-  if (!next.startsWith("/") || next.includes("\\")) return fallback;
-  try {
-    const u = new URL(next, "http://local.invalid");
-    if (u.origin !== "http://local.invalid") return fallback;
-    return u.pathname + u.search;
-  } catch {
-    return fallback;
-  }
 }
 
 export async function getAdmin(): Promise<AdminSession | null> {

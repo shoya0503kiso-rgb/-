@@ -1,4 +1,4 @@
-// もちもちアプリのDB設計。説明は docs/02-database.md を参照。
+// もちもちアプリのDB設計。説明は docs/design.md を参照。
 // 開発は SQLite、本番は PostgreSQL（Neon）を想定。両方で動くよう enum / Json 型は使わず String で保持する。
 // 日付は「営業日」（JST・切替時刻より前は前日扱い）を "YYYY-MM-DD" の文字列で持つ。
 

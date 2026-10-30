@@ -13,8 +13,8 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
   const next = safeNextPath(sp.next ?? "/me", "/me");
   const lineEnabled = lineLoginEnabled();
   const [brand, s, member] = await Promise.all([getBrand(), getSettings(), getMember()]);
-  // ログイン済みでも、LINE が使えるなら仮登録の会員に LINE を紐付けるためにこの画面を通す
-  if (member && (!lineEnabled || member.lineUserId)) redirect(next);
+  // ログイン済みならそのまま（仮登録の会員への LINE の紐付けは、お客さん画面の上部で行う）
+  if (member) redirect(next);
 
   return (
     <div className="min-h-dvh bg-mochi-50">
