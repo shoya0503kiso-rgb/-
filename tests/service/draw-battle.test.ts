@@ -120,6 +120,38 @@ describe("お絵描きバトルの部屋", () => {
     await expect(saveBattle(host.code, host.token, withSub, late)).rejects.toThrow();
   });
 
+  it("提出済みの人の絵をホストが上書きすることはできない", async () => {
+    const { host, others: [guest] } = await roomWith(2);
+    await startDrawing(host.code, host.token, at(0));
+    for (const p of [host, guest]) await submitDrawing(host.code, p.token, { name: "x", drawing: PNG }, at(1000));
+    const b = duel(host.playerId, guest.playerId);
+    b.entrants[1].img = PNG;
+    await expect(saveBattle(host.code, host.token, b, at(2000))).rejects.toThrow("正しくありません");
+  });
+
+  it("お絵描き中に抜けた人は待たずに対戦を始められる", async () => {
+    const { host, others: [a, b] } = await roomWith(3);
+    await startDrawing(host.code, host.token, at(0));
+    for (const p of [host, a]) await submitDrawing(host.code, p.token, { name: "x", drawing: PNG }, at(1000));
+    await leaveRoom(host.code, b.token, undefined, at(1500));
+    await saveBattle(host.code, host.token, duel(host.playerId, a.playerId), at(2000));
+  });
+
+  it("バトル中に「おわる」で抜けた人は、再生用の絵を残したまま一覧から消え、ロビーに戻ると削除される", async () => {
+    const { host, others: [guest] } = await roomWith(2);
+    await startDrawing(host.code, host.token, at(0));
+    for (const p of [host, guest]) await submitDrawing(host.code, p.token, { name: "x", drawing: PNG }, at(1000));
+    await saveBattle(host.code, host.token, duel(host.playerId, guest.playerId), at(2000));
+    await leaveRoom(host.code, guest.token, undefined, at(3000));
+    const v = await roomView(host.code, host.token, undefined, URL, at(3000));
+    if (v.same) throw new Error("unexpected");
+    expect(v.players.map((p) => p.id)).toEqual([host.playerId]);
+    expect(v.drawings).toEqual({ [host.playerId]: PNG, [guest.playerId]: PNG });
+    await expect(roomView(host.code, guest.token, undefined, URL, at(3000))).rejects.toThrow("参加していません");
+    await backToLobby(host.code, host.token, at(4000));
+    expect(await prisma.drawBattlePlayer.count()).toBe(1);
+  });
+
   it("矛盾した対戦表は受け付けない", async () => {
     const { host, others } = await roomWith(3);
     await updateSettings(host.code, host.token, { cpuFill: false, drawSeconds: 60 });
@@ -154,13 +186,13 @@ describe("お絵描きバトルの部屋", () => {
     expect(await prisma.drawBattlePlayer.count({ where: { drawing: { not: null } } })).toBe(0);
   });
 
-  it("12時間たった部屋は消え、同じ接続元からの部屋作りは1時間30回まで", async () => {
+  it("3時間たった部屋は消え、同じ接続元からの部屋作りは1時間20回まで", async () => {
     await createRoom("9.9.9.9", at(0));
-    await createRoom("2.2.2.2", at(13 * 3600_000));
+    await createRoom("2.2.2.2", at(4 * 3600_000));
     expect(await prisma.drawBattleRoom.count()).toBe(1);
-    for (let i = 0; i < 29; i++) await createRoom("2.2.2.2", at(13 * 3600_000));
-    await expect(createRoom("2.2.2.2", at(13 * 3600_000))).rejects.toThrow("作りすぎ");
-    await expect(createRoom("3.3.3.3", at(13 * 3600_000))).resolves.toBeTruthy();
+    for (let i = 0; i < 19; i++) await createRoom("2.2.2.2", at(4 * 3600_000));
+    await expect(createRoom("2.2.2.2", at(4 * 3600_000))).rejects.toThrow("作りすぎ");
+    await expect(createRoom("3.3.3.3", at(4 * 3600_000))).resolves.toBeTruthy();
   });
 
   it("キャラ名は10文字まで、空ならランダム", () => {

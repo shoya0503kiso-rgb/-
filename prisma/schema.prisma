@@ -462,6 +462,7 @@ model DrawBattlePlayer {
   seat     Int // 参加順（1〜8）
   name     String? // キャラ名
   drawing  String? // 提出した絵（背景透過のPNG data URL）
+  leftAt   DateTime? // バトル中に抜けた（ロビーに戻るときに消す）
   joinedAt DateTime       @default(now())
 
   @@unique([roomCode, seat])

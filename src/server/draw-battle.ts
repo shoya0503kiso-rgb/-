@@ -8,16 +8,18 @@ import { prisma } from "./db";
 import { UserError } from "./errors";
 
 export const MAX_PLAYERS = 8;
-const ROOM_TTL_MS = 12 * 3600_000;
+const ROOM_TTL_MS = 3 * 3600_000;
 // 勤怠アプリと同じDBなので、公開ミニゲームの部屋数に上限を設ける
-const MAX_ROOMS = 1000;
-const NEW_ROOMS_PER_IP_PER_HOUR = 30;
+// 1部屋の保存量は 絵(15万文字)×8人 ほど。全体で最大200部屋＝約240MBに収まる
+const MAX_ROOMS = 200;
+const NEW_ROOMS_PER_IP_PER_HOUR = 20;
 // 時間切れのあと、提出が届くのを待つ猶予
 export const SUBMIT_GRACE_MS = 8000;
 const COUNTDOWN_MS = 3000;
 const BATTLE_LEAD_MS = 3000;
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-export const MAX_DRAWING_CHARS = 400_000;
+// 300px の手描きPNGは普通は数十KB。超えるときは端末側で縮小してから送る
+export const MAX_DRAWING_CHARS = 150_000;
 
 const NAME_HEAD = ["ポコ", "ガブ", "モチ", "ドド", "ピロ", "ザク", "ムニ", "ボヨ", "チビ", "ゴン", "フワ", "ギザ"];
 const NAME_TAIL = ["リン", "ラス", "まる", "ドン", "すけ", "ゴラ", "ぴょん", "キング", "マン", "ザウルス"];
@@ -46,8 +48,11 @@ async function findRoom(code: string) {
 }
 type Room = Awaited<ReturnType<typeof findRoom>>;
 
+/** 参加中のプレイヤー（バトル中に抜けた人は除く。抜けた人の絵は対戦の再生のために残す） */
+const active = (room: Room) => room.players.filter((p) => !p.leftAt);
+
 function me(room: Room, token: string) {
-  const p = room.players.find((x) => x.token === token);
+  const p = active(room).find((x) => x.token === token);
   if (!p) throw new UserError("この部屋に参加していません");
   return p;
 }
@@ -91,7 +96,7 @@ export async function createRoom(ip = "", now = new Date()) {
 /** 参加。すでに参加済みの token なら同じ席に戻る */
 export async function joinRoom(code: string, token: string | undefined, now = new Date()) {
   const room = await findRoom(code);
-  const already = token ? room.players.find((p) => p.token === token) : undefined;
+  const already = token ? active(room).find((p) => p.token === token) : undefined;
   if (already) return { code, token: already.token, playerId: already.id };
   if (room.phase !== "lobby") throw new UserError("この部屋はもうゲームが始まっています");
   if (room.players.length >= MAX_PLAYERS) throw new UserError(`この部屋は満員です（${MAX_PLAYERS}人まで）`);
@@ -109,15 +114,19 @@ export async function joinRoom(code: string, token: string | undefined, now = ne
   }
 }
 
-/** 退出（自分）またはホストによる取り消し。ロビーでのみ */
+/**
+ * 退出（自分）またはホストによる取り消し。ホストが外せるのはロビーでのみ。
+ * バトル中に抜けた人は、ほかの人の再生に絵が要るので印だけ付け、ロビーに戻るときに消す
+ */
 export async function leaveRoom(code: string, token: string, targetId: string | undefined, now = new Date()) {
   const room = await findRoom(code);
   const self = me(room, token);
   const target = targetId ?? self.id;
   if (target !== self.id && self.id !== room.hostId) throw new UserError("ホストだけが操作できます");
   if (target === room.hostId) throw new UserError("ホストは退出できません");
-  if (room.phase !== "lobby") throw new UserError("ゲーム中は退出できません");
-  await prisma.drawBattlePlayer.deleteMany({ where: { id: target, roomCode: code } });
+  if (target !== self.id && room.phase !== "lobby") throw new UserError("ゲーム中は外せません");
+  if (room.phase === "battle") await prisma.drawBattlePlayer.updateMany({ where: { id: target, roomCode: code }, data: { leftAt: now } });
+  else await prisma.drawBattlePlayer.deleteMany({ where: { id: target, roomCode: code } });
   await prisma.drawBattleRoom.update({ where: { code }, data: bump(now) });
 }
 
@@ -183,10 +192,10 @@ function assertBattle(room: Room, b: BattleInput) {
   for (const e of b.entrants) {
     const human = room.players.find((p) => p.id === e.id);
     if (e.cpu ? human || !e.img : !human) throw bad();
-    // 提出がなかった人はホストがCPUの絵で代わりを作る
-    if (!e.cpu && !human!.drawing && !e.img) throw bad();
+    // 提出がなかった人の分だけ、ホストがCPUの絵で代わりを作る（提出済みの人の絵は上書きさせない）
+    if (!e.cpu && !!human!.drawing === !!e.img) throw bad();
   }
-  if (!room.players.every((p) => ids.includes(p.id))) throw bad();
+  if (!active(room).every((p) => ids.includes(p.id))) throw bad();
   let alive: (string | null)[] = [...ids];
   for (const round of b.rounds) {
     const seen = round.flatMap((m) => [m.a, m.b]).filter((x): x is string => x !== null);
@@ -206,7 +215,7 @@ export async function saveBattle(code: string, token: string, b: BattleInput, no
   const room = await findRoom(code);
   hostOnly(room, token);
   if (room.phase !== "drawing") throw new UserError("いまは対戦を始められません");
-  const allIn = room.players.every((p) => p.drawing);
+  const allIn = active(room).every((p) => p.drawing);
   const timeUp = room.drawEndsAt && now.getTime() >= room.drawEndsAt.getTime() + SUBMIT_GRACE_MS;
   if (!allIn && !timeUp) throw new UserError("まだ全員そろっていません");
   assertBattle(room, b);
@@ -223,6 +232,7 @@ export async function backToLobby(code: string, token: string, now = new Date())
   const room = await findRoom(code);
   hostOnly(room, token);
   await prisma.$transaction([
+    prisma.drawBattlePlayer.deleteMany({ where: { roomCode: code, leftAt: { not: null } } }),
     prisma.drawBattlePlayer.updateMany({ where: { roomCode: code }, data: { name: null, drawing: null } }),
     prisma.drawBattleRoom.update({ where: { code }, data: { phase: "lobby", drawEndsAt: null, battle: null, ...bump(now) } }),
   ]);
@@ -251,7 +261,7 @@ export async function roomView(code: string, token: string, since: number | unde
     joinUrl,
     qr: room.phase === "lobby" ? await QRCode.toString(joinUrl, { type: "svg", margin: 1 }) : null,
     me: { id: self.id, seat: self.seat, isHost, submitted: !!self.drawing },
-    players: room.players.map((p) => ({
+    players: active(room).map((p) => ({
       id: p.id,
       seat: p.seat,
       isHost: p.id === room.hostId,
