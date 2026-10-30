@@ -434,3 +434,35 @@ model DealerQuestScore {
   @@index([tables, perfectRate, cards])
   @@index([ip, createdAt])
 }
+
+// ミニゲーム「お絵描きバトル」の部屋。ログイン不要。12時間たった部屋は新しい部屋を作るときに消す
+model DrawBattleRoom {
+  code        String             @id // 参加用のルームコード（英大文字・数字5桁）
+  hostId      String // ホストの DrawBattlePlayer.id
+  phase       String             @default("lobby") // lobby / drawing / battle
+  cpuFill     Boolean            @default(true) // 端数をCPUで埋める（OFFなら不戦勝）
+  drawSeconds Int                @default(60)
+  drawEndsAt  DateTime?
+  battle      String? // ホストが計算した対戦結果（JSON）。全員の端末がこれを再生する
+  version     Int                @default(0) // 変わったときだけ端末に送り直すための番号
+  ip          String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @default(now())
+  players     DrawBattlePlayer[]
+
+  @@index([updatedAt])
+  @@index([ip, createdAt])
+}
+
+model DrawBattlePlayer {
+  id       String         @id @default(cuid())
+  roomCode String
+  room     DrawBattleRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  token    String         @unique // 本人確認用（本人の端末だけが持つ）
+  seat     Int // 参加順（1〜8）
+  name     String? // キャラ名
+  drawing  String? // 提出した絵（背景透過のPNG data URL）
+  joinedAt DateTime       @default(now())
+
+  @@unique([roomCode, seat])
+}

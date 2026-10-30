@@ -1,0 +1,1278 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#fff4e0">
+<meta name="description" content="みんなで絵を描いて、その絵どうしを戦わせるパーティーゲーム。勝敗は完全ランダム。">
+<meta property="og:title" content="お絵描きバトル">
+<meta property="og:description" content="描いた絵がキャラになって戦う！ 2〜8人でトーナメント。勝敗は運まかせ。">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>お絵描きバトル</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap">
+<style>
+/* Layout: one screen at a time (home / lobby / draw / wait / battle). Sketchbook look: cream paper, thick ink outlines, marker colors. */
+:root {
+  --paper: #fff4e0;
+  --paper-2: #ffe9c4;
+  --ink: #2b2235;
+  --ink-soft: #6b5f73;
+  --red: #ff4b3e;
+  --orange: #ff9a1f;
+  --yellow: #ffd23f;
+  --green: #3cc35a;
+  --blue: #2f7bff;
+  --purple: #9b5cff;
+  --pink: #ff6fb5;
+  --white: #ffffff;
+  --shadow: 0 4px 0 var(--ink);
+  --font-display: "Dela Gothic One", "Hiragino Sans", sans-serif;
+  --font-body: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, sans-serif;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body { margin: 0; }
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--paper);
+  background-image: radial-gradient(rgba(43,34,53,.07) 1.2px, transparent 1.3px);
+  background-size: 18px 18px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 700;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.screen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 14px) max(16px, env(safe-area-inset-left, 0px));
+  overflow-y: auto;
+}
+.col { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 14px; }
+h1, h2, .display { font-family: var(--font-display); font-weight: 400; margin: 0; letter-spacing: .02em; }
+.btn {
+  appearance: none; border: 3px solid var(--ink); border-radius: 16px; background: var(--white); color: var(--ink);
+  font: inherit; font-weight: 800; font-size: 17px; padding: 13px 16px; box-shadow: var(--shadow);
+  cursor: pointer; transition: transform .06s, box-shadow .06s;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.btn:disabled { opacity: .45; pointer-events: none; }
+.btn-red { background: var(--red); color: var(--white); }
+.btn-blue { background: var(--blue); color: var(--white); }
+.btn-yellow { background: var(--yellow); }
+.btn-sm { font-size: 14px; padding: 8px 12px; border-radius: 12px; box-shadow: 0 3px 0 var(--ink); }
+.card { background: var(--white); border: 3px solid var(--ink); border-radius: 20px; padding: 16px; box-shadow: var(--shadow); }
+.muted { color: var(--ink-soft); font-weight: 500; font-size: 14px; }
+.row { display: flex; gap: 10px; align-items: center; }
+.row > .btn { flex: 1; }
+input[type=text] {
+  font: inherit; font-size: 18px; font-weight: 800; color: var(--ink); background: var(--white);
+  border: 3px solid var(--ink); border-radius: 14px; padding: 11px 14px; width: 100%; min-width: 0;
+  -webkit-user-select: text; user-select: text;
+}
+input[type=text]:focus { outline: 3px solid var(--yellow); outline-offset: 1px; }
+
+/* ---------- toast ---------- */
+#toast {
+  position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 12px); transform: translate(-50%, -150%);
+  background: var(--ink); color: var(--white); padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 50;
+  max-width: calc(100vw - 32px); transition: transform .25s, visibility 0s .25s; visibility: hidden;
+}
+#toast.show { transform: translate(-50%, 0); visibility: visible; transition: transform .25s; }
+
+/* ---------- home ---------- */
+#home .col { margin: auto 0; }
+.logo { text-align: center; }
+.logo h1 { font-size: clamp(40px, 13vw, 58px); line-height: 1.05; color: var(--ink); text-shadow: 3px 3px 0 var(--yellow); }
+.logo h1 span { color: var(--red); }
+.logo p { margin: 10px 0 0; }
+.logo-mons { display: flex; justify-content: center; gap: 4px; height: 84px; margin-bottom: 6px; }
+.logo-mons img { height: 84px; animation: hop .7s ease-in-out infinite alternate; }
+.logo-mons img:nth-child(2) { animation-delay: -.35s; }
+.logo-mons img:nth-child(3) { animation-delay: -.2s; }
+.code-input { text-transform: uppercase; letter-spacing: .25em; text-align: center; font-family: var(--font-display); font-weight: 400; }
+
+/* ---------- lobby ---------- */
+.room-code { text-align: center; }
+.room-code .display { font-size: 44px; letter-spacing: .18em; }
+.qr { width: 168px; height: 168px; margin: 6px auto 0; background: var(--white); border-radius: 10px; }
+.qr svg { width: 100%; height: 100%; display: block; }
+.seats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seat {
+  border: 3px solid var(--ink); border-radius: 14px; padding: 9px 10px; background: var(--white);
+  display: flex; align-items: center; gap: 8px; font-size: 14px; min-height: 48px;
+}
+.seat.empty { border-style: dashed; color: var(--ink-soft); background: transparent; font-weight: 500; }
+.seat.cpu { border-style: dashed; background: var(--paper-2); }
+.seat.me { background: var(--yellow); }
+.seat .num { font-family: var(--font-display); font-size: 15px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 2.5px solid var(--ink); background: var(--white); flex: none; }
+.seat .who { flex: 1; min-width: 0; line-height: 1.2; }
+.seat .who small { display: block; font-size: 11px; color: var(--ink-soft); font-weight: 700; }
+.seat .x { appearance: none; border: 0; background: none; font: inherit; font-size: 20px; color: var(--ink-soft); padding: 0 4px; cursor: pointer; }
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
+.opt + .opt { border-top: 2px dashed rgba(43,34,53,.18); }
+.seg { display: inline-flex; border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; flex: none; }
+.seg button { appearance: none; border: 0; background: var(--white); font: inherit; font-weight: 800; font-size: 15px; padding: 7px 13px; color: var(--ink); cursor: pointer; }
+.seg button + button { border-left: 3px solid var(--ink); }
+.seg button.on { background: var(--ink); color: var(--white); }
+.seg.locked { pointer-events: none; opacity: .75; }
+.plan { text-align: center; font-size: 14px; }
+
+/* ---------- draw ---------- */
+#draw { padding-left: 10px; padding-right: 10px; gap: 8px; overflow: hidden; }
+.draw-top { width: 100%; max-width: 520px; display: flex; gap: 8px; align-items: center; }
+.timer {
+  font-family: var(--font-display); font-size: 22px; min-width: 64px; text-align: center;
+  border: 3px solid var(--ink); border-radius: 12px; background: var(--white); padding: 5px 6px; line-height: 1.1;
+}
+.timer.hurry { background: var(--red); color: var(--white); animation: pulse .5s ease-in-out infinite alternate; }
+#nameInput { font-size: 16px; padding: 9px 12px; }
+.pad-wrap { flex: 1; width: 100%; max-width: 520px; min-height: 0; display: grid; place-items: center; }
+.pad {
+  position: relative; background: var(--white); border: 3px solid var(--ink); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden;
+  background-image: linear-gradient(rgba(47,123,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(47,123,255,.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.pad canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+.pad .hint { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(43,34,53,.28); font-size: 15px; pointer-events: none; text-align: center; }
+.tools { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 8px; }
+.palette { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.swatch { appearance: none; aspect-ratio: 1; border-radius: 50%; border: 3px solid var(--ink); cursor: pointer; padding: 0; max-height: 44px; justify-self: center; width: 100%; max-width: 44px; }
+.swatch.on { outline: 3px solid var(--ink); outline-offset: 2px; transform: scale(1.08); }
+.toolrow { display: flex; gap: 6px; align-items: center; }
+.tool {
+  appearance: none; flex: 1; height: 44px; border: 3px solid var(--ink); border-radius: 12px; background: var(--white); color: var(--ink);
+  font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; display: grid; place-items: center; padding: 0 4px;
+}
+.tool.on { background: var(--ink); color: var(--white); }
+#sizes .tool.on { background: var(--yellow); }
+.tool .dot { border-radius: 50%; background: currentColor; display: block; }
+.tool:active { transform: translateY(2px); }
+#okBtn { flex: 1.6; }
+.countdown {
+  position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(255,244,224,.86);
+  font-family: var(--font-display); font-size: 120px; color: var(--red); text-shadow: 5px 5px 0 var(--ink);
+}
+.countdown small { display: block; font-size: 22px; color: var(--ink); text-shadow: none; text-align: center; margin-top: 8px; font-family: var(--font-body); }
+
+/* ---------- wait ---------- */
+#wait .col { margin: auto 0; text-align: center; align-items: center; }
+.my-art { width: 200px; height: 200px; object-fit: contain; animation: idle 0.9s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+.ticks { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.tick { border: 3px solid var(--ink); border-radius: 999px; padding: 4px 12px; font-size: 14px; background: var(--white); }
+.tick.done { background: var(--green); color: var(--white); }
+
+/* ---------- battle ---------- */
+#battle { padding: 0; overflow: hidden; background: linear-gradient(#bfe6ff 0%, #e6f6ff 58%, #9ad86b 58%, #7cc451 100%); }
+.arena { position: absolute; inset: 0; }
+.vs-head {
+  position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 12px); padding: 0 14px; z-index: 3;
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: start;
+}
+.round-label { text-align: center; font-family: var(--font-display); font-size: 15px; background: var(--ink); color: var(--white); padding: 6px 10px; border-radius: 10px; white-space: nowrap; }
+.plate { min-width: 0; }
+.plate.right { text-align: right; }
+.plate .nm { font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 0 var(--white); }
+.hp { height: 16px; border: 3px solid var(--ink); border-radius: 999px; background: var(--white); overflow: hidden; margin-top: 4px; position: relative; }
+.hp i { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; background: var(--green); transition: width .45s ease-out, background-color .3s; }
+.plate.right .hp i { left: auto; right: 0; }
+.hp i.mid { background: var(--yellow); }
+.hp i.low { background: var(--red); }
+.hp-num { font-size: 12px; margin-top: 2px; }
+.fighter { position: absolute; bottom: 30%; width: 40vw; max-width: 220px; height: 40vw; max-height: 220px; z-index: 2; }
+.fighter.left { left: 6vw; }
+.fighter.right { right: 6vw; }
+.fighter .mover, .fighter .shaker { position: absolute; inset: 0; }
+.fighter .body { position: absolute; inset: 0; transform-origin: 50% 100%; animation: idle .8s ease-in-out infinite alternate; }
+.fighter.right .body { animation-delay: -.4s; }
+.fighter img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; filter: drop-shadow(0 3px 0 rgba(43,34,53,.25)); }
+.shadow-blob { position: absolute; left: 15%; right: 15%; bottom: -10px; height: 14px; border-radius: 50%; background: rgba(43,34,53,.22); }
+.pop {
+  position: absolute; z-index: 6; font-family: var(--font-display); font-size: 34px; color: var(--white);
+  -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; text-shadow: 3px 3px 0 var(--ink); pointer-events: none;
+  transform: translate(-50%, 0);
+}
+.pop.crit { color: var(--yellow); font-size: 46px; }
+.pop.miss { color: var(--blue); font-size: 28px; }
+.flash { position: absolute; inset: 0; background: var(--white); opacity: 0; z-index: 8; pointer-events: none; }
+.banner {
+  position: absolute; left: 0; right: 0; top: 34%; text-align: center; z-index: 9; pointer-events: none;
+  font-family: var(--font-display); font-size: clamp(48px, 16vw, 92px); color: var(--red);
+  -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 5px 5px 0 var(--ink); opacity: 0;
+}
+.banner.small { font-size: clamp(28px, 9vw, 52px); color: var(--yellow); }
+.vs-big {
+  position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 4; pointer-events: none;
+  font-family: var(--font-display); font-size: 64px; color: var(--yellow); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 4px 4px 0 var(--ink);
+}
+
+/* bracket */
+#bracketView { position: absolute; inset: 0; z-index: 10; background-color: var(--paper); background-image: radial-gradient(rgba(43,34,53,.07) 1.2px, transparent 1.3px); background-size: 18px 18px; display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top, 0px) + 14px) 10px calc(env(safe-area-inset-bottom, 0px) + 14px); }
+#bracketView h2 { text-align: center; font-size: 26px; margin-bottom: 4px; }
+#bracketView .sub { text-align: center; margin-bottom: 10px; }
+.bracket { flex: 1; min-height: 0; max-height: 600px; width: 100%; max-width: 560px; margin: 0 auto; display: grid; gap: 8px; }
+.bcol { display: grid; grid-template-rows: auto 1fr; gap: 6px; min-width: 0; }
+.bcol-body { display: flex; flex-direction: column; justify-content: space-around; gap: 6px; min-height: 0; }
+.bcol-title { text-align: center; font-size: 12px; color: var(--ink-soft); }
+.bmatch { border: 3px solid var(--ink); border-radius: 12px; background: var(--white); overflow: hidden; }
+.bmatch.next { outline: 4px solid var(--red); outline-offset: 1px; animation: pulse .6s ease-in-out infinite alternate; }
+.bslot { display: flex; align-items: center; gap: 5px; padding: 3px 5px; font-size: 12px; min-height: 34px; }
+.bslot + .bslot { border-top: 2px dashed rgba(43,34,53,.25); }
+.bslot img { width: 28px; height: 28px; object-fit: contain; flex: none; }
+.bslot .q { width: 28px; height: 28px; display: grid; place-items: center; flex: none; color: var(--ink-soft); }
+.bslot span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bslot.win { background: var(--yellow); }
+.bslot.lose { opacity: .4; text-decoration: line-through; }
+.bslot.bye { color: var(--ink-soft); font-weight: 500; }
+.champ-slot { border: 3px solid var(--ink); border-radius: 12px; background: var(--paper-2); display: grid; place-items: center; padding: 6px; text-align: center; font-size: 12px; min-height: 70px; }
+.champ-slot img { width: 54px; height: 54px; object-fit: contain; }
+
+/* champion */
+#champView { position: absolute; inset: 0; z-index: 12; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px 16px calc(env(safe-area-inset-bottom, 0px) + 18px); background: radial-gradient(circle at 50% 42%, #fff7c2 0%, #ffd23f 45%, #ff9a1f 100%); }
+#champView .crown { font-size: 54px; line-height: 1; animation: hop .6s ease-in-out infinite alternate; }
+#champView h2 { font-size: clamp(40px, 13vw, 70px); color: var(--red); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 5px 5px 0 var(--ink); }
+#champImg { width: min(74vw, 40vh, 340px); height: min(74vw, 40vh, 340px); object-fit: contain; transform-origin: 50% 100%; animation: champ .7s ease-in-out infinite alternate; filter: drop-shadow(0 6px 0 rgba(43,34,53,.3)); }
+#champName { font-size: 26px; font-weight: 800; text-align: center; }
+#champView .row { width: 100%; max-width: 420px; position: relative; z-index: 2; }
+#confetti { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+#champView > *:not(canvas) { position: relative; z-index: 2; }
+.waiting-start { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); text-align: center; z-index: 11; }
+
+@keyframes idle {
+  0% { transform: translateY(0) scale(1.08, .9); }
+  45% { transform: translateY(-14%) scale(.94, 1.07); }
+  100% { transform: translateY(-18%) scale(1, 1); }
+}
+@keyframes champ {
+  0% { transform: translateY(0) scale(1.06, .94); }
+  100% { transform: translateY(-6%) scale(.98, 1.02); }
+}
+@keyframes hop { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.04); } }
+@media (prefers-reduced-motion: reduce) {
+  .fighter .body, .my-art, #champImg, .logo-mons img { animation-duration: 2s; }
+}
+</style>
+</head>
+<body>
+<div id="toast" role="status"></div>
+
+<!-- HOME -->
+<section class="screen" id="home">
+  <div class="col">
+    <div class="logo">
+      <div class="logo-mons" id="logoMons"></div>
+      <h1>お絵描き<br><span>バトル</span></h1>
+      <p class="muted">描いた絵がキャラになって戦う！ 勝敗は完全に運まかせ。<br>2〜8人・スマホで遊べます</p>
+    </div>
+    <button class="btn btn-red" id="createBtn" type="button">部屋を作る（ホスト）</button>
+    <div class="card">
+      <div class="muted" style="margin-bottom:8px">ルームコードで参加</div>
+      <div class="row">
+        <input type="text" id="codeInput" class="code-input" maxlength="5" placeholder="ABCDE" autocomplete="off" autocapitalize="characters" inputmode="text">
+        <button class="btn btn-blue" id="joinBtn" type="button" style="flex:none">参加</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOBBY -->
+<section class="screen" id="lobby" hidden>
+  <div class="col">
+    <div class="card room-code">
+      <div class="muted">ルームコード</div>
+      <div class="display" id="lobbyCode"></div>
+      <div class="qr" id="lobbyQr"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn btn-sm" id="shareBtn" type="button">招待リンクを送る</button>
+        <button class="btn btn-sm" id="copyBtn" type="button">リンクをコピー</button>
+      </div>
+    </div>
+    <div>
+      <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="font-size:20px">参加者</h2><span class="muted" id="lobbyCount"></span></div>
+      <div class="seats" id="seats"></div>
+    </div>
+    <div class="card">
+      <div class="opt"><span>CPUで枠を埋める</span><div class="seg" id="cpuSeg"><button type="button" data-v="1">ON</button><button type="button" data-v="0">OFF</button></div></div>
+      <div class="opt"><span>描く時間</span><div class="seg" id="timeSeg"><button type="button" data-v="60">60秒</button><button type="button" data-v="90">90秒</button></div></div>
+      <div class="plan muted" id="planText" style="margin-top:8px"></div>
+    </div>
+    <button class="btn btn-red" id="startBtn" type="button">スタート！</button>
+    <div class="muted" id="waitHost" style="text-align:center">ホストがスタートするのを待っています…</div>
+    <button class="btn btn-sm" id="leaveBtn" type="button" style="align-self:center">部屋から出る</button>
+  </div>
+</section>
+
+<!-- DRAW -->
+<section class="screen" id="draw" hidden>
+  <div class="draw-top">
+    <div class="timer" id="timer">60</div>
+    <input type="text" id="nameInput" maxlength="10" placeholder="キャラ名（空欄ならおまかせ）" autocomplete="off" enterkeyhint="done">
+  </div>
+  <div class="pad-wrap" id="padWrap">
+    <div class="pad" id="pad"><canvas id="padCv"></canvas><div class="hint" id="padHint">ここに指でキャラを描こう<br>（背景は自動で透明になります）</div></div>
+  </div>
+  <div class="tools">
+    <div class="palette" id="palette"></div>
+    <div class="toolrow" id="sizes"></div>
+    <div class="toolrow">
+      <button class="tool" id="eraserBtn" type="button">消しゴム</button>
+      <button class="tool" id="undoBtn" type="button">戻す</button>
+      <button class="tool" id="clearBtn" type="button">全消し</button>
+      <button class="btn btn-red" id="okBtn" type="button" style="padding:9px 8px">OK！</button>
+    </div>
+  </div>
+</section>
+<div class="countdown" id="countdown" hidden></div>
+
+<!-- WAIT -->
+<section class="screen" id="wait" hidden>
+  <div class="col">
+    <img class="my-art" id="myArt" alt="">
+    <h2 style="font-size:24px" id="myName"></h2>
+    <div class="muted" id="waitText">みんなが描き終わるのを待っています…</div>
+    <div class="ticks" id="ticks"></div>
+  </div>
+</section>
+
+<!-- BATTLE -->
+<section class="screen" id="battle" hidden>
+  <div class="arena" id="arena">
+    <div class="vs-head">
+      <div class="plate left"><div class="nm" id="nmA"></div><div class="hp"><i id="hpA"></i></div><div class="hp-num" id="hpNumA"></div></div>
+      <div class="round-label" id="roundLabel"></div>
+      <div class="plate right"><div class="nm" id="nmB"></div><div class="hp"><i id="hpB"></i></div><div class="hp-num" id="hpNumB"></div></div>
+    </div>
+    <div class="fighter left" id="fA"><div class="mover"><div class="shaker"><div class="shadow-blob"></div><div class="body"><img alt=""></div></div></div></div>
+    <div class="fighter right" id="fB"><div class="mover"><div class="shaker"><div class="shadow-blob"></div><div class="body"><img alt=""></div></div></div></div>
+    <div class="vs-big" id="vsBig">VS</div>
+    <div class="flash" id="flash"></div>
+    <div class="banner" id="banner"></div>
+  </div>
+  <div id="bracketView" hidden>
+    <h2>トーナメント表</h2>
+    <div class="sub muted" id="bracketSub"></div>
+    <div class="bracket" id="bracket"></div>
+  </div>
+  <div id="champView" hidden>
+    <canvas id="confetti"></canvas>
+    <div class="crown">👑</div>
+    <h2>優勝！</h2>
+    <img id="champImg" alt="">
+    <div id="champName"></div>
+    <div class="row">
+      <button class="btn btn-red" id="againBtn" type="button">もう一度あそぶ</button>
+      <button class="btn" id="homeBtn" type="button">おわる</button>
+    </div>
+    <div class="muted" id="againWait">ホストが「もう一度」を押すと次のゲームが始まります</div>
+  </div>
+</section>
+
+<script>
+"use strict";
+(() => {
+const API = "/api/drawing-battle/rooms";
+const MAX_PLAYERS = 8;
+const HP = 100;
+// 演出の長さ（ミリ秒）。全員の端末が同じ表を使うので、同じ時刻に同じ場面が流れる
+const T = { bracketFirst: 4500, bracket: 3500, intro: 2200, turn: 1500, ko: 2800 };
+
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem("odb:" + k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem("odb:" + k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem("odb:" + k); } catch (e) {} },
+};
+const rand = (a, b) => a + Math.random() * (b - a);
+const randInt = (a, b) => Math.floor(rand(a, b + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+  return arr;
+}
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const bracketSize = (n) => { let s = 2; while (s < n) s *= 2; return s; };
+
+let toastTimer = 0;
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+function show(id) {
+  for (const s of document.querySelectorAll(".screen")) s.hidden = s.id !== id;
+}
+
+/* ============================================================
+   Server
+   ============================================================ */
+let clockOffset = 0; // サーバー時刻 − 端末の時刻
+let bestRtt = Infinity;
+const serverNow = () => Date.now() + clockOffset;
+
+async function call(method, url, body) {
+  const t0 = Date.now();
+  const res = await fetch(url, {
+    method, cache: "no-store",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const t1 = Date.now();
+  const data = await res.json().catch(() => ({}));
+  if (data && typeof data.serverNow === "number") {
+    const rtt = t1 - t0;
+    // 往復が速かったときの値ほど正確なので、それを優先する
+    if (rtt <= bestRtt * 1.5 || rtt < 300) { clockOffset = data.serverNow - (t0 + t1) / 2; bestRtt = Math.min(bestRtt, rtt); }
+  }
+  if (!res.ok) { const e = new Error(data.error || "通信に失敗しました"); e.status = res.status; throw e; }
+  return data;
+}
+const act = (action, extra) => call("POST", `${API}/${room.code}`, Object.assign({ action, token: room.token }, extra));
+
+/* ============================================================
+   Room state & polling
+   ============================================================ */
+const room = { code: null, token: null, view: null, version: undefined };
+let pollTimer = 0;
+let polling = false;
+
+async function enterRoom(code, token) {
+  room.code = code; room.token = token; room.view = null; room.version = undefined;
+  store.set("room:" + code, token);
+  history.replaceState(null, "", "/drawing-battle?room=" + code);
+  await poll();
+}
+
+function leaveToHome(msg) {
+  clearTimeout(pollTimer);
+  if (room.code) store.del("room:" + room.code);
+  room.code = null; room.token = null; room.view = null;
+  stopBattle();
+  history.replaceState(null, "", "/drawing-battle");
+  $("countdown").hidden = true;
+  show("home");
+  if (msg) toast(msg);
+}
+
+async function poll() {
+  clearTimeout(pollTimer);
+  if (!room.code || polling) return;
+  polling = true;
+  try {
+    const q = new URLSearchParams({ token: room.token });
+    if (room.version !== undefined) q.set("v", String(room.version));
+    const v = await call("GET", `${API}/${room.code}?${q}`);
+    if (!v.same) { room.view = v; room.version = v.version; render(v); }
+    if (room.view && room.view.phase === "drawing") hostMaybeBuildBattle();
+  } catch (e) {
+    if (e.status === 400) { polling = false; leaveToHome(e.message); return; }
+  } finally {
+    polling = false;
+  }
+  if (room.code) pollTimer = setTimeout(poll, room.view && room.view.phase === "battle" ? 2500 : 1000);
+}
+
+function render(v) {
+  if (v.phase === "lobby") { stopBattle(); $("countdown").hidden = true; renderLobby(v); show("lobby"); return; }
+  if (v.phase === "drawing") {
+    if (v.me.submitted) { renderWait(v); return; }
+    openDraw(v);
+    return;
+  }
+  if (v.phase === "battle" && v.battle) startBattle(v);
+}
+
+/* ============================================================
+   Home
+   ============================================================ */
+$("createBtn").onclick = async () => {
+  $("createBtn").disabled = true;
+  try {
+    const r = await call("POST", API);
+    await enterRoom(r.code, r.token);
+  } catch (e) { toast(e.message); }
+  finally { $("createBtn").disabled = false; }
+};
+async function join(code) {
+  code = code.trim().toUpperCase();
+  if (!/^[A-Z0-9]{5}$/.test(code)) { toast("ルームコードは5文字です"); return; }
+  $("joinBtn").disabled = true;
+  try {
+    const saved = store.get("room:" + code);
+    const r = await call("POST", `${API}/${code}`, saved ? { action: "join", token: saved } : { action: "join" });
+    await enterRoom(code, r.token);
+  } catch (e) {
+    toast(e.message);
+    history.replaceState(null, "", "/drawing-battle");
+  } finally { $("joinBtn").disabled = false; }
+}
+$("joinBtn").onclick = () => join($("codeInput").value);
+$("codeInput").addEventListener("keydown", (e) => { if (e.key === "Enter") join($("codeInput").value); });
+$("codeInput").addEventListener("input", (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
+
+/* ============================================================
+   Lobby
+   ============================================================ */
+function planText(v) {
+  const n = v.players.length;
+  if (n < 2 && !v.cpuFill) return "あと1人以上集まるとスタートできます（CPUで埋めるをONなら1人でも遊べます）";
+  const size = bracketSize(n);
+  const rest = size - n;
+  const kind = size === 2 ? "一発勝負" : `${size}人トーナメント`;
+  if (rest === 0) return `${n}人で${kind}`;
+  return v.cpuFill ? `${n}人＋CPU${rest}体で${kind}` : `${n}人でトーナメント（不戦勝${rest}枠）`;
+}
+
+function renderLobby(v) {
+  $("lobbyCode").textContent = v.code;
+  if (v.qr) $("lobbyQr").innerHTML = v.qr;
+  $("lobbyCount").textContent = `${v.players.length} / ${MAX_PLAYERS}人`;
+  const seats = $("seats");
+  seats.innerHTML = "";
+  const cpuSlots = v.cpuFill && v.players.length >= 1 ? bracketSize(Math.max(2, v.players.length)) - v.players.length : 0;
+  for (let i = 0; i < MAX_PLAYERS; i++) {
+    const p = v.players[i];
+    const el = document.createElement("div");
+    if (p) {
+      const isMe = p.id === v.me.id;
+      el.className = "seat" + (isMe ? " me" : "");
+      el.innerHTML = `<span class="num">${p.seat}</span><span class="who">プレイヤー${p.seat}<small>${[p.isHost ? "ホスト" : "", isMe ? "あなた" : ""].filter(Boolean).join("・")}</small></span>`;
+      if (v.me.isHost && !p.isHost) {
+        const x = document.createElement("button");
+        x.className = "x"; x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "外す");
+        x.onclick = async () => { try { await act("leave", { target: p.id }); poll(); } catch (e) { toast(e.message); } };
+        el.appendChild(x);
+      }
+    } else if (i - v.players.length < cpuSlots) {
+      el.className = "seat cpu";
+      el.innerHTML = `<span class="num">🤖</span><span class="who">CPU<small>人が来なければCPUが入ります</small></span>`;
+    } else {
+      el.className = "seat empty";
+      el.innerHTML = `<span class="num">${i + 1}</span><span class="who">空き</span>`;
+    }
+    seats.appendChild(el);
+  }
+  for (const b of $("cpuSeg").children) b.classList.toggle("on", (b.dataset.v === "1") === v.cpuFill);
+  for (const b of $("timeSeg").children) b.classList.toggle("on", Number(b.dataset.v) === v.drawSeconds);
+  $("cpuSeg").classList.toggle("locked", !v.me.isHost);
+  $("timeSeg").classList.toggle("locked", !v.me.isHost);
+  $("planText").textContent = planText(v);
+  $("startBtn").hidden = !v.me.isHost;
+  $("startBtn").disabled = v.players.length < 2 && !v.cpuFill;
+  $("waitHost").hidden = v.me.isHost;
+  $("leaveBtn").textContent = v.me.isHost ? "ホームへ戻る" : "部屋から出る";
+}
+
+async function saveSettings(patch) {
+  const v = room.view;
+  const settings = Object.assign({ cpuFill: v.cpuFill, drawSeconds: v.drawSeconds }, patch);
+  try { await act("settings", { settings }); room.version = undefined; poll(); } catch (e) { toast(e.message); }
+}
+$("cpuSeg").onclick = (e) => { const b = e.target.closest("button"); if (b && room.view && room.view.me.isHost) saveSettings({ cpuFill: b.dataset.v === "1" }); };
+$("timeSeg").onclick = (e) => { const b = e.target.closest("button"); if (b && room.view && room.view.me.isHost) saveSettings({ drawSeconds: Number(b.dataset.v) }); };
+$("startBtn").onclick = async () => {
+  $("startBtn").disabled = true;
+  try { await act("start"); poll(); } catch (e) { toast(e.message); $("startBtn").disabled = false; }
+};
+$("leaveBtn").onclick = async () => {
+  if (room.view && !room.view.me.isHost) { try { await act("leave"); } catch (e) { /* もう外れている */ } }
+  leaveToHome();
+};
+const inviteUrl = () => (room.view && room.view.joinUrl) || location.href;
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText(inviteUrl()); toast("リンクをコピーしました"); } catch (e) { toast(inviteUrl()); }
+};
+$("shareBtn").onclick = async () => {
+  if (navigator.share) { try { await navigator.share({ title: "お絵描きバトル", text: `ルームコード ${room.code} で参加してね！`, url: inviteUrl() }); } catch (e) { /* 閉じた */ } }
+  else $("copyBtn").onclick();
+};
+
+/* ============================================================
+   Drawing pad
+   ============================================================ */
+const COLORS = ["#2b2235", "#ff4b3e", "#ff9a1f", "#ffd23f", "#3cc35a", "#2f7bff", "#9b5cff", "#ff6fb5"];
+const SIZES = [{ w: 6, label: "細" }, { w: 14, label: "中" }, { w: 28, label: "太" }];
+const PAD = 480; // キャンバスの内部解像度
+const cv = $("padCv");
+cv.width = cv.height = PAD;
+const g = cv.getContext("2d");
+const pen = { color: COLORS[0], size: SIZES[1].w, erase: false };
+let strokes = []; // { color, size, erase, pts } または { clear: true }
+let current = null;
+let drawingOpen = false; // いまのお題で描画画面を開いているか（drawEndsAt で区別）
+let submitting = false;
+
+for (const c of COLORS) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "swatch"; b.style.background = c; b.setAttribute("aria-label", "色");
+  b.onclick = () => { pen.color = c; pen.erase = false; syncTools(); };
+  $("palette").appendChild(b);
+}
+for (const s of SIZES) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "tool";
+  const d = Math.max(6, s.w * 0.75);
+  b.innerHTML = `<span class="dot" style="width:${d}px;height:${d}px"></span>`;
+  b.setAttribute("aria-label", "太さ " + s.label);
+  b.onclick = () => { pen.size = s.w; syncTools(); };
+  b.dataset.w = String(s.w);
+  $("sizes").appendChild(b);
+}
+function syncTools() {
+  [...$("palette").children].forEach((b, i) => b.classList.toggle("on", !pen.erase && COLORS[i] === pen.color));
+  for (const b of $("sizes").children) { b.classList.toggle("on", Number(b.dataset.w) === pen.size); b.style.color = pen.erase ? "#bbb" : pen.color; }
+  $("eraserBtn").classList.toggle("on", pen.erase);
+}
+$("eraserBtn").onclick = () => { pen.erase = !pen.erase; syncTools(); };
+$("undoBtn").onclick = () => { strokes.pop(); redraw(); };
+$("clearBtn").onclick = () => { if (visibleStrokes().length) { strokes.push({ clear: true }); redraw(); } };
+
+function visibleStrokes() {
+  let i = strokes.length;
+  while (i > 0 && !strokes[i - 1].clear) i--;
+  return strokes.slice(i);
+}
+function paintStroke(s, from) {
+  g.save();
+  g.globalCompositeOperation = s.erase ? "destination-out" : "source-over";
+  g.strokeStyle = g.fillStyle = s.color;
+  g.lineWidth = s.size; g.lineCap = "round"; g.lineJoin = "round";
+  const p = s.pts;
+  if (p.length === 1) { g.beginPath(); g.arc(p[0][0], p[0][1], s.size / 2, 0, Math.PI * 2); g.fill(); }
+  else {
+    g.beginPath();
+    const start = Math.max(0, from - 1);
+    g.moveTo(p[start][0], p[start][1]);
+    for (let i = start + 1; i < p.length; i++) g.lineTo(p[i][0], p[i][1]);
+    g.stroke();
+  }
+  g.restore();
+}
+function redraw() {
+  g.clearRect(0, 0, PAD, PAD);
+  const vis = visibleStrokes();
+  for (const s of vis) paintStroke(s, 0);
+  $("padHint").hidden = vis.length > 0;
+}
+function padPoint(e) {
+  const r = cv.getBoundingClientRect();
+  return [((e.clientX - r.left) / r.width) * PAD, ((e.clientY - r.top) / r.height) * PAD];
+}
+cv.addEventListener("pointerdown", (e) => {
+  if (current || submitting) return;
+  e.preventDefault();
+  cv.setPointerCapture(e.pointerId);
+  current = { id: e.pointerId, s: { color: pen.color, size: pen.size, erase: pen.erase, pts: [padPoint(e)] } };
+  strokes.push(current.s);
+  paintStroke(current.s, 0);
+  $("padHint").hidden = true;
+});
+cv.addEventListener("pointermove", (e) => {
+  if (!current || e.pointerId !== current.id) return;
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  const n = current.s.pts.length;
+  for (const ev of evs.length ? evs : [e]) current.s.pts.push(padPoint(ev));
+  paintStroke(current.s, n);
+});
+const endStroke = (e) => { if (current && e.pointerId === current.id) current = null; };
+cv.addEventListener("pointerup", endStroke);
+cv.addEventListener("pointercancel", endStroke);
+
+function fitPad() {
+  const w = $("padWrap");
+  const side = Math.floor(Math.min(w.clientWidth, w.clientHeight));
+  $("pad").style.width = $("pad").style.height = side + "px";
+}
+addEventListener("resize", fitPad);
+
+/** 描いた部分だけを切り出して、背景透過のPNGにする。何も描いていなければ null */
+function exportDrawing() {
+  const data = g.getImageData(0, 0, PAD, PAD).data;
+  let x0 = PAD, y0 = PAD, x1 = -1, y1 = -1;
+  for (let y = 0; y < PAD; y++) {
+    for (let x = 0; x < PAD; x++) {
+      if (data[(y * PAD + x) * 4 + 3] > 16) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+  }
+  if (x1 < 0) return null;
+  const m = 6;
+  x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(PAD - 1, x1 + m); y1 = Math.min(PAD - 1, y1 + m);
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const scale = Math.min(1, 300 / Math.max(w, h));
+  const out = document.createElement("canvas");
+  out.width = Math.max(1, Math.round(w * scale)); out.height = Math.max(1, Math.round(h * scale));
+  out.getContext("2d").drawImage(cv, x0, y0, w, h, 0, 0, out.width, out.height);
+  return out.toDataURL("image/png");
+}
+
+let drawTick = 0;
+function openDraw(v) {
+  if (drawingOpen === v.drawEndsAt) { renderWait(v); return; }
+  drawingOpen = v.drawEndsAt;
+  strokes = []; current = null; submitting = false;
+  pen.color = COLORS[0]; pen.size = SIZES[1].w; pen.erase = false;
+  $("nameInput").value = "";
+  $("okBtn").disabled = false;
+  syncTools(); redraw();
+  show("draw");
+  fitPad();
+  clearInterval(drawTick);
+  const startsAt = v.drawEndsAt - v.drawSeconds * 1000;
+  drawTick = setInterval(() => {
+    const now = serverNow();
+    const cd = $("countdown");
+    if (now < startsAt) {
+      cd.hidden = false;
+      cd.innerHTML = `<div>${Math.ceil((startsAt - now) / 1000)}<small>描く準備はいい？</small></div>`;
+    } else if (!cd.hidden) {
+      cd.innerHTML = "<div>描け！</div>";
+      if (now > startsAt + 600) cd.hidden = true;
+    }
+    const left = Math.max(0, Math.ceil((v.drawEndsAt - now) / 1000));
+    $("timer").textContent = String(Math.min(left, v.drawSeconds));
+    $("timer").classList.toggle("hurry", left <= 10);
+    if (now >= v.drawEndsAt && !submitting) { clearInterval(drawTick); submitDrawing(true); }
+  }, 200);
+}
+
+async function submitDrawing(timeUp) {
+  if (submitting) return;
+  let img = exportDrawing();
+  if (!img) {
+    if (!timeUp) { toast("何か描いてからOKを押してね"); return; }
+    // 時間切れで真っ白なら、CPUの落書きで代わりに出場する
+    img = cpuDoodle();
+    toast("時間切れ！ 代わりに落書きモンスターが出場します");
+  }
+  submitting = true;
+  $("okBtn").disabled = true;
+  clearInterval(drawTick);
+  $("countdown").hidden = true;
+  const name = $("nameInput").value;
+  for (let tries = 0; tries < 3; tries++) {
+    try {
+      const r = await act("submit", { entry: { name, drawing: img } });
+      $("myArt").src = img; $("myArt").hidden = false; $("myName").textContent = r.name;
+      show("wait");
+      room.version = undefined; poll();
+      return;
+    } catch (e) {
+      if (e.status === 400) { toast(e.message); break; }
+      await new Promise((ok) => setTimeout(ok, 800));
+    }
+  }
+  if (!timeUp) { submitting = false; $("okBtn").disabled = false; }
+}
+$("okBtn").onclick = () => submitDrawing(false);
+$("nameInput").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
+
+function renderWait(v) {
+  const done = v.players.filter((p) => p.submitted).length;
+  $("waitText").textContent = `みんなが描き終わるのを待っています…（${done} / ${v.players.length}）`;
+  $("ticks").innerHTML = v.players.map((p) => `<span class="tick${p.submitted ? " done" : ""}">P${p.seat} ${p.submitted ? "✓" : "描いてる…"}</span>`).join("");
+  if (v.me.submitted && $("wait").hidden) {
+    clearInterval(drawTick);
+    $("countdown").hidden = true;
+    if (!$("myArt").getAttribute("src")) { $("myArt").hidden = true; $("myName").textContent = "提出済み"; }
+    show("wait");
+  }
+}
+
+/* ============================================================
+   CPU doodle monsters
+   ============================================================ */
+function cpuDoodle() {
+  const S = 300;
+  const c = document.createElement("canvas");
+  c.width = c.height = S;
+  const x = c.getContext("2d");
+  const INK = "#2b2235";
+  const body = pick(["#ff4b3e", "#ff9a1f", "#ffd23f", "#3cc35a", "#2f7bff", "#9b5cff", "#ff6fb5", "#7fd6ff"]);
+  x.lineJoin = "round"; x.lineCap = "round"; x.strokeStyle = INK; x.lineWidth = 9;
+  const shape = pick(["circle", "triangle", "spiky", "blob"]);
+  const cx = S / 2, cy = 165;
+  const R = rand(78, 100);
+  // 手足（体の後ろ）
+  x.lineWidth = 10;
+  const legSpread = rand(26, 46);
+  for (const s of [-1, 1]) {
+    x.beginPath(); x.moveTo(cx + s * legSpread, cy + R * 0.6); x.lineTo(cx + s * (legSpread + rand(0, 14)), cy + R + 28); x.stroke();
+    x.beginPath(); x.moveTo(cx + s * (legSpread + rand(0, 14)) - 12, cy + R + 28); x.lineTo(cx + s * (legSpread + rand(0, 14)) + 12, cy + R + 28); x.stroke();
+    if (Math.random() < 0.7) { x.beginPath(); x.moveTo(cx + s * R * 0.8, cy); x.quadraticCurveTo(cx + s * (R + 30), cy - rand(0, 40), cx + s * (R + 36), cy - rand(30, 60)); x.stroke(); }
+  }
+  // 角・アンテナ
+  x.lineWidth = 8;
+  const top = shape === "triangle" ? cy - R * 1.05 : cy - R;
+  if (shape !== "triangle" && Math.random() < 0.6) {
+    x.fillStyle = pick(["#ffd23f", "#ffffff", "#ff6fb5"]);
+    for (const s of [-1, 1]) {
+      x.beginPath(); x.moveTo(cx + s * 22, top + 14); x.lineTo(cx + s * 40, top - 34); x.lineTo(cx + s * 52, top + 20); x.closePath(); x.fill(); x.stroke();
+    }
+  } else if (Math.random() < 0.6) {
+    x.beginPath(); x.moveTo(cx, top + 6); x.quadraticCurveTo(cx + 22, top - 26, cx + 8, top - 46); x.stroke();
+    x.fillStyle = pick(["#ffd23f", "#ff4b3e"]); x.beginPath(); x.arc(cx + 8, top - 50, 10, 0, Math.PI * 2); x.fill(); x.stroke();
+  }
+  // 体
+  x.fillStyle = body; x.lineWidth = 9;
+  x.beginPath();
+  if (shape === "circle") x.ellipse(cx, cy, R * rand(0.95, 1.12), R * rand(0.85, 1), 0, 0, Math.PI * 2);
+  else if (shape === "triangle") { x.moveTo(cx, cy - R * 1.05); x.lineTo(cx + R * 1.1, cy + R * 0.85); x.lineTo(cx - R * 1.1, cy + R * 0.85); x.closePath(); }
+  else if (shape === "spiky") {
+    const n = randInt(9, 14);
+    for (let i = 0; i <= n * 2; i++) {
+      const a = (i / (n * 2)) * Math.PI * 2 - Math.PI / 2;
+      const r = i % 2 ? R * 0.74 : R * 1.08;
+      const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+      if (i === 0) x.moveTo(px, py); else x.lineTo(px, py);
+    }
+    x.closePath();
+  } else {
+    const n = 8;
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const px = cx + Math.cos(a) * R * 0.86, py = cy + Math.sin(a) * R * 0.82;
+      if (i === 0) x.moveTo(px, py); else x.arc(px, py, R * 0.32, a - Math.PI / 2, a + Math.PI / 2);
+    }
+    x.closePath();
+  }
+  x.fill(); x.stroke();
+  // 顔
+  const fy = shape === "triangle" ? cy + 18 : cy - 8;
+  const gap = rand(22, 34);
+  x.lineWidth = 6;
+  const eyes = pick(["dot", "big", "angry", "one", "sleepy", "x"]);
+  const eye = (ex, ey) => {
+    if (eyes === "dot") { x.fillStyle = INK; x.beginPath(); x.arc(ex, ey, 8, 0, Math.PI * 2); x.fill(); }
+    else if (eyes === "big" || eyes === "angry") {
+      x.fillStyle = "#fff"; x.beginPath(); x.arc(ex, ey, 16, 0, Math.PI * 2); x.fill(); x.stroke();
+      x.fillStyle = INK; x.beginPath(); x.arc(ex + rand(-4, 4), ey + rand(-2, 5), 7, 0, Math.PI * 2); x.fill();
+      if (eyes === "angry") { const s = ex < cx ? 1 : -1; x.beginPath(); x.moveTo(ex - s * 18, ey - 26); x.lineTo(ex + s * 12, ey - 15); x.stroke(); }
+    } else if (eyes === "sleepy") { x.beginPath(); x.arc(ex, ey - 4, 11, 0.15 * Math.PI, 0.85 * Math.PI); x.stroke(); }
+    else if (eyes === "x") { x.beginPath(); x.moveTo(ex - 9, ey - 9); x.lineTo(ex + 9, ey + 9); x.moveTo(ex + 9, ey - 9); x.lineTo(ex - 9, ey + 9); x.stroke(); }
+  };
+  if (eyes === "one") {
+    x.fillStyle = "#fff"; x.beginPath(); x.arc(cx, fy, 26, 0, Math.PI * 2); x.fill(); x.stroke();
+    x.fillStyle = INK; x.beginPath(); x.arc(cx + rand(-6, 6), fy + 3, 11, 0, Math.PI * 2); x.fill();
+  } else { eye(cx - gap, fy); eye(cx + gap, fy); }
+  const my = fy + rand(32, 44);
+  const mouth = pick(["smile", "zigzag", "o", "fang", "line"]);
+  x.lineWidth = 6;
+  if (mouth === "smile" || mouth === "fang") {
+    x.beginPath(); x.arc(cx, my - 12, 20, 0.15 * Math.PI, 0.85 * Math.PI); x.stroke();
+    if (mouth === "fang") { x.fillStyle = "#fff"; x.lineWidth = 4; for (const s of [-1, 1]) { x.beginPath(); x.moveTo(cx + s * 12, my + 4); x.lineTo(cx + s * 6, my + 16); x.lineTo(cx + s * 2, my + 6); x.closePath(); x.fill(); x.stroke(); } }
+  } else if (mouth === "zigzag") {
+    x.fillStyle = "#fff"; x.beginPath(); x.rect(cx - 26, my - 8, 52, 18); x.fill(); x.stroke();
+    x.lineWidth = 4; x.beginPath(); x.moveTo(cx - 26, my - 8);
+    for (let i = 1; i <= 6; i++) x.lineTo(cx - 26 + i * (52 / 6), i % 2 ? my + 10 : my - 8);
+    x.stroke();
+  } else if (mouth === "o") { x.fillStyle = "#7a1f2b"; x.beginPath(); x.ellipse(cx, my, 12, 15, 0, 0, Math.PI * 2); x.fill(); x.stroke(); }
+  else { x.beginPath(); x.moveTo(cx - 18, my); x.lineTo(cx + 18, my - 3); x.stroke(); }
+  if (Math.random() < 0.5) {
+    x.fillStyle = "rgba(255,111,181,.55)";
+    for (const s of [-1, 1]) { x.beginPath(); x.ellipse(cx + s * (gap + 20), fy + 22, 12, 7, 0, 0, Math.PI * 2); x.fill(); }
+  }
+  // 余白を切り落とす
+  const d = x.getImageData(0, 0, S, S).data;
+  let x0 = S, y0 = S, x1 = 0, y1 = 0;
+  for (let yy = 0; yy < S; yy++) for (let xx = 0; xx < S; xx++) if (d[(yy * S + xx) * 4 + 3] > 16) { x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); y0 = Math.min(y0, yy); y1 = Math.max(y1, yy); }
+  const out = document.createElement("canvas");
+  out.width = x1 - x0 + 9; out.height = y1 - y0 + 9;
+  out.getContext("2d").drawImage(c, x0 - 4, y0 - 4, out.width, out.height, 0, 0, out.width, out.height);
+  return out.toDataURL("image/png");
+}
+
+const CPU_NAMES = ["らくがきン", "ぐるぐるマン", "ギザギザ丸", "まるドン", "サンカクス", "もじゃモン", "ぺけぺけ", "ぽてトン", "ツノゴロー", "ぷにザウルス"];
+
+/* ============================================================
+   Host: build the tournament (完全ランダム)
+   ============================================================ */
+let building = false;
+async function hostMaybeBuildBattle() {
+  const v = room.view;
+  if (!v.me.isHost || building) return;
+  const allIn = v.players.every((p) => p.submitted);
+  const timeUp = serverNow() >= v.drawEndsAt + v.submitGraceMs + 300;
+  if (!allIn && !timeUp) return;
+  building = true;
+  try {
+    await act("battle", { battle: buildBattle(v) });
+    room.version = undefined;
+  } catch (e) {
+    if (!/もう対戦/.test(e.message)) toast(e.message);
+  } finally {
+    building = false;
+  }
+}
+
+function fight() {
+  const hp = { a: HP, b: HP };
+  const turns = [];
+  let by = Math.random() < 0.5 ? "a" : "b";
+  while (hp.a > 0 && hp.b > 0 && turns.length < 90) {
+    const miss = Math.random() < 0.12;
+    const crit = !miss && Math.random() < 0.15;
+    const dmg = miss ? 0 : randInt(12, 26) * (crit ? 2 : 1);
+    const other = by === "a" ? "b" : "a";
+    hp[other] = Math.max(0, hp[other] - dmg);
+    turns.push({ by, dmg, crit, miss });
+    by = other;
+  }
+  return { turns, winner: hp.a <= 0 ? "b" : "a" };
+}
+
+function buildBattle(v) {
+  const entrants = v.players.map((p) => {
+    // 提出がなかった人は落書きモンスターで代わりに出場
+    const e = { id: p.id, name: "", cpu: false };
+    if (!p.submitted) e.img = cpuDoodle();
+    return e;
+  });
+  const size = bracketSize(entrants.length);
+  if (v.cpuFill || entrants.length < 2) {
+    const names = shuffle(CPU_NAMES.slice());
+    for (let i = 0; entrants.length < size; i++) entrants.push({ id: "cpu" + (i + 1), name: names[i % names.length], cpu: true, img: cpuDoodle() });
+  }
+  const order = shuffle(entrants.map((e) => e.id));
+  const pairs = [];
+  const byes = size - order.length;
+  // 不戦勝は1試合に1つまで。どこに入るかもランダム
+  const slots = shuffle(Array.from({ length: size / 2 }, (_, i) => i < byes));
+  for (const hasBye of slots) pairs.push(hasBye ? [order.shift(), null] : [order.shift(), order.shift()]);
+  const rounds = [];
+  let current = pairs;
+  while (true) {
+    const round = current.map(([a, b]) => {
+      if (a === null || b === null) return { a, b, winner: a ?? b, turns: [] };
+      const f = fight();
+      return { a, b, winner: f.winner === "a" ? a : b, turns: f.turns };
+    });
+    rounds.push(round);
+    if (round.length === 1) break;
+    current = [];
+    for (let i = 0; i < round.length; i += 2) current.push([round[i].winner, round[i + 1].winner]);
+  }
+  return { hp: HP, entrants, rounds };
+}
+
+/* ============================================================
+   Battle playback (全員の端末で同じ時刻に同じ場面)
+   ============================================================ */
+const bt = { key: null, b: null, ent: null, segs: null, timer: 0, seg: -1, step: null };
+
+function stopBattle() {
+  clearInterval(bt.timer);
+  bt.key = null; bt.seg = -1; bt.step = null;
+  stopConfetti();
+}
+
+function roundName(r, total) {
+  const fromEnd = total - 1 - r;
+  if (fromEnd === 0) return total === 1 ? "一発勝負" : "決勝";
+  if (fromEnd === 1) return "準決勝";
+  return `${r + 1}回戦`;
+}
+
+function buildTimeline(b) {
+  const fights = [];
+  b.rounds.forEach((round, r) => round.forEach((m, i) => { if (m.a !== null && m.b !== null) fights.push({ r, i, m }); }));
+  const segs = [];
+  let t = b.startAt;
+  segs.push({ kind: "bracket", t, dur: T.bracketFirst, done: 0 }); t += T.bracketFirst;
+  fights.forEach((f, k) => {
+    const dur = T.intro + f.m.turns.length * T.turn + T.ko;
+    segs.push({ kind: "fight", t, dur, k, f }); t += dur;
+    if (k < fights.length - 1) { segs.push({ kind: "bracket", t, dur: T.bracket, done: k + 1 }); t += T.bracket; }
+  });
+  segs.push({ kind: "champ", t, dur: Infinity });
+  return { segs, fights };
+}
+
+function startBattle(v) {
+  const key = v.battle.startAt;
+  const ent = {};
+  for (const e of v.battle.entrants) ent[e.id] = { name: e.name, cpu: e.cpu, img: e.img || (v.drawings && v.drawings[e.id]) || "" };
+  // 同じ対戦を再生中なら、もう一度受け取ってもやり直さない
+  if (bt.key === key) { bt.ent = ent; updateChampButtons(); return; }
+  stopBattle();
+  clearInterval(drawTick);
+  $("countdown").hidden = true;
+  drawingOpen = false;
+  bt.key = key; bt.b = v.battle; bt.ent = ent;
+  const tl = buildTimeline(v.battle);
+  bt.segs = tl.segs; bt.fights = tl.fights;
+  show("battle");
+  updateChampButtons();
+  bt.timer = setInterval(tickBattle, 60);
+  tickBattle();
+}
+
+function updateChampButtons() {
+  const host = room.view && room.view.me.isHost;
+  $("againBtn").hidden = !host;
+  $("againWait").hidden = host;
+}
+
+function tickBattle() {
+  const now = serverNow();
+  const segs = bt.segs;
+  let si = 0;
+  while (si < segs.length - 1 && now >= segs[si].t + segs[si].dur) si++;
+  const seg = segs[si];
+  let step = 0;
+  if (seg.kind === "fight") {
+    const e = now - seg.t;
+    const n = seg.f.m.turns.length;
+    step = e < T.intro ? -1 : Math.min(n, Math.floor((e - T.intro) / T.turn));
+  }
+  if (si === bt.seg && step === bt.step) {
+    if (seg.kind === "bracket" && si === 0) updateStartCountdown(now);
+    return;
+  }
+  const sameFight = si === bt.seg && seg.kind === "fight";
+  const prevStep = bt.step;
+  bt.seg = si; bt.step = step;
+  if (seg.kind === "bracket") { showBracket(seg.done, si === 0); if (si === 0) updateStartCountdown(now); return; }
+  if (seg.kind === "champ") { showChampion(); return; }
+  if (!sameFight || step !== prevStep + 1) setupFight(seg, step);
+  playStep(seg, step);
+}
+
+function updateStartCountdown(now) {
+  const left = Math.ceil((bt.b.startAt - now) / 1000);
+  $("bracketSub").textContent = left > 0 ? `まもなくバトル開始…${left}` : "勝敗は完全ランダム！ だれが勝つかな？";
+}
+
+/* ---- bracket ---- */
+function decided(r, i, done) {
+  const m = bt.b.rounds[r][i];
+  if (m.a === null || m.b === null) return true;
+  const k = bt.fights.findIndex((f) => f.r === r && f.i === i);
+  return k < done;
+}
+function slotHtml(id, m, isDone) {
+  if (id === null) return `<div class="bslot bye"><span class="q">-</span><span>不戦勝</span></div>`;
+  if (id === undefined) return `<div class="bslot"><span class="q">?</span><span class="muted">？？？</span></div>`;
+  const e = bt.ent[id];
+  const cls = isDone && m.a !== null && m.b !== null ? (m.winner === id ? " win" : " lose") : "";
+  return `<div class="bslot${cls}"><img src="${esc(e.img)}" alt=""><span>${esc(e.name)}</span></div>`;
+}
+function showBracket(done, first) {
+  $("champView").hidden = true;
+  $("bracketView").hidden = false;
+  const rounds = bt.b.rounds;
+  const el = $("bracket");
+  el.style.gridTemplateColumns = `repeat(${rounds.length}, minmax(0, 1fr)) minmax(0, .8fr)`;
+  const next = bt.fights[done];
+  let html = "";
+  rounds.forEach((round, r) => {
+    html += `<div class="bcol"><div class="bcol-title">${roundName(r, rounds.length)}</div><div class="bcol-body">`;
+    round.forEach((m, i) => {
+      // 前の試合が終わるまで、次の回戦の出場者は「？」
+      const known = (side) => {
+        if (r === 0) return m[side];
+        const from = side === "a" ? i * 2 : i * 2 + 1;
+        return decided(r - 1, from, done) ? m[side] : undefined;
+      };
+      const isDone = decided(r, i, done);
+      const isNext = next && next.r === r && next.i === i;
+      html += `<div class="bmatch${isNext ? " next" : ""}">${slotHtml(known("a"), m, isDone)}${slotHtml(known("b"), m, isDone)}</div>`;
+    });
+    html += `</div></div>`;
+  });
+  const last = rounds[rounds.length - 1][0];
+  const champ = decided(rounds.length - 1, 0, done) ? bt.ent[last.winner] : null;
+  html += `<div class="bcol"><div class="bcol-title">優勝</div><div class="bcol-body"><div class="champ-slot">${champ ? `<img src="${esc(champ.img)}" alt=""><span>${esc(champ.name)}</span>` : "👑<br>？？？"}</div></div></div>`;
+  el.innerHTML = html;
+  $("bracketSub").textContent = first ? "" : next ? `次は ${roundName(next.r, rounds.length)}！` : "";
+}
+
+/* ---- fight ---- */
+const side = (s) => {
+  const f = $(s === "a" ? "fA" : "fB");
+  return { f, mover: f.querySelector(".mover"), shaker: f.querySelector(".shaker"), body: f.querySelector(".body"), img: f.querySelector("img"), hp: $(s === "a" ? "hpA" : "hpB"), num: $(s === "a" ? "hpNumA" : "hpNumB") };
+};
+function setHp(s, hp, max) {
+  const el = side(s);
+  const ratio = hp / max;
+  el.hp.style.width = ratio * 100 + "%";
+  el.hp.classList.toggle("mid", ratio <= 0.5 && ratio > 0.25);
+  el.hp.classList.toggle("low", ratio <= 0.25);
+  el.num.textContent = `HP ${hp} / ${max}`;
+}
+function hpAfter(m, upto, max) {
+  const hp = { a: max, b: max };
+  for (let i = 0; i < upto; i++) { const t = m.turns[i]; const o = t.by === "a" ? "b" : "a"; hp[o] = Math.max(0, hp[o] - t.dmg); }
+  return hp;
+}
+function resetFighter(s) {
+  const el = side(s);
+  for (const a of el.mover.getAnimations()) a.cancel();
+  for (const a of el.shaker.getAnimations()) a.cancel();
+  el.mover.style.transform = ""; el.f.style.opacity = "";
+}
+/** 試合の途中から見始めても、その時点の状態をそのまま再現する */
+function setupFight(seg, step) {
+  $("bracketView").hidden = true; $("champView").hidden = true;
+  stopConfetti();
+  const m = seg.f.m;
+  const max = bt.b.hp;
+  for (const s of ["a", "b"]) {
+    resetFighter(s);
+    const e = bt.ent[m[s]];
+    side(s).img.src = e.img;
+    $(s === "a" ? "nmA" : "nmB").textContent = e.name + (e.cpu ? "（CPU）" : "");
+  }
+  $("roundLabel").textContent = roundName(seg.f.r, bt.b.rounds.length);
+  const hp = hpAfter(m, Math.max(0, Math.min(step, m.turns.length)), max);
+  for (const s of ["a", "b"]) { side(s).hp.style.transition = "none"; setHp(s, hp[s], max); void side(s).hp.offsetWidth; side(s).hp.style.transition = ""; }
+  $("vsBig").hidden = step >= 0;
+  $("banner").style.opacity = 0;
+  for (const p of document.querySelectorAll(".pop")) p.remove();
+}
+
+function popText(s, text, cls) {
+  const el = side(s).f;
+  const r = el.getBoundingClientRect();
+  const a = $("arena").getBoundingClientRect();
+  const p = document.createElement("div");
+  p.className = "pop " + (cls || "");
+  p.textContent = text;
+  p.style.left = r.left - a.left + r.width / 2 + rand(-20, 20) + "px";
+  p.style.top = r.top - a.top + r.height * 0.15 + "px";
+  $("arena").appendChild(p);
+  p.animate([{ transform: "translate(-50%, 10px) scale(.4)", opacity: 0 }, { transform: "translate(-50%, -20px) scale(1.15)", opacity: 1, offset: 0.25 }, { transform: "translate(-50%, -70px) scale(1)", opacity: 0 }], { duration: 1100, easing: "ease-out" }).onfinish = () => p.remove();
+}
+function showBanner(text, small, dur) {
+  const b = $("banner");
+  b.textContent = text;
+  b.classList.toggle("small", !!small);
+  b.animate([{ opacity: 0, transform: "scale(2.2) rotate(-8deg)" }, { opacity: 1, transform: "scale(1) rotate(-4deg)", offset: 0.18 }, { opacity: 1, transform: "scale(1.05) rotate(-4deg)", offset: 0.8 }, { opacity: 0, transform: "scale(.9) rotate(-4deg)" }], { duration: dur || 1100, easing: "ease-out" });
+}
+
+function playStep(seg, step) {
+  const m = seg.f.m;
+  const max = bt.b.hp;
+  if (step === -1) {
+    $("vsBig").hidden = false;
+    $("vsBig").animate([{ transform: "translate(-50%, -50%) scale(3)", opacity: 0 }, { transform: "translate(-50%, -50%) scale(1)", opacity: 1, offset: 0.3 }, { transform: "translate(-50%, -50%) scale(1)", opacity: 1 }], { duration: 900, easing: "ease-out" });
+    side("a").mover.animate([{ transform: "translateX(-60vw)" }, { transform: "translateX(0)" }], { duration: 650, easing: "cubic-bezier(.2,1.4,.5,1)" });
+    side("b").mover.animate([{ transform: "translateX(60vw)" }, { transform: "translateX(0)" }], { duration: 650, easing: "cubic-bezier(.2,1.4,.5,1)" });
+    return;
+  }
+  $("vsBig").hidden = true;
+  if (step < m.turns.length) { attack(m.turns[step], hpAfter(m, step + 1, max), max); return; }
+  // 決着：負けた方は回転しながら画面外へ
+  const loser = m.winner === m.a ? "b" : "a";
+  const winner = loser === "a" ? "b" : "a";
+  const dir = loser === "a" ? -1 : 1;
+  const l = side(loser);
+  l.mover.animate([
+    { transform: "translate(0,0) rotate(0deg)" },
+    { transform: `translate(${dir * 12}vw,-20vh) rotate(${dir * 360}deg)`, offset: 0.35 },
+    { transform: `translate(${dir * 110}vw,-90vh) rotate(${dir * 1080}deg)` },
+  ], { duration: 1300, easing: "cubic-bezier(.3,.1,.6,1)", fill: "forwards" });
+  side(winner).mover.animate([{ transform: "translateY(0)" }, { transform: "translateY(-40px)" }, { transform: "translateY(0)" }, { transform: "translateY(-24px)" }, { transform: "translateY(0)" }], { duration: 900, delay: 500 });
+  setTimeout(() => showBanner(`${bt.ent[m.winner].name}の勝ち！`, true, 2000), 450);
+}
+
+function attack(t, hp, max) {
+  const att = side(t.by);
+  const defS = t.by === "a" ? "b" : "a";
+  const def = side(defS);
+  const ra = att.f.getBoundingClientRect(), rd = def.f.getBoundingClientRect();
+  const dist = (rd.left - ra.left) * 0.62;
+  att.mover.animate([
+    { transform: "translateX(0) rotate(0)" },
+    { transform: `translateX(${-Math.sign(dist) * 18}px) rotate(${-Math.sign(dist) * 8}deg)`, offset: 0.25 },
+    { transform: `translateX(${dist}px) rotate(${Math.sign(dist) * 10}deg)`, offset: 0.5 },
+    { transform: "translateX(0) rotate(0)" },
+  ], { duration: 720, easing: "ease-in-out" });
+  setTimeout(() => {
+    if (t.miss) {
+      def.mover.animate([{ transform: "translateY(0)" }, { transform: `translate(${Math.sign(dist) * 30}px,-60px)` }, { transform: "translateY(0)" }], { duration: 480, easing: "ease-out" });
+      popText(defS, "ミス！", "miss");
+      return;
+    }
+    if (t.crit) {
+      $("flash").animate([{ opacity: 0.95 }, { opacity: 0 }], { duration: 450 });
+      $("arena").animate([{ transform: "translate(0,0)" }, { transform: "translate(-10px,6px)" }, { transform: "translate(8px,-6px)" }, { transform: "translate(0,0)" }], { duration: 300 });
+      showBanner("会心！");
+    }
+    const amp = t.crit ? 16 : 9;
+    const frames = [];
+    for (let i = 0; i < 9; i++) frames.push({ transform: `translateX(${i % 2 ? amp : -amp}px) scale(${1 + (i % 2 ? 0.04 : -0.04)}, ${1 - (i % 2 ? 0.04 : -0.04)})` });
+    frames.push({ transform: "translateX(0) scale(1,1)" });
+    def.shaker.animate(frames, { duration: 560, easing: "linear" });
+    def.f.animate([{ filter: "none" }, { filter: "brightness(1.8) saturate(.4)" }, { filter: "none" }], { duration: 300 });
+    popText(defS, String(t.dmg), t.crit ? "crit" : "");
+    setHp(defS, hp[defS], max);
+  }, 360);
+}
+
+/* ---- champion ---- */
+function showChampion() {
+  $("bracketView").hidden = true;
+  const last = bt.b.rounds[bt.b.rounds.length - 1][0];
+  const e = bt.ent[last.winner];
+  $("champImg").src = e.img;
+  $("champName").textContent = e.name + (e.cpu ? "（CPU）" : "");
+  $("champView").hidden = false;
+  updateChampButtons();
+  startConfetti();
+}
+$("againBtn").onclick = async () => {
+  $("againBtn").disabled = true;
+  try { await act("again"); room.version = undefined; poll(); } catch (e) { toast(e.message); }
+  finally { $("againBtn").disabled = false; }
+};
+$("homeBtn").onclick = () => leaveToHome();
+
+let confettiRaf = 0;
+function startConfetti() {
+  cancelAnimationFrame(confettiRaf);
+  const c = $("confetti");
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  c.width = c.clientWidth * dpr; c.height = c.clientHeight * dpr;
+  const x = c.getContext("2d");
+  const cols = ["#ff4b3e", "#2f7bff", "#3cc35a", "#ffffff", "#9b5cff", "#ff6fb5", "#2b2235"];
+  const make = (initial) => ({
+    x: Math.random() * c.width, y: initial ? Math.random() * -c.height : -20 * dpr,
+    vx: rand(-1, 1) * dpr, vy: rand(1.5, 4) * dpr, r: rand(0, Math.PI * 2), vr: rand(-0.2, 0.2),
+    w: rand(6, 12) * dpr, h: rand(8, 16) * dpr, col: pick(cols),
+  });
+  const parts = Array.from({ length: 160 }, () => make(true));
+  const frame = () => {
+    x.clearRect(0, 0, c.width, c.height);
+    for (const p of parts) {
+      p.x += p.vx + Math.sin(p.y / 40) * 0.6 * dpr; p.y += p.vy; p.r += p.vr;
+      if (p.y > c.height + 20) Object.assign(p, make(false));
+      x.save(); x.translate(p.x, p.y); x.rotate(p.r);
+      x.fillStyle = p.col; x.fillRect(-p.w / 2, -p.h / 2 * Math.abs(Math.cos(p.r * 2)), p.w, p.h * Math.abs(Math.cos(p.r * 2)) + 1);
+      x.restore();
+    }
+    confettiRaf = requestAnimationFrame(frame);
+  };
+  frame();
+}
+function stopConfetti() { cancelAnimationFrame(confettiRaf); }
+
+/* ============================================================
+   Boot
+   ============================================================ */
+for (let i = 0; i < 3; i++) { const img = new Image(); img.alt = ""; img.src = cpuDoodle(); $("logoMons").appendChild(img); }
+document.addEventListener("visibilitychange", () => { if (!document.hidden && room.code) { room.version = undefined; poll(); } });
+const urlCode = new URLSearchParams(location.search).get("room");
+if (urlCode) { $("codeInput").value = urlCode.toUpperCase(); join(urlCode); }
+else show("home");
+})();
+</script>
+</body>
+</html>
