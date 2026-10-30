@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
+import { ensureDeadlineOpen } from "./deadline";
 
 async function login(page: Page) {
   await page.goto("/login");
@@ -33,6 +34,8 @@ test("Phase 2: LINE連携 → 受付開始 → スタッフがリンクから提
   // 翌月のシフト受付を開始（提出依頼を送信）
   await page.goto("/admin/shifts");
   await page.getByRole("link", { name: /のシフト$/ }).click();
+  await page.waitForURL(/\/admin\/shifts\/\d{4}-\d{2}/);
+  await ensureDeadlineOpen(page);
   page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "受付開始（提出依頼を送信）" }).click();
   await expect(page.getByText(/受付を開始しました/)).toBeVisible();
