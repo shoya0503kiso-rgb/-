@@ -5,10 +5,21 @@ import { UserError } from "@/server/errors";
 // ログイン不要の公開API（ミニゲームのランキング）
 export const dynamic = "force-dynamic";
 
+/** 想定外のエラーはログに出し、原因の切り分け用にエラーの種類（Prisma のコード等）だけ返す */
+function serverError(e: unknown) {
+  console.error("dealer-quest api", e);
+  const code = e && typeof e === "object" && "code" in e ? String((e as { code: unknown }).code) : e instanceof Error ? e.name : "unknown";
+  return NextResponse.json({ error: "ランキングを処理できませんでした", code }, { status: 500 });
+}
+
 export async function GET(req: NextRequest) {
   const playerId = req.nextUrl.searchParams.get("playerId") ?? undefined;
   const valid = playerId && /^[A-Za-z0-9-]{16,64}$/.test(playerId) ? playerId : undefined;
-  return NextResponse.json(await leaderboard(valid), { headers: { "Cache-Control": "no-store" } });
+  try {
+    return NextResponse.json(await leaderboard(valid), { headers: { "Cache-Control": "no-store" } });
+  } catch (e) {
+    return serverError(e);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -21,6 +32,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ...result, ...(await leaderboard(parsed.data.playerId)) });
   } catch (e) {
     if (e instanceof UserError) return NextResponse.json({ error: e.message }, { status: 400 });
-    throw e;
+    return serverError(e);
   }
 }
