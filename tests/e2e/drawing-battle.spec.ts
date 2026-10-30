@@ -21,7 +21,10 @@ test("2人で描いて提出すると、両方の画面で同じバトルが始�
   await expect(host.locator("#lobbyQr svg")).toBeVisible();
 
   await guest.goto("/drawing-battle");
-  await guest.locator("#codeInput").fill(code);
+  // スマホの日本語キーボードで全角・小文字で入れても、半角大文字に直して参加できる
+  const wide = Array.from(code.toLowerCase(), (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0)).join("");
+  await guest.locator("#codeInput").fill(wide);
+  await expect(guest.locator("#codeInput")).toHaveValue(code);
   await guest.getByRole("button", { name: "参加" }).click();
   await expect(guest.locator("#waitHost")).toBeVisible();
   await expect(host.locator("#lobbyCount")).toHaveText("2 / 8人");

@@ -278,7 +278,7 @@ input[type=text]:focus { outline: 3px solid var(--yellow); outline-offset: 1px; 
     <div class="card">
       <div class="muted" style="margin-bottom:8px">ルームコードで参加</div>
       <div class="row">
-        <input type="text" id="codeInput" class="code-input" maxlength="5" placeholder="ABCDE" autocomplete="off" autocapitalize="characters" inputmode="text">
+        <input type="text" id="codeInput" class="code-input" maxlength="10" placeholder="ABCDE" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" lang="en">
         <button class="btn btn-blue" id="joinBtn" type="button" style="flex:none">参加</button>
       </div>
     </div>
@@ -503,7 +503,7 @@ $("createBtn").onclick = async () => {
   finally { $("createBtn").disabled = false; }
 };
 async function join(code) {
-  code = code.trim().toUpperCase();
+  code = normalizeCode(code);
   if (!/^[A-Z0-9]{5}$/.test(code)) { toast("ルームコードは5文字です"); return; }
   $("joinBtn").disabled = true;
   try {
@@ -517,7 +517,18 @@ async function join(code) {
 }
 $("joinBtn").onclick = () => join($("codeInput").value);
 $("codeInput").addEventListener("keydown", (e) => { if (e.key === "Enter") join($("codeInput").value); });
-$("codeInput").addEventListener("input", (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
+/** 全角英数字は半角に、小文字は大文字にして、英数字5文字だけ残す */
+const normalizeCode = (v) => v
+  .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+  .toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5);
+// 日本語キーボードの変換中に中身を書き換えると、文字が重複したり消えたりするので、確定してから整える
+const tidyCode = (e) => {
+  if (e.isComposing) return;
+  const v = normalizeCode(e.target.value);
+  if (v !== e.target.value) e.target.value = v;
+};
+$("codeInput").addEventListener("input", tidyCode);
+$("codeInput").addEventListener("compositionend", tidyCode);
 
 /* ============================================================
    Lobby
@@ -1307,7 +1318,7 @@ function stopConfetti() { cancelAnimationFrame(confettiRaf); }
 for (let i = 0; i < 3; i++) { const img = new Image(); img.alt = ""; img.src = cpuDoodle(); $("logoMons").appendChild(img); }
 document.addEventListener("visibilitychange", () => { if (!document.hidden && room.code) { room.version = undefined; poll(); } });
 const urlCode = new URLSearchParams(location.search).get("room");
-if (urlCode) { $("codeInput").value = urlCode.toUpperCase(); join(urlCode); }
+if (urlCode) { $("codeInput").value = normalizeCode(urlCode); join(urlCode); }
 else show("home");
 })();
 </script>
