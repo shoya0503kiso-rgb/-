@@ -163,10 +163,12 @@ const matchSchema = z.object({
   winner: z.string().max(40).nullable(),
   turns: z.array(turnSchema).max(100),
 });
+// 能力はホストの端末の appraise() が決める（いまは全員同じ。後からAI鑑定に差し替えられる）
+const stat = z.number().int().min(1).max(999);
+const statsSchema = z.object({ hp: stat, attack: stat, defense: stat, speed: stat, luck: stat });
 export const battleInput = z.object({
-  hp: z.number().int().min(1).max(999),
   entrants: z
-    .array(z.object({ id: z.string().max(40), name: z.string().max(60), cpu: z.boolean(), img: dataUrl.optional() }))
+    .array(z.object({ id: z.string().max(40), name: z.string().max(60), cpu: z.boolean(), img: dataUrl.optional(), stats: statsSchema }))
     .min(2)
     .max(MAX_PLAYERS),
   rounds: z.array(z.array(matchSchema).min(1).max(4)).min(1).max(3),
@@ -233,7 +235,9 @@ export async function roomView(code: string, token: string, since: number | unde
   if (since !== undefined && since === head.version) return { same: true as const, version: head.version, serverNow: now.getTime() };
   const room = await findRoom(code);
   const self = me(room, token);
-  const showDrawings = room.phase === "battle";
+  // ホストは対戦を作るとき（能力の鑑定）に絵と名前を使うので、お絵描き中も受け取る
+  const isHost = self.id === room.hostId;
+  const showDrawings = room.phase === "battle" || (room.phase === "drawing" && isHost);
   return {
     same: false as const,
     version: room.version,
@@ -246,7 +250,7 @@ export async function roomView(code: string, token: string, since: number | unde
     submitGraceMs: SUBMIT_GRACE_MS,
     joinUrl,
     qr: room.phase === "lobby" ? await QRCode.toString(joinUrl, { type: "svg", margin: 1 }) : null,
-    me: { id: self.id, seat: self.seat, isHost: self.id === room.hostId, submitted: !!self.drawing },
+    me: { id: self.id, seat: self.seat, isHost, submitted: !!self.drawing },
     players: room.players.map((p) => ({
       id: p.id,
       seat: p.seat,

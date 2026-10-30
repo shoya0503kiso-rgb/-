@@ -57,6 +57,8 @@ body {
 }
 .col { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 14px; }
 h1, h2, .display { font-family: var(--font-display); font-weight: 400; margin: 0; letter-spacing: .02em; }
+/* 見出し用フォントは太さ1種類だけなので、疑似太字でにじまないようにする */
+.timer, .round-label, .pop, .banner, .vs-big, .countdown, .seat .num { font-weight: 400; }
 .btn {
   appearance: none; border: 3px solid var(--ink); border-radius: 16px; background: var(--white); color: var(--ink);
   font: inherit; font-weight: 800; font-size: 17px; padding: 13px 16px; box-shadow: var(--shadow);
@@ -380,7 +382,6 @@ input[type=text]:focus { outline: 3px solid var(--yellow); outline-offset: 1px; 
 (() => {
 const API = "/api/drawing-battle/rooms";
 const MAX_PLAYERS = 8;
-const HP = 100;
 // 演出の長さ（ミリ秒）。全員の端末が同じ表を使うので、同じ時刻に同じ場面が流れる
 const T = { bracketFirst: 4500, bracket: 3500, intro: 2200, turn: 1500, ko: 2800 };
 
@@ -892,7 +893,23 @@ function cpuDoodle() {
 const CPU_NAMES = ["らくがきン", "ぐるぐるマン", "ギザギザ丸", "まるドン", "サンカクス", "もじゃモン", "ぺけぺけ", "ぽてトン", "ツノゴロー", "ぷにザウルス"];
 
 /* ============================================================
-   Host: build the tournament (完全ランダム)
+   Abilities（AI鑑定を足すときは appraise だけを書き換える）
+   ============================================================ */
+const BASE_STATS = { hp: 100, attack: 10, defense: 10, speed: 10, luck: 10 };
+
+/**
+ * 1体の能力を決める。ホストの端末だけで、対戦を作る前に全員ぶん呼ばれる。
+ * いまは全員同じ能力を返すので、勝敗は完全ランダム。
+ * AI鑑定を足すときは、ここで絵（背景透過PNGの data URL）を鑑定して能力を返す（async なので外部APIを呼んでもよい）。
+ * @param {{ name: string, img: string, cpu: boolean }} c
+ * @returns {Promise<{ hp: number, attack: number, defense: number, speed: number, luck: number }>} どれも1以上の整数（hp は999まで）
+ */
+async function appraise(c) {
+  return Object.assign({}, BASE_STATS);
+}
+
+/* ============================================================
+   Host: build the tournament
    ============================================================ */
 let building = false;
 async function hostMaybeBuildBattle() {
@@ -903,7 +920,7 @@ async function hostMaybeBuildBattle() {
   if (!allIn && !timeUp) return;
   building = true;
   try {
-    await act("battle", { battle: buildBattle(v) });
+    await act("battle", { battle: await buildBattle(v) });
     room.version = undefined;
   } catch (e) {
     if (!/もう対戦/.test(e.message)) toast(e.message);
@@ -912,15 +929,17 @@ async function hostMaybeBuildBattle() {
   }
 }
 
-function fight() {
-  const hp = { a: HP, b: HP };
+/** 1試合ぶんを計算する。能力が同じなら、先攻・ダメージ・会心・ミスはすべて運 */
+function fight(sa, sb) {
+  const st = { a: sa, b: sb };
+  const hp = { a: sa.hp, b: sb.hp };
   const turns = [];
-  let by = Math.random() < 0.5 ? "a" : "b";
+  let by = sa.speed === sb.speed ? (Math.random() < 0.5 ? "a" : "b") : sa.speed > sb.speed ? "a" : "b";
   while (hp.a > 0 && hp.b > 0 && turns.length < 90) {
-    const miss = Math.random() < 0.12;
-    const crit = !miss && Math.random() < 0.15;
-    const dmg = miss ? 0 : randInt(12, 26) * (crit ? 2 : 1);
     const other = by === "a" ? "b" : "a";
+    const miss = Math.random() < Math.min(0.5, 0.12 * st[other].luck / BASE_STATS.luck);
+    const crit = !miss && Math.random() < Math.min(0.5, 0.15 * st[by].luck / BASE_STATS.luck);
+    const dmg = miss ? 0 : Math.min(999, Math.max(1, Math.round(randInt(12, 26) * st[by].attack / st[other].defense)) * (crit ? 2 : 1));
     hp[other] = Math.max(0, hp[other] - dmg);
     turns.push({ by, dmg, crit, miss });
     by = other;
@@ -928,7 +947,7 @@ function fight() {
   return { turns, winner: hp.a <= 0 ? "b" : "a" };
 }
 
-function buildBattle(v) {
+async function buildBattle(v) {
   const entrants = v.players.map((p) => {
     // 提出がなかった人は落書きモンスターで代わりに出場
     const e = { id: p.id, name: "", cpu: false };
@@ -939,6 +958,12 @@ function buildBattle(v) {
   if (v.cpuFill || entrants.length < 2) {
     const names = shuffle(CPU_NAMES.slice());
     for (let i = 0; entrants.length < size; i++) entrants.push({ id: "cpu" + (i + 1), name: names[i % names.length], cpu: true, img: cpuDoodle() });
+  }
+  const stats = {};
+  for (const e of entrants) {
+    const p = v.players.find((x) => x.id === e.id);
+    stats[e.id] = await appraise({ name: e.cpu ? e.name : (p && p.name) || "", img: e.img || (v.drawings && v.drawings[e.id]) || "", cpu: e.cpu });
+    e.stats = stats[e.id];
   }
   const order = shuffle(entrants.map((e) => e.id));
   const pairs = [];
@@ -951,7 +976,7 @@ function buildBattle(v) {
   while (true) {
     const round = current.map(([a, b]) => {
       if (a === null || b === null) return { a, b, winner: a ?? b, turns: [] };
-      const f = fight();
+      const f = fight(stats[a], stats[b]);
       return { a, b, winner: f.winner === "a" ? a : b, turns: f.turns };
     });
     rounds.push(round);
@@ -959,7 +984,7 @@ function buildBattle(v) {
     current = [];
     for (let i = 0; i < round.length; i += 2) current.push([round[i].winner, round[i + 1].winner]);
   }
-  return { hp: HP, entrants, rounds };
+  return { entrants, rounds };
 }
 
 /* ============================================================
@@ -998,7 +1023,7 @@ function buildTimeline(b) {
 function startBattle(v) {
   const key = v.battle.startAt;
   const ent = {};
-  for (const e of v.battle.entrants) ent[e.id] = { name: e.name, cpu: e.cpu, img: e.img || (v.drawings && v.drawings[e.id]) || "" };
+  for (const e of v.battle.entrants) ent[e.id] = { name: e.name, cpu: e.cpu, stats: e.stats, img: e.img || (v.drawings && v.drawings[e.id]) || "" };
   // 同じ対戦を再生中なら、もう一度受け取ってもやり直さない
   if (bt.key === key) { bt.ent = ent; updateChampButtons(); return; }
   stopBattle();
@@ -1107,8 +1132,9 @@ function setHp(s, hp, max) {
   el.hp.classList.toggle("low", ratio <= 0.25);
   el.num.textContent = `HP ${hp} / ${max}`;
 }
+const maxHp = (m) => ({ a: bt.ent[m.a].stats.hp, b: bt.ent[m.b].stats.hp });
 function hpAfter(m, upto, max) {
-  const hp = { a: max, b: max };
+  const hp = { a: max.a, b: max.b };
   for (let i = 0; i < upto; i++) { const t = m.turns[i]; const o = t.by === "a" ? "b" : "a"; hp[o] = Math.max(0, hp[o] - t.dmg); }
   return hp;
 }
@@ -1123,7 +1149,7 @@ function setupFight(seg, step) {
   $("bracketView").hidden = true; $("champView").hidden = true;
   stopConfetti();
   const m = seg.f.m;
-  const max = bt.b.hp;
+  const max = maxHp(m);
   for (const s of ["a", "b"]) {
     resetFighter(s);
     const e = bt.ent[m[s]];
@@ -1132,7 +1158,7 @@ function setupFight(seg, step) {
   }
   $("roundLabel").textContent = roundName(seg.f.r, bt.b.rounds.length);
   const hp = hpAfter(m, Math.max(0, Math.min(step, m.turns.length)), max);
-  for (const s of ["a", "b"]) { side(s).hp.style.transition = "none"; setHp(s, hp[s], max); void side(s).hp.offsetWidth; side(s).hp.style.transition = ""; }
+  for (const s of ["a", "b"]) { side(s).hp.style.transition = "none"; setHp(s, hp[s], max[s]); void side(s).hp.offsetWidth; side(s).hp.style.transition = ""; }
   $("vsBig").hidden = step >= 0;
   $("banner").style.opacity = 0;
   for (const p of document.querySelectorAll(".pop")) p.remove();
@@ -1159,7 +1185,7 @@ function showBanner(text, small, dur) {
 
 function playStep(seg, step) {
   const m = seg.f.m;
-  const max = bt.b.hp;
+  const max = maxHp(m);
   if (step === -1) {
     $("vsBig").hidden = false;
     $("vsBig").animate([{ transform: "translate(-50%, -50%) scale(3)", opacity: 0 }, { transform: "translate(-50%, -50%) scale(1)", opacity: 1, offset: 0.3 }, { transform: "translate(-50%, -50%) scale(1)", opacity: 1 }], { duration: 900, easing: "ease-out" });
@@ -1213,7 +1239,7 @@ function attack(t, hp, max) {
     def.shaker.animate(frames, { duration: 560, easing: "linear" });
     def.f.animate([{ filter: "none" }, { filter: "brightness(1.8) saturate(.4)" }, { filter: "none" }], { duration: 300 });
     popText(defS, String(t.dmg), t.crit ? "crit" : "");
-    setHp(defS, hp[defS], max);
+    setHp(defS, hp[defS], max[defS]);
   }, 360);
 }
 

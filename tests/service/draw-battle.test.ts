@@ -9,6 +9,7 @@ import { resetDb } from "../helpers";
 beforeEach(resetDb);
 
 const PNG = "data:image/png;base64,iVBORw0KGgo=";
+const stats = { hp: 100, attack: 10, defense: 10, speed: 10, luck: 10 };
 const URL = "http://localhost/drawing-battle?room=X";
 const at = (ms: number) => new Date(Date.UTC(2026, 9, 30, 12) + ms);
 
@@ -21,8 +22,7 @@ async function roomWith(n: number) {
 
 /** a 対 b の一発勝負（a が勝つ） */
 const duel = (a: string, b: string, extra: Partial<BattleInput> = {}): BattleInput => ({
-  hp: 100,
-  entrants: [{ id: a, name: "", cpu: false }, { id: b, name: "", cpu: false }],
+  entrants: [{ id: a, name: "", cpu: false, stats }, { id: b, name: "", cpu: false, stats }],
   rounds: [[{ a, b, winner: a, turns: [{ by: "a", dmg: 100, crit: false, miss: false }] }]],
   ...extra,
 });
@@ -49,6 +49,19 @@ describe("お絵描きバトルの部屋", () => {
     expect(v.drawings).toEqual({ [host.playerId]: PNG, [guest.playerId]: PNG });
     // 本人以外の token は返さない
     expect(JSON.stringify(v)).not.toContain(host.token);
+  });
+
+  it("お絵描き中、ほかの人の絵と名前を受け取れるのはホストだけ（能力の鑑定に使う）", async () => {
+    const { host, others: [guest] } = await roomWith(2);
+    await startDrawing(host.code, host.token, at(0));
+    await submitDrawing(host.code, guest.token, { name: "みず", drawing: PNG }, at(1000));
+    const hv = await roomView(host.code, host.token, undefined, URL, at(2000));
+    const gv = await roomView(host.code, guest.token, undefined, URL, at(2000));
+    if (hv.same || gv.same) throw new Error("unexpected");
+    expect(hv.drawings).toEqual({ [guest.playerId]: PNG });
+    expect(hv.players.find((p) => p.id === guest.playerId)?.name).toBe("みず");
+    expect(gv.drawings).toBeNull();
+    expect(gv.players.every((p) => p.name === null)).toBe(true);
   });
 
   it("version が変わっていなければ中身を返さない", async () => {
@@ -87,8 +100,7 @@ describe("お絵描きバトルの部屋", () => {
     await startDrawing(host.code, host.token, at(0));
     await submitDrawing(host.code, host.token, { name: "ぼく", drawing: PNG }, at(1000));
     const battle: BattleInput = {
-      hp: 100,
-      entrants: [{ id: host.playerId, name: "", cpu: false }, { id: "cpu1", name: "らくがきン", cpu: true, img: PNG }],
+      entrants: [{ id: host.playerId, name: "", cpu: false, stats }, { id: "cpu1", name: "らくがきン", cpu: true, img: PNG, stats }],
       rounds: [[{ a: "cpu1", b: host.playerId, winner: host.playerId, turns: [{ by: "b", dmg: 100, crit: true, miss: false }] }]],
     };
     await saveBattle(host.code, host.token, battle, at(2000));
@@ -115,9 +127,9 @@ describe("お絵描きバトルの部屋", () => {
     for (const p of [host, ...others]) await submitDrawing(host.code, p.token, { name: "x", drawing: PNG }, at(1000));
     const [a, b, c] = [host.playerId, others[0].playerId, others[1].playerId];
     const t = [{ by: "a" as const, dmg: 100, crit: false, miss: false }];
-    const entrants = [a, b, c].map((id) => ({ id, name: "", cpu: false }));
+    const entrants = [a, b, c].map((id) => ({ id, name: "", cpu: false, stats }));
     const good: BattleInput = {
-      hp: 100, entrants,
+      entrants,
       rounds: [[{ a, b, winner: b, turns: t }, { a: c, b: null, winner: c, turns: [] }], [{ a: b, b: c, winner: c, turns: t }]],
     };
     const bad = (rounds: BattleInput["rounds"]) => saveBattle(host.code, host.token, { ...good, rounds }, at(2000));
