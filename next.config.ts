@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // ミニゲーム「ディーラークエスト」（public/dealer-quest.html）を /dealer-quest で開けるようにする
+  // ミニゲーム（public/*.html）を拡張子なしのURLで開けるようにする
   async rewrites() {
-    return [{ source: "/dealer-quest", destination: "/dealer-quest.html" }];
+    return [
+      { source: "/dealer-quest", destination: "/dealer-quest.html" },
+      { source: "/drawing-battle", destination: "/drawing-battle.html" },
+    ];
   },
 };
 

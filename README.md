@@ -35,6 +35,16 @@ SELECT "playerId", name, tables FROM "DealerQuestScore" ORDER BY tables DESC LIM
 DELETE FROM "DealerQuestScore" WHERE "playerId" = '（消したい行のplayerId）';
 ```
 
+## ミニゲーム「お絵描きバトル」
+
+`/drawing-battle` でログインなしに遊べるパーティーゲーム（本体は `public/drawing-battle.html`）。スマホのブラウザで2〜8人、ホストが部屋を作り、ほかの人はルームコードかQRで参加します。
+
+- 描いた絵（背景透過）がそのままキャラになり、自動のターン制でトーナメントを戦う。**能力値はなく、勝敗は完全ランダム**（先攻・ダメージ・会心・ミスすべて乱数）
+- 対戦の計算はホストの端末だけで行い、結果を `/api/drawing-battle/rooms/[code]` 経由で全員に配る。各端末はサーバー時刻に合わせて同じ場面を再生する（途中で読み込み直しても追いつく）
+- 人数が2のべき乗にならないときは、ロビーの設定で「CPUで埋める」か「不戦勝」。時間切れで提出しなかった人はCPUの落書きモンスターが代わりに出場
+- 部屋とプレイヤーは `DrawBattleRoom` / `DrawBattlePlayer` テーブル（ビルド時の db push で自動作成）。12時間たった部屋は新しい部屋を作るときに消える。部屋は全体で1000、同じ接続元から1時間30部屋まで
+- 端末どうしの同期は約1秒ごとのポーリング（Vercel でそのまま動くよう WebSocket は使っていない）。ホストが画面を閉じると対戦が始まらないので、ホストは開いたままにする
+
 ## ローカルで動かす
 
 Node.js 20 以上。
