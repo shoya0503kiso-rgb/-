@@ -1,4 +1,5 @@
 import { cx } from "@/components/ui";
+import { IMG } from "@/lib/brand-images";
 
 export function StampCard({ count, perCard, bonus, pointName, highlight }: { count: number; perCard: number; bonus: number; pointName: string; highlight?: number }) {
   return (
@@ -11,13 +12,12 @@ export function StampCard({ count, perCard, bonus, pointName, highlight }: { cou
               key={i}
               className={cx(
                 "flex aspect-square items-center justify-center rounded-full border-2 text-xs",
-                on ? "border-rose-300 bg-rose-50" : "border-dashed border-slate-200 text-slate-300",
+                on ? "border-rose-300 bg-white" : "border-dashed border-slate-200 text-slate-300",
               )}
             >
               {on ? (
-                <span className={cx("text-2xl", i + 1 === highlight ? "stamp-in" : "-rotate-12")} aria-label="スタンプ">
-                  🍡
-                </span>
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={IMG.mark} alt="スタンプ" className={cx("h-[78%] w-[78%] object-contain", i + 1 === highlight ? "stamp-in" : "-rotate-12")} />
               ) : (
                 i + 1
               )}

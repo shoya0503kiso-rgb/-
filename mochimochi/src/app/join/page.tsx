@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { BrandHeader } from "@/components/member/BrandHeader";
+import { IMG } from "@/lib/brand-images";
 import { safeNextPath } from "@/server/auth";
 import { lineLoginEnabled } from "@/server/line";
 import { getMember } from "@/server/member-auth";
@@ -19,13 +19,12 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
   return (
     <div className="min-h-dvh bg-mochi-50">
       <div className="mx-auto max-w-md px-4 py-8">
-        <div className="flex justify-center">
-          <BrandHeader brand={brand} href="/join" />
-        </div>
-        <div className="mt-8 text-center">
+        <div className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={brand.logoUrl} alt={brand.storeName} className="mx-auto h-36 w-36 rounded-full bg-white object-contain shadow" />
-          <h1 className="mt-4 text-2xl font-extrabold text-slate-900">会員になって遊ぼう！</h1>
+          <img src={IMG.full} alt={brand.storeName} className="mx-auto w-full max-w-xs" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={IMG.tigerShake} alt="" className="mx-auto -mt-2 w-40" />
+          <h1 className="mt-2 text-2xl font-extrabold text-slate-900">会員になって遊ぼう！</h1>
           <p className="mt-2 text-sm text-slate-600">
             来店スタンプ・デイリーゲーム・ランキングで
             <br />

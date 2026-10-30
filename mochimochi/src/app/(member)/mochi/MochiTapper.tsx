@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { IMG } from "@/lib/brand-images";
 import { mochiTapAction } from "../actions";
 
 type Status = { total: number; todayTaps: number; todayWins: number; winLimit: number };
@@ -116,7 +117,9 @@ export function MochiTapper({
   return (
     <div className="no-select space-y-4">
       <div className="flex items-end justify-between">
-        <div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={IMG.tigerShake} alt="" className="-mb-2 w-20 shrink-0" />
+        <div className="flex-1 pl-2">
           <div className="text-xs text-slate-500">累計「{word}」</div>
           <div className="text-3xl font-extrabold text-rose-600">{(status.total + pending).toLocaleString()}</div>
         </div>

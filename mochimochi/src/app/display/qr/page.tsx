@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { IMG } from "@/lib/brand-images";
 import { formatDate } from "@/lib/time";
 import { todayCheckin } from "@/server/checkin";
 import { qrSvg } from "@/server/qr";
@@ -25,17 +26,16 @@ export default async function QrDisplay({ searchParams }: { searchParams: Promis
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-gradient-to-b from-rose-50 to-white p-6 text-center">
       <AutoReload seconds={300} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={IMG.full} alt={brand.storeName} className="w-full max-w-sm" />
+      <h1 className="text-3xl font-black text-rose-600">来店チェックイン</h1>
+      {/* QRの上には何も重ねない（読み取りにくくなるため） */}
+      <div className="w-full max-w-[min(55vh,26rem)] rounded-3xl bg-white p-4 shadow-xl ring-4 ring-neutral-900" dangerouslySetInnerHTML={{ __html: svg }} />
       <div className="flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={brand.logoUrl} alt="" className="h-16 w-16 rounded-full bg-white object-contain shadow" />
-        <div className="text-left">
-          <div className="text-2xl font-extrabold text-slate-900">{brand.storeName}</div>
-          <div className="text-sm text-rose-500">{brand.storeSubName}</div>
-        </div>
+        <img src={IMG.tigerChip} alt="" className="w-24" />
+        <p className="text-lg font-bold text-slate-700">スマホのカメラで読み取ってね！</p>
       </div>
-      <h1 className="text-3xl font-black text-rose-600">来店チェックイン</h1>
-      <div className="w-full max-w-[min(70vh,28rem)] rounded-3xl bg-white p-4 shadow-xl ring-4 ring-rose-200" dangerouslySetInnerHTML={{ __html: svg }} />
-      <p className="text-lg font-bold text-slate-700">スマホのカメラで読み取ってね！</p>
       <p className="text-sm text-slate-500">
         {formatDate(today.date)} のQR ・ スタンプ＋{brand.pointName}がもらえます（1日1回）
       </p>

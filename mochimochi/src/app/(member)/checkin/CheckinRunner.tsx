@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Panel } from "@/components/member/Panel";
 import { StampCard } from "@/components/member/StampCard";
+import { IMG } from "@/lib/brand-images";
 import type { CheckinResult } from "@/server/checkin";
 import { checkinAction } from "../actions";
 
@@ -84,7 +85,8 @@ export function CheckinRunner({
   return (
     <div className="space-y-4">
       <div className="py-4 text-center">
-        <div className="text-5xl">🎉</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={IMG.tigerChip} alt="" className="mx-auto w-36" />
         <h1 className="mt-2 text-2xl font-extrabold text-rose-600">いらっしゃいませ！</h1>
         <p className="mt-1 text-sm text-slate-600">来店 {r.visitCount}回目</p>
       </div>

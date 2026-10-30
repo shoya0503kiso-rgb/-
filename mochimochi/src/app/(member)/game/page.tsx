@@ -1,3 +1,4 @@
+import { IMG } from "@/lib/brand-images";
 import { applyPointDay, pointDayLabel } from "@/server/points";
 import { prisma } from "@/server/db";
 import { requireMember } from "@/server/member-auth";
@@ -15,11 +16,15 @@ export default async function GamePage() {
   ]);
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold">デイリーゲーム</h1>
-        <p className="text-sm text-slate-600">1日1回あそべます。勝ったら {s.pointName} ゲット！</p>
-        {pointDay && pointDay.mode === "multiply" && <p className="mt-1 text-sm font-bold text-amber-600">🎉 今日は{pointDayLabel(pointDay)}！</p>}
+      <div className="flex items-center overflow-hidden rounded-2xl bg-[#f897b1]">
+        <div className="flex-1 py-4 pl-4 text-white">
+          <h1 className="text-xl font-extrabold drop-shadow">デイリーゲーム</h1>
+          <p className="mt-1 text-xs font-bold drop-shadow">1日1回あそべます。勝ったら {s.pointName} ゲット！</p>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={IMG.tigerPink} alt="" className="h-32 w-auto shrink-0" />
       </div>
+      {pointDay && pointDay.mode === "multiply" && <p className="text-center text-sm font-bold text-amber-600">🎉 今日は{pointDayLabel(pointDay)}！</p>}
       <GameBoard
         played={played ? { game: played.game, result: played.result, points: played.points } : null}
         pointName={s.pointName}

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { needsSetup } from "@/server/admins";
+import { IMG } from "@/lib/brand-images";
 import { getBrand } from "@/server/settings";
 import { LoginForm } from "./LoginForm";
 
@@ -13,6 +14,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="flex min-h-dvh items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={IMG.full} alt="" className="mx-auto mb-3 w-56" />
         <h1 className="mb-1 text-xl font-bold">{brand.storeName}</h1>
         <p className="mb-6 text-sm text-slate-600">スタッフ用 管理画面ログイン</p>
         <LoginForm next={next ?? "/admin"} />

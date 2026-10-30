@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Panel } from "@/components/member/Panel";
 import { StampCard } from "@/components/member/StampCard";
+import { IMG } from "@/lib/brand-images";
 import { formatMonth, monthOf } from "@/lib/time";
 import { prisma } from "@/server/db";
 import { requireMember } from "@/server/member-auth";
@@ -32,8 +33,10 @@ export default async function MyPage() {
         </div>
       )}
 
-      <section className="rounded-3xl bg-gradient-to-br from-rose-400 to-pink-500 p-5 text-white shadow-lg">
-        <div className="flex items-start justify-between gap-2">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-neutral-900 via-neutral-800 to-rose-950 p-5 text-white shadow-lg">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={IMG.tigerChip} alt="" className="pointer-events-none absolute -right-3 -bottom-4 w-32 opacity-95" />
+        <div className="relative flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="text-xs opacity-80">ニックネーム</div>
             <div className="truncate text-lg font-bold">{member.nickname} さん</div>
@@ -42,12 +45,12 @@ export default async function MyPage() {
             {rank.current.name}
           </span>
         </div>
-        <div className="mt-4 text-xs opacity-80">{s.pointName}</div>
-        <div className="text-4xl font-extrabold tracking-tight">
+        <div className="relative mt-4 text-xs opacity-80">{s.pointName}</div>
+        <div className="relative text-4xl font-extrabold tracking-tight text-rose-400">
           {member.points.toLocaleString()}
-          <span className="ml-1 text-base font-bold">pt</span>
+          <span className="ml-1 text-base font-bold text-white">pt</span>
         </div>
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-90">
+        <div className="relative mt-3 flex flex-wrap gap-x-4 gap-y-1 pr-24 text-xs opacity-90">
           <span>来店 {member.visitCount}回</span>
           {rank.next ? (
             <span>
@@ -78,7 +81,11 @@ export default async function MyPage() {
 
       <Panel>
         <Link href="/mochi" className="flex items-center justify-between">
-          <span className="font-bold text-slate-800">🍡 累計「{s.mochiWord}」</span>
+          <span className="flex items-center gap-2 font-bold text-slate-800">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={IMG.tigerShake} alt="" className="h-10 w-10 object-contain" />
+            累計「{s.mochiWord}」
+          </span>
           <span className="text-xl font-extrabold text-rose-600">{member.mochiTotal.toLocaleString()}回</span>
         </Link>
       </Panel>

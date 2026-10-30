@@ -84,19 +84,19 @@ function BrandForm({ brand }: { brand: Brand }) {
     <Card title="見た目（ロゴ・店名）" className="lg:col-span-2">
       <div className="space-y-4">
         {banner}
-        <p className="text-sm text-slate-600">ロゴ・店名の表記は仮置きです。正式なものが届いたらここで差し替えてください（お客さんの画面・QR表示・管理画面すべてに反映されます）。</p>
+        <p className="text-sm text-slate-600">画面上部・アイコンに出るロゴと店名です。ロゴを変えたいときは画像をアップロードしてください（お客さんの画面・管理画面に反映されます）。トラなどのイラストは public/brand/ の画像です（README 参照）。</p>
         <div className="grid gap-4 md:grid-cols-[160px_1fr]">
           <div className="text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={brand.logoUrl} alt="ロゴ" className="mx-auto h-32 w-32 rounded-full border border-slate-200 bg-white object-contain" />
-            <div className="mt-1 text-xs text-slate-500">{brand.hasLogo ? "アップロード済み" : "仮ロゴ"}</div>
+            <div className="mt-1 text-xs text-slate-500">{brand.hasLogo ? "アップロード済み" : "標準ロゴ"}</div>
             <label className="mt-2 inline-block cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
               画像を選ぶ
               <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => upload("logo", e.target.files?.[0])} />
             </label>
             {brand.hasLogo && (
-              <button className="mt-1 block w-full text-xs text-slate-400 underline" onClick={() => confirm("仮ロゴに戻しますか？") && run(saveAssetAction("logo", null))}>
-                仮ロゴに戻す
+              <button className="mt-1 block w-full text-xs text-slate-400 underline" onClick={() => confirm("標準ロゴに戻しますか？") && run(saveAssetAction("logo", null))}>
+                標準ロゴに戻す
               </button>
             )}
             <p className="mt-1 text-[11px] text-slate-400">PNG/JPEG/WebP・1MBまで。正方形がきれいに出ます</p>
