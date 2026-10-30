@@ -417,3 +417,20 @@ model ShiftPublication {
 
   @@unique([periodId, version])
 }
+
+/// ミニゲーム「ディーラークエスト」のランキング（1プレイヤー1件、自己ベストのみ）
+model DealerQuestScore {
+  playerId    String   @id // 端末ごとのランダムID（公開しない）
+  name        String
+  tables      Int
+  cards       Int
+  rate        Int // 成功率（%）
+  perfectRate Int // パーフェクト率（%）
+  maxCombo    Int
+  ip          String? // 新規作成の回数制限用（表示しない）
+  achievedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([tables, perfectRate, cards])
+  @@index([ip, createdAt])
+}

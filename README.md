@@ -24,6 +24,17 @@
 | [07 店長向けマニュアル](docs/07-manual-manager.md) | 毎日・毎月の操作手順 |
 | [08 スタッフ向けマニュアル](docs/08-manual-staff.md) | 打刻・LINE の使い方（そのまま配布できます） |
 
+## ミニゲーム「ディーラークエスト」
+
+`/dealer-quest` でログインなしに遊べるスワイプゲーム（本体は `public/dealer-quest.html`）。ランキングは `/api/dealer-quest/scores`（公開API）経由で `DealerQuestScore` テーブルに保存します。登録は全体で1万人まで、同じ接続元からの新規登録は1時間20人までです。
+
+不適切な名前や記録を消すときは、Neon の SQL Editor で実行します。
+
+```sql
+SELECT "playerId", name, tables FROM "DealerQuestScore" ORDER BY tables DESC LIMIT 50;
+DELETE FROM "DealerQuestScore" WHERE "playerId" = '（消したい行のplayerId）';
+```
+
 ## ローカルで動かす
 
 Node.js 20 以上。
