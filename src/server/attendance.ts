@@ -114,6 +114,12 @@ function normalize(input: SessionInput, dayChangeHour: number) {
 
 /** 同じ従業員の他の勤怠と時間が重なっていないか（二重計上の防止） */
 async function assertNoOverlap(employeeId: string, v: { clockIn: Date | null; clockOut: Date | null }, excludeId?: string) {
+  const o = await findOverlap(employeeId, v, excludeId);
+  if (o) throw new UserError(`${o.businessDate} の別の勤怠と時間が重なっています。重複していないか確認してください。`);
+}
+
+/** 時間が重なる同じ従業員の勤怠（なければ null） */
+export async function findOverlap(employeeId: string, v: { clockIn: Date | null; clockOut: Date | null }, excludeId?: string) {
   const start = v.clockIn ?? v.clockOut!;
   const end = v.clockOut ?? v.clockIn!;
   const near = await prisma.workSession.findMany({
@@ -130,10 +136,9 @@ async function assertNoOverlap(employeeId: string, v: { clockIn: Date | null; cl
   for (const o of near) {
     const os = o.clockIn ?? o.clockOut!;
     const oe = o.clockOut ?? o.clockIn!;
-    if (start.getTime() <= oe.getTime() && os.getTime() <= end.getTime()) {
-      throw new UserError(`${o.businessDate} の別の勤怠と時間が重なっています。重複していないか確認してください。`);
-    }
+    if (start.getTime() <= oe.getTime() && os.getTime() <= end.getTime()) return o;
   }
+  return null;
 }
 
 export async function getSessionDetail(id: string, now = new Date()) {
