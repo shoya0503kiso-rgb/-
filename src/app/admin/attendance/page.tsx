@@ -48,7 +48,11 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
     const totals = await monthlyTotalsAll(ym);
     return (
       <>
-        <PageHeader title="月次勤怠" description="スタッフを選ぶと日別の勤怠を表示します" />
+        <PageHeader
+          title="月次勤怠"
+          description="スタッフを選ぶと日別の勤怠を表示します"
+          actions={<LinkButton variant="secondary" href="/admin/attendance/import">以前の勤怠を一括取り込み</LinkButton>}
+        />
         <div className="mb-4">{filter}</div>
         <Card title={`${formatYearMonthJa(ym)} 全スタッフ`}>
           <TableWrap>
