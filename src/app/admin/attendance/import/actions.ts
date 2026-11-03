@@ -4,14 +4,14 @@ import { requireAdmin } from "@/server/auth";
 import { applyImport, previewImport } from "@/server/attendance-import";
 import { runAction } from "@/server/errors";
 
-export async function previewImportAction(text: string, mapping: Record<string, string | null>) {
+export async function previewImportAction(text: string, mapping: Record<string, string | null>, overwrite: boolean) {
   await requireAdmin();
-  return runAction(() => previewImport(text, mapping));
+  return runAction(() => previewImport(text, mapping, { overwrite }));
 }
 
-export async function applyImportAction(text: string, mapping: Record<string, string | null>) {
+export async function applyImportAction(text: string, mapping: Record<string, string | null>, overwrite: boolean) {
   const admin = await requireAdmin();
-  const r = await runAction(() => applyImport(text, mapping, admin));
+  const r = await runAction(() => applyImport(text, mapping, admin, { overwrite }));
   revalidatePath("/admin", "layout");
   return r;
 }

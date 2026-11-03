@@ -1,5 +1,5 @@
 // Phase 3 レビュー指摘の回帰テスト
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { prisma } from "@/server/db";
 import { dispatchPending, enqueue } from "@/server/notify";
 import { punch } from "@/server/punch";
@@ -78,6 +78,11 @@ describe("Phase 3 レビュー指摘", () => {
   });
 
   it("B5: 枠の時刻を変えると今後の配置の時刻も変わる", async () => {
+    // 「今後」は実行日で決まるため、11/2 より前の日付で実行したことにする
+    vi.useFakeTimers({ toFake: ["Date"], now: t("2026-10-20 12:00") });
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const late = await oneDayStore();
     const a = await makeEmployee("A");
     await openCollection(YM, t("2026-10-13 10:00"));

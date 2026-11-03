@@ -120,6 +120,11 @@ async function assertNoOverlap(employeeId: string, v: { clockIn: Date | null; cl
 
 /** 時間が重なる同じ従業員の勤怠（なければ null） */
 export async function findOverlap(employeeId: string, v: { clockIn: Date | null; clockOut: Date | null }, excludeId?: string) {
+  return (await findOverlaps(employeeId, v, excludeId))[0] ?? null;
+}
+
+/** 時間が重なる同じ従業員の勤怠すべて */
+export async function findOverlaps(employeeId: string, v: { clockIn: Date | null; clockOut: Date | null }, excludeId?: string) {
   const start = v.clockIn ?? v.clockOut!;
   const end = v.clockOut ?? v.clockIn!;
   const near = await prisma.workSession.findMany({
@@ -133,12 +138,11 @@ export async function findOverlap(employeeId: string, v: { clockIn: Date | null;
       ],
     },
   });
-  for (const o of near) {
+  return near.filter((o) => {
     const os = o.clockIn ?? o.clockOut!;
     const oe = o.clockOut ?? o.clockIn!;
-    if (start.getTime() <= oe.getTime() && os.getTime() <= end.getTime()) return o;
-  }
-  return null;
+    return start.getTime() <= oe.getTime() && os.getTime() <= end.getTime();
+  });
 }
 
 export async function getSessionDetail(id: string, now = new Date()) {
