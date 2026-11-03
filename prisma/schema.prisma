@@ -47,6 +47,8 @@ model StoreSetting {
   holidayIncludesPublic       Boolean  @default(true)
   holidayBreakWorkMinutes     Int      @default(420)
   holidayBreakRequiredMinutes Int      @default(60)
+  /// この時刻以降の出勤は休憩不足のチェックをしない（P-28。"" ならチェックする）
+  breakCheckExemptFrom        String   @default("17:30")
   // シフト関連（P-19, P-24, P-25）
   lateGraceMinutes            Int      @default(5)
   maxConsecutiveDays          Int      @default(5)
@@ -95,6 +97,8 @@ model Employee {
   baseMaxDays    Int?
   baseMinDays    Int?
   note           String   @default("")
+  /// 休憩不足のチェックをしない出勤時刻（P-28）。null なら店舗設定に従う
+  breakCheckExemptFrom String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

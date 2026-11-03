@@ -114,3 +114,22 @@ describe("勤怠の一括取り込み", () => {
     expect(r).toMatchObject({ created: 2, replaced: 1, failed: [] });
   });
 });
+
+describe("休憩チェックをしない出勤時刻（店舗設定とスタッフごとの設定）", () => {
+  it("店舗は17:30以降、スタッフ個別は16:30以降で休憩不足を出さない", async () => {
+    const { listOpenAnomalies } = await import("@/server/attendance");
+    const { getSettings } = await import("@/server/settings");
+    await getSettings();
+    await prisma.storeSetting.update({ where: { id: 1 }, data: { breakCheckExemptFrom: "17:30", holidayWeekdays: "", holidayIncludesPublic: false } });
+    const kiso = await makeEmployee("木曽", { breakCheckExemptFrom: "16:30" });
+    const other = await makeEmployee("みる");
+    for (const e of [kiso, other]) {
+      await createSession(e.id, { clockIn: t("2026-10-13 16:30"), clockOut: t("2026-10-14 00:00"), breaks: [] }, "t", editor);
+      await createSession(e.id, { clockIn: t("2026-10-14 17:30"), clockOut: t("2026-10-15 00:00"), breaks: [] }, "t", editor);
+    }
+    const open = await listOpenAnomalies({ now: t("2026-10-20 12:00") });
+    expect(open.flatMap((i) => i.anomalies.map((a) => [i.employeeName, i.businessDate, a.code]))).toEqual([
+      ["みる", "2026-10-13", "BREAK_SHORT_LEGAL"],
+    ]);
+  });
+});

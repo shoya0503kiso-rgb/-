@@ -50,6 +50,8 @@ export interface DetectContext {
   rules: AnomalyRules;
   /** 営業日が店舗ルール上の休日か */
   isHoliday: boolean;
+  /** この時刻（HH:MM）以降の出勤は休憩不足を判定しない（P-28）。空なら判定する */
+  breakCheckExemptFrom?: string;
   now: Date;
 }
 
@@ -76,6 +78,14 @@ export function isStaleOpen(
   if (diffMinutes(s.clockIn, now) > MAX_OPEN_MINUTES) return true;
   const { close } = businessHours(s.businessDate, rules);
   return diffMinutes(close, now) > rules.outOfHoursMarginMinutes && businessDateOf(now, rules.dayChangeHour) > s.businessDate;
+}
+
+/** 出勤がその営業日の exemptFrom 以降か（日付切替より前の時刻は翌日の時刻とみなす） */
+export function isBreakCheckExempt(s: Pick<SessionLike, "businessDate" | "clockIn">, exemptFrom: string | undefined, dayChangeHour: number) {
+  if (!exemptFrom || !s.clockIn) return false;
+  let from = parseHm(exemptFrom);
+  if (from < dayChangeHour * 60) from += 1440;
+  return s.clockIn.getTime() >= jstAt(s.businessDate, from).getTime();
 }
 
 export function detectAnomalies(s: SessionLike, ctx: DetectContext): Anomaly[] {
@@ -149,8 +159,8 @@ export function detectAnomalies(s: SessionLike, ctx: DetectContext): Anomaly[] {
   if (s.clockOut && diffMinutes(hours.close, s.clockOut) > margin) outside.push("閉店より大幅に遅い退勤");
   if (outside.length) add("OUT_OF_HOURS", outside.join("、") + `（営業時間 ${rules.openTime}〜${rules.closeTime}）`);
 
-  // 休憩不足
-  if (sum.workMinutes !== null && sum.workMinutes > 0) {
+  // 休憩不足（遅い時刻からの出勤は休憩なしの勤務なので判定しない）
+  if (sum.workMinutes !== null && sum.workMinutes > 0 && !isBreakCheckExempt(s, ctx.breakCheckExemptFrom, rules.dayChangeHour)) {
     const holidayHit =
       ctx.isHoliday &&
       sum.workMinutes >= rules.holidayBreakWorkMinutes &&

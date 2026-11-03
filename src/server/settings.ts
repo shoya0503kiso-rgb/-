@@ -60,6 +60,7 @@ export const settingsSchema = z.object({
   holidayIncludesPublic: z.boolean(),
   holidayBreakWorkMinutes: int(0, 24 * 60),
   holidayBreakRequiredMinutes: int(0, 24 * 60),
+  breakCheckExemptFrom: z.union([z.literal(""), hm]).default(""),
   lateGraceMinutes: int(0, 120),
   maxConsecutiveDays: int(1, 31),
   requestNotifyDay: int(1, 28),

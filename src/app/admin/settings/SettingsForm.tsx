@@ -59,6 +59,14 @@ export function SettingsForm({ initial }: { initial: Values }) {
           <input type="checkbox" className="h-5 w-5" checked={v.legalBreakCheckEnabled} onChange={(e) => set({ legalBreakCheckEnabled: e.target.checked })} />
           一般的な休憩不足チェック（実働6時間超→45分、8時間超→60分）を行う
         </label>
+        <div className="mt-4 max-w-md">
+          <Field
+            label="休憩チェックをしない出勤時刻（P-28）"
+            hint="この時刻以降に出勤した日は、休憩不足（休日の休憩チェックを含む）を出しません。空欄なら全員チェックします。スタッフごとの時刻は従業員の画面で設定できます"
+          >
+            <Input type="time" value={v.breakCheckExemptFrom ?? ""} onChange={(e) => set({ breakCheckExemptFrom: e.target.value })} className="max-w-40" />
+          </Field>
+        </div>
       </Card>
 
       <Card title="休日の休憩チェック（P-12・店舗独自ルール）">
