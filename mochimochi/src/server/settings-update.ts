@@ -55,7 +55,7 @@ const RANKING_FIELD = { darts: "rankingDartsEnabled", poker: "rankingPokerEnable
 
 /** ランキングをお客さんに見せるかどうか */
 export async function setRankingVisible(kind: string, visible: boolean) {
-  if (!(kind in RANKING_FIELD)) throw new UserError("不正な操作です");
+  if (!Object.hasOwn(RANKING_FIELD, kind)) throw new UserError("不正な操作です");
   await prisma.storeSetting.update({ where: { id: 1 }, data: { [RANKING_FIELD[kind as keyof typeof RANKING_FIELD]]: !!visible } });
 }
 

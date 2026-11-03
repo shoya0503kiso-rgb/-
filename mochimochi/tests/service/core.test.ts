@@ -196,6 +196,7 @@ describe("ランキングの公開", () => {
     await setRankingVisible("submarine", true);
     expect(visibleRankings(await getSettings())).toEqual({ darts: true, poker: false, submarine: true });
     await expect(setRankingVisible("bingo", false)).rejects.toThrow("不正");
+    await expect(setRankingVisible("constructor", false)).rejects.toThrow("不正");
   });
 });
 
