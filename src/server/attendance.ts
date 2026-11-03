@@ -28,8 +28,18 @@ async function evaluator(from: DateStr, to: DateStr, now = new Date()) {
   const settings = await getSettings();
   const calendar = await loadCalendar(from, to, settings);
   const rules = anomalyRulesOf(settings);
+  const exempt = new Map(
+    (await prisma.employee.findMany({ where: { breakCheckExemptFrom: { not: null } }, select: { id: true, breakCheckExemptFrom: true } })).map(
+      (e) => [e.id, e.breakCheckExemptFrom!],
+    ),
+  );
   return (s: SessionWithBreaks): Anomaly[] =>
-    detectAnomalies(s, { rules, isHoliday: calendar.isHoliday(s.businessDate), now });
+    detectAnomalies(s, {
+      rules,
+      isHoliday: calendar.isHoliday(s.businessDate),
+      now,
+      breakCheckExemptFrom: exempt.get(s.employeeId) ?? settings.breakCheckExemptFrom,
+    });
 }
 
 // ───── 月次勤怠 ─────

@@ -18,6 +18,7 @@ function fromForm(form: FormData): EmployeeInput {
     baseMaxDays: String(form.get("baseMaxDays") ?? ""),
     baseMinDays: String(form.get("baseMinDays") ?? ""),
     note: String(form.get("note") ?? ""),
+    breakCheckExemptFrom: String(form.get("breakCheckExemptFrom") ?? ""),
   };
 }
 

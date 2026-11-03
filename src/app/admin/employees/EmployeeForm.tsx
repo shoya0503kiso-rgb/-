@@ -39,6 +39,9 @@ export function EmployeeForm({ employee }: { employee?: Employee }) {
           </Field>
         </div>
       </div>
+      <Field label="休憩チェックをしない出勤時刻" hint="この時刻以降に出勤した日は「休憩不足」を出しません。空欄なら店舗設定（設定 → 勤怠異常チェック）に従います">
+        <Input name="breakCheckExemptFrom" type="time" defaultValue={employee?.breakCheckExemptFrom ?? ""} className="max-w-40" />
+      </Field>
       <Field label="メモ（恒常的な情報）">
         <Textarea name="note" rows={3} defaultValue={employee?.note} />
       </Field>

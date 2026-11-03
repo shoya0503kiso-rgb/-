@@ -34,3 +34,27 @@ test("以前の勤怠を一括取り込み：確認 → 名前の対応 → 登�
   await page.getByRole("button", { name: "2件を登録する" }).click();
   await expect(page.getByText("置き換えのため削除した勤怠 2件")).toBeVisible();
 });
+
+test("休憩チェックをしない出勤時刻：店舗設定とスタッフごとの設定を保存できる", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("ログインID").fill("admin");
+  await page.getByLabel("パスワード").fill("admin1234");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await expect(page.getByRole("heading", { name: "ダッシュボード" })).toBeVisible();
+
+  await page.goto("/admin/settings");
+  await expect(page.getByLabel(/休憩チェックをしない出勤時刻/)).toHaveValue("17:30");
+  await page.getByLabel(/休憩チェックをしない出勤時刻/).fill("17:00");
+  await page.getByRole("button", { name: "設定を保存" }).click();
+  await expect(page.getByText("保存しました")).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel(/休憩チェックをしない出勤時刻/)).toHaveValue("17:00");
+
+  await page.goto("/admin/employees");
+  await page.getByRole("link", { name: "鈴木 一郎" }).first().click();
+  await page.getByLabel("休憩チェックをしない出勤時刻").fill("16:30");
+  await page.getByRole("button", { name: "保存", exact: true }).first().click();
+  await expect(page.getByText("保存しました")).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("休憩チェックをしない出勤時刻")).toHaveValue("16:30");
+});

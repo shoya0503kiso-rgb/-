@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "./db";
+import { isValidHm } from "@/lib/time";
 import { UserError } from "./errors";
 
 export const EMPLOYMENT_TYPES = { PART: "アルバイト", FULL: "正社員", OTHER: "その他" } as const;
@@ -18,6 +19,11 @@ export const employeeSchema = z.object({
   baseMaxDays: optionalInt(31),
   baseMinDays: optionalInt(31),
   note: z.string().max(1000).default(""),
+  /** 空欄なら店舗設定に従う */
+  breakCheckExemptFrom: z.preprocess(
+    (v) => (v === "" || v === undefined ? null : v),
+    z.string().refine(isValidHm, "休憩チェックの時刻は HH:MM 形式で入力してください").nullable(),
+  ),
 });
 
 export type EmployeeInput = z.input<typeof employeeSchema>;
