@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Hiragino Maru Gothic ProN", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, system-ui, sans-serif;
+  --color-mochi-50: #fffaf3;
+  --color-mochi-100: #fdf1e4;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* 連打ボタンで拡大・選択されないように */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+@keyframes pop {
+  0% { transform: translate(-50%, 0) scale(0.8); opacity: 1; }
+  100% { transform: translate(-50%, -90px) scale(1.2); opacity: 0; }
+}
+.mochi-pop {
+  animation: pop 0.7s ease-out forwards;
+}
+
+@keyframes stamp-in {
+  0% { transform: scale(2.2) rotate(-25deg); opacity: 0; }
+  60% { transform: scale(0.9) rotate(-8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-12deg); opacity: 1; }
+}
+.stamp-in {
+  animation: stamp-in 0.5s ease-out both;
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-12deg); }
+  75% { transform: rotate(12deg); }
+}
+.dice-shake {
+  animation: shake 0.15s linear infinite;
+}
+
+/* なでなで：寝息の Zzz */
+@keyframes zzz {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(28px, -70px) scale(1.3); opacity: 0; }
+}
+.zzz {
+  animation: zzz 3s ease-in infinite;
+}
+/* なでたときにぷにっとする */
+@keyframes squish {
+  0% { transform: scale(1, 1); }
+  40% { transform: scale(1.06, 0.92); }
+  100% { transform: scale(1, 1); }
+}
+.squish {
+  animation: squish 0.25s ease-out;
+}
+/* 寝ているあいだはゆっくり呼吸 */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+.breathe {
+  animation: breathe 3.5s ease-in-out infinite;
+}
+@keyframes wake {
+  0% { transform: scale(0.6) rotate(-8deg); opacity: 0; }
+  60% { transform: scale(1.1) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+.wake {
+  animation: wake 0.6s ease-out both;
+}

@@ -1,0 +1,95 @@
+// スタッフアカウントの管理（権限は1種類）
+import bcrypt from "bcryptjs";
+import { prisma } from "./db";
+import { UserError } from "./errors";
+
+const MIN_PASSWORD = 8;
+
+function checkPassword(pw: string) {
+  if (pw.length < MIN_PASSWORD) throw new UserError(`パスワードは${MIN_PASSWORD}文字以上にしてください`);
+  if (/^(.)\1+$/.test(pw) || ["password", "admin1234", "12345678"].includes(pw.toLowerCase())) {
+    throw new UserError("推測されやすいパスワードは使えません");
+  }
+}
+
+export function listAdmins() {
+  return prisma.adminUser.findMany({
+    orderBy: { createdAt: "asc" },
+    select: { id: true, loginId: true, name: true, active: true, createdAt: true, mustChangePassword: true },
+  });
+}
+
+export async function createAdmin(input: { loginId: string; name: string; password: string }) {
+  const loginId = input.loginId.trim();
+  const name = input.name.trim();
+  if (!/^[A-Za-z0-9_.-]{3,32}$/.test(loginId)) throw new UserError("ログインIDは半角英数字3〜32文字で入力してください");
+  if (!name) throw new UserError("名前を入力してください");
+  checkPassword(input.password);
+  if (await prisma.adminUser.findUnique({ where: { loginId } })) throw new UserError("このログインIDは使われています");
+  // 作成者が決めた仮パスワードなので、本人が初回に変更するよう促す
+  return prisma.adminUser.create({
+    data: { loginId, name, passwordHash: await bcrypt.hash(input.password, 10), mustChangePassword: true },
+  });
+}
+
+/** 自分のパスワード変更。他の端末のセッションは無効にする（tokenVersion +1） */
+export async function changePassword(adminId: string, current: string, next: string) {
+  const user = await prisma.adminUser.findUnique({ where: { id: adminId } });
+  if (!user || !(await bcrypt.compare(current, user.passwordHash))) throw new UserError("現在のパスワードが違います");
+  if (current === next) throw new UserError("新しいパスワードが現在と同じです");
+  checkPassword(next);
+  return prisma.adminUser.update({
+    where: { id: adminId },
+    data: { passwordHash: await bcrypt.hash(next, 10), mustChangePassword: false, tokenVersion: { increment: 1 } },
+  });
+}
+
+/** 他のスタッフの停止・再開。自分自身や最後の1人は停止できない */
+export async function setAdminActive(actorId: string, targetId: string, active: boolean) {
+  if (actorId === targetId) throw new UserError("自分自身は停止できません");
+  if (!active) {
+    const others = await prisma.adminUser.count({ where: { active: true, id: { not: targetId } } });
+    if (others === 0) throw new UserError("スタッフが1人もいなくなるため停止できません");
+  }
+  await prisma.adminUser.update({ where: { id: targetId }, data: { active, tokenVersion: { increment: 1 } } });
+}
+
+export async function mustChangePassword(adminId: string) {
+  return (await prisma.adminUser.findUnique({ where: { id: adminId } }))?.mustChangePassword ?? false;
+}
+
+/** 他のスタッフがパスワードを忘れたとき：仮パスワードを再発行（本人は次回ログイン時に変更） */
+export async function resetAdminPassword(actorId: string, targetId: string, temp: string) {
+  if (actorId === targetId) throw new UserError("自分のパスワードは「パスワードを変更」から変えてください");
+  checkPassword(temp);
+  await prisma.adminUser.update({
+    where: { id: targetId },
+    data: { passwordHash: await bcrypt.hash(temp, 10), mustChangePassword: true, tokenVersion: { increment: 1 } },
+  });
+}
+
+/** スタッフが1人もいないか（初回セットアップ画面を出すか） */
+export async function needsSetup() {
+  return (await prisma.adminUser.count()) === 0;
+}
+
+/**
+ * 最初のスタッフ（店長）を作る（本番の初回だけ）。環境変数 SETUP_TOKEN と一致するキーが必要。
+ * スタッフが既にいる場合は作らない（同時に送られても1人目だけ）
+ */
+export async function createFirstAdmin(input: { setupToken: string; loginId: string; name: string; password: string }) {
+  const expected = process.env.SETUP_TOKEN;
+  if (!expected || expected.length < 16) throw new UserError("SETUP_TOKEN（16文字以上）が設定されていません");
+  if (input.setupToken.trim() !== expected) throw new UserError("セットアップキーが違います");
+  const loginId = input.loginId.trim();
+  const name = input.name.trim();
+  if (!/^[A-Za-z0-9_.-]{3,32}$/.test(loginId)) throw new UserError("ログインIDは半角英数字3〜32文字で入力してください");
+  if (!name) throw new UserError("名前を入力してください");
+  checkPassword(input.password);
+  const hash = await bcrypt.hash(input.password, 10);
+  return prisma.$transaction(async (tx) => {
+    if ((await tx.adminUser.count()) > 0) throw new UserError("スタッフは既に作成されています。ログイン画面からログインしてください");
+    await tx.storeSetting.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} });
+    return tx.adminUser.create({ data: { loginId, name, passwordHash: hash } });
+  });
+}
