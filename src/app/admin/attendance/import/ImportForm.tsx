@@ -2,13 +2,14 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Alert, Badge, Button, Field, Select, TableWrap, Textarea, td, th } from "@/components/ui";
-import { formatDateJa } from "@/lib/time";
+import { formatDateJa, formatTime } from "@/lib/time";
 import type { ImportPreview } from "@/server/attendance-import";
 import { applyImportAction, previewImportAction } from "./actions";
 
 const hm = (m: number) => `${m >= 1440 ? "翌" : ""}${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 const statusLabel = {
   ok: <Badge color="green">取り込む</Badge>,
+  replace: <Badge color="amber">上書き</Badge>,
   exists: <Badge color="gray">登録済み</Badge>,
   duplicate: <Badge color="gray">重複</Badge>,
   unmapped: <Badge color="red">従業員を選択</Badge>,
@@ -16,13 +17,16 @@ const statusLabel = {
 
 export function ImportForm({ employees }: { employees: { id: string; name: string }[] }) {
   const [text, setText] = useState("");
+  const [overwrite, setOverwrite] = useState(false);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [result, setResult] = useState<{ error?: string; message?: string } | null>(null);
   const [pending, start] = useTransition();
 
-  function check(mapping: Record<string, string | null> = preview?.mapping ?? {}) {
+  const targetCount = preview ? preview.counts.ok + preview.counts.replace : 0;
+
+  function check(mapping: Record<string, string | null> = preview?.mapping ?? {}, ow = overwrite) {
     start(async () => {
-      const r = await previewImportAction(text, mapping);
+      const r = await previewImportAction(text, mapping, ow);
       if (!r.ok) return setResult({ error: r.error });
       setResult(null);
       setPreview(r.data!);
@@ -31,14 +35,20 @@ export function ImportForm({ employees }: { employees: { id: string; name: strin
 
   function apply() {
     if (!preview) return;
-    if (!confirm(`${preview.counts.ok}件の勤怠を登録します。よろしいですか？`)) return;
+    const msg =
+      `${targetCount}件の勤怠を登録します。` +
+      (preview.counts.replace ? `\nそのうち${preview.counts.replace}件は、登録済みの勤怠を削除して置き換えます（削除した勤怠は履歴に残ります）。` : "") +
+      "\nよろしいですか？";
+    if (!confirm(msg)) return;
     start(async () => {
-      const r = await applyImportAction(text, preview.mapping);
+      const r = await applyImportAction(text, preview.mapping, overwrite);
       if (!r.ok) return setResult({ error: r.error });
       const d = r.data!;
       setResult({
         message:
-          `${d.created}件を登録しました（取り込まなかった行 ${d.skipped}件）` +
+          `${d.created}件を登録しました` +
+          (d.replaced ? `（置き換えのため削除した勤怠 ${d.replaced}件）` : "") +
+          `。取り込まなかった行 ${d.skipped}件` +
           (d.failed.length ? `。登録できなかった行：${d.failed.map((f) => `${f.line}行目 ${f.error}`).join(" / ")}` : ""),
       });
       setPreview(null);
@@ -74,6 +84,22 @@ export function ImportForm({ employees }: { employees: { id: string; name: strin
           placeholder={"名前,日付,出勤,退勤,休憩\nみる,2026-10-02,17:58,00:11,0"}
         />
       </Field>
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="mt-1"
+          checked={overwrite}
+          onChange={(e) => {
+            setOverwrite(e.target.checked);
+            if (preview) check(preview.mapping, e.target.checked);
+          }}
+        />
+        <span>
+          <b>登録済みの勤怠を上書きする</b>
+          <br />
+          <span className="text-slate-500">時間が重なる登録済みの勤怠（打刻した記録も含む）を削除して、貼り付けた内容に置き換えます。削除した勤怠は修正履歴に残ります。</span>
+        </span>
+      </label>
       <Button onClick={() => check({})} disabled={pending || !text.trim()}>
         {pending ? "確認中…" : "内容を確認する"}
       </Button>
@@ -118,7 +144,7 @@ export function ImportForm({ employees }: { employees: { id: string; name: strin
           </div>
 
           <Alert kind="info">
-            取り込む <b>{preview.counts.ok}</b>件 ／ 登録済み {preview.counts.exists}件 ／ 重複 {preview.counts.duplicate}件 ／ 従業員未選択 {preview.counts.unmapped}件
+            取り込む <b>{preview.counts.ok}</b>件 ／ 上書き <b>{preview.counts.replace}</b>件 ／ 登録済み {preview.counts.exists}件 ／ 重複 {preview.counts.duplicate}件 ／ 従業員未選択 {preview.counts.unmapped}件
           </Alert>
 
           <TableWrap>
@@ -136,7 +162,7 @@ export function ImportForm({ employees }: { employees: { id: string; name: strin
               </thead>
               <tbody>
                 {preview.rows.map((r) => (
-                  <tr key={r.line} className={r.status === "ok" ? "" : "text-slate-400"}>
+                  <tr key={r.line} className={r.status === "ok" || r.status === "replace" ? "" : "text-slate-400"}>
                     <td className={td}>{r.line}</td>
                     <td className={td}>{r.name}</td>
                     <td className={td}>{formatDateJa(r.date)}</td>
@@ -145,6 +171,11 @@ export function ImportForm({ employees }: { employees: { id: string; name: strin
                     <td className={td}>{r.breakMinutes ? `${r.breakMinutes}分` : ""}</td>
                     <td className={td}>
                       {statusLabel[r.status]}
+                      {r.replaces?.map((o) => (
+                        <span key={o.id} className="ml-2 text-xs text-slate-500 line-through">
+                          {formatTime(o.clockIn ? new Date(o.clockIn) : null, r.date) || "—"}〜{formatTime(o.clockOut ? new Date(o.clockOut) : null, r.date) || "—"}
+                        </span>
+                      ))}
                       {r.warning && <span className="ml-2 text-xs text-amber-700">{r.warning}</span>}
                     </td>
                   </tr>
@@ -153,8 +184,8 @@ export function ImportForm({ employees }: { employees: { id: string; name: strin
             </table>
           </TableWrap>
 
-          <Button onClick={apply} disabled={pending || preview.counts.ok === 0 || preview.errors.length > 0}>
-            {preview.counts.ok}件を登録する
+          <Button onClick={apply} disabled={pending || targetCount === 0 || preview.errors.length > 0}>
+            {targetCount}件を登録する
           </Button>
         </div>
       )}

@@ -52,7 +52,7 @@ describe("勤怠の一括取り込み", () => {
     expect(p.mapping).toEqual({ みる: miru.id, エレナ: elena.id, ちーちゃん: null });
 
     const r = await applyImport(text, p.mapping, editor);
-    expect(r).toEqual({ created: 2, skipped: 3, failed: [] });
+    expect(r).toEqual({ created: 2, replaced: 0, skipped: 3, failed: [] });
     const m = await monthlyAttendance(elena.id, "2026-10", t("2026-11-02 12:00"));
     expect(m.totals).toMatchObject({ workDays: 1, breakMinutes: 75, workMinutes: 7 * 60 + 6 - 75 });
     const rev = await prisma.attendanceRevision.findFirstOrThrow({ where: { session: { employeeId: elena.id } } });
@@ -74,5 +74,43 @@ describe("勤怠の一括取り込み", () => {
     const s = await prisma.workSession.findFirstOrThrow({ where: { employeeId: yama.id } });
     expect(s.clockOut).toBeNull();
     expect(s.businessDate).toBe("2026-10-09");
+  });
+
+  it("上書き：重なる登録済みの勤怠（退勤なしを含む）を削除して置き換え、上書きしないときは残す", async () => {
+    const kiso = await makeEmployee("木曽 翔也", { kana: "きそ しょうや" });
+    // 退勤なしの勤怠と、打刻済みの勤怠
+    await createSession(kiso.id, { clockIn: t("2026-10-09 17:00"), clockOut: null, breaks: [] }, "取り込み", editor);
+    await createSession(kiso.id, { clockIn: t("2026-10-13 16:40"), clockOut: t("2026-10-14 00:05"), breaks: [] }, "打刻", editor);
+    const text = "木曽,2026-10-09,16:30,00:00,0\n木曽,2026-10-13,16:30,00:00,0\n木曽,2026-10-15,16:30,00:00,0";
+
+    const keep = await previewImport(text);
+    expect(keep.rows.map((r) => r.status)).toEqual(["exists", "exists", "ok"]);
+
+    const p = await previewImport(text, keep.mapping, { overwrite: true });
+    expect(p.rows.map((r) => r.status)).toEqual(["replace", "replace", "ok"]);
+    const r = await applyImport(text, p.mapping, editor, { overwrite: true });
+    expect(r).toMatchObject({ created: 3, replaced: 2, failed: [] });
+
+    const live = await prisma.workSession.findMany({ where: { employeeId: kiso.id, deletedAt: null }, orderBy: { clockIn: "asc" } });
+    expect(live.map((s) => [s.businessDate, s.clockIn?.getTime(), s.clockOut?.getTime()])).toEqual([
+      ["2026-10-09", t("2026-10-09 16:30").getTime(), t("2026-10-10 00:00").getTime()],
+      ["2026-10-13", t("2026-10-13 16:30").getTime(), t("2026-10-14 00:00").getTime()],
+      ["2026-10-15", t("2026-10-15 16:30").getTime(), t("2026-10-16 00:00").getTime()],
+    ]);
+    expect(await prisma.attendanceRevision.count({ where: { action: "DELETE", reason: { contains: "上書き" } } })).toBe(2);
+
+    // 同じ内容でもう一度上書きしても、件数は増えない
+    const again = await previewImport(text, p.mapping, { overwrite: true });
+    await applyImport(text, again.mapping, editor, { overwrite: true });
+    expect(await prisma.workSession.count({ where: { employeeId: kiso.id, deletedAt: null } })).toBe(3);
+  });
+
+  it("上書き：1件の長い勤怠が2行と重なっても、削除は1回だけで両方登録される", async () => {
+    const y = await makeEmployee("山口");
+    await createSession(y.id, { clockIn: t("2026-10-09 16:49"), clockOut: t("2026-10-10 16:49"), breaks: [] }, "取り込み", editor);
+    const text = "山口,2026-10-09,16:30,00:00,0\n山口,2026-10-10,15:00,00:00,0";
+    const p = await previewImport(text, {}, { overwrite: true });
+    const r = await applyImport(text, p.mapping, editor, { overwrite: true });
+    expect(r).toMatchObject({ created: 2, replaced: 1, failed: [] });
   });
 });

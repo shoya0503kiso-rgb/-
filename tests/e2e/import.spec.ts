@@ -25,4 +25,12 @@ test("以前の勤怠を一括取り込み：確認 → 名前の対応 → 登�
   await page.getByRole("button", { name: "内容を確認する" }).click();
   await expect(page.getByText("登録済み").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "0件を登録する" })).toBeDisabled();
+
+  // 上書きにすると、登録済みの2件が置き換え対象になる
+  await page.getByLabel(/登録済みの勤怠を上書きする/).check();
+  await expect(page.getByRole("button", { name: "2件を登録する" })).toBeEnabled();
+  await expect(page.getByText("上書き", { exact: true }).first()).toBeVisible();
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "2件を登録する" }).click();
+  await expect(page.getByText("置き換えのため削除した勤怠 2件")).toBeVisible();
 });

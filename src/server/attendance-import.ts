@@ -1,18 +1,22 @@
 // 勤怠の一括取り込み（スマレジ等からの移行）。すでにある勤怠と時間が重なる行は取り込まない
 import { guessEmployee, parseImportText, type ImportParseError, type ImportRow } from "@/lib/attendance/import";
 import { jstAt } from "@/lib/time";
-import { createSession, findOverlap, type Editor } from "./attendance";
+import { createSession, deleteSession, findOverlaps, type Editor } from "./attendance";
 import { prisma } from "./db";
 import { UserError } from "./errors";
 
 export const IMPORT_REASON = "一括取り込み（以前の勤怠システムから移行）";
+export const OVERWRITE_REASON = "一括取り込みで上書き";
 const MAX_ROWS = 1000;
 
-export type ImportStatus = "ok" | "exists" | "duplicate" | "unmapped";
+/** ok:取り込む / replace:登録済みを消して取り込む（上書き時） / exists:登録済みのため取り込まない */
+export type ImportStatus = "ok" | "replace" | "exists" | "duplicate" | "unmapped";
 
 export interface ImportPreviewRow extends ImportRow {
   employeeId: string | null;
   status: ImportStatus;
+  /** 上書きで消える登録済みの勤怠 */
+  replaces?: { id: string; clockIn: Date | null; clockOut: Date | null }[];
   /** 取り込むが要確認になるもの（退勤なし・長時間など） */
   warning?: string;
 }
@@ -22,7 +26,7 @@ export interface ImportPreview {
   errors: ImportParseError[];
   /** ファイル中の名前 → 従業員ID（推測または指定） */
   mapping: Record<string, string | null>;
-  counts: { ok: number; exists: number; duplicate: number; unmapped: number };
+  counts: Record<ImportStatus, number>;
 }
 
 function toInput(r: ImportRow) {
@@ -44,7 +48,11 @@ function warningOf(r: ImportRow): string | undefined {
   return undefined;
 }
 
-export async function previewImport(text: string, mappingOverride: Record<string, string | null> = {}): Promise<ImportPreview> {
+export async function previewImport(
+  text: string,
+  mappingOverride: Record<string, string | null> = {},
+  opts: { overwrite?: boolean } = {},
+): Promise<ImportPreview> {
   const { rows, errors } = parseImportText(text);
   if (rows.length > MAX_ROWS) throw new UserError(`一度に取り込めるのは${MAX_ROWS}行までです`);
   const employees = await prisma.employee.findMany({ select: { id: true, name: true, kana: true } });
@@ -68,28 +76,49 @@ export async function previewImport(text: string, mappingOverride: Record<string
     const v = toInput(r);
     const start = v.clockIn.getTime();
     const end = (v.clockOut ?? v.clockIn).getTime();
+    const overlaps = await findOverlaps(employeeId, v);
     let status: ImportStatus = "ok";
-    if (await findOverlap(employeeId, v)) status = "exists";
-    else if (accepted.some((a) => a.employeeId === employeeId && start <= a.end && a.start <= end)) status = "duplicate";
-    else accepted.push({ employeeId, start, end });
-    result.push({ ...r, employeeId, status, warning: status === "ok" ? warningOf(r) : undefined });
+    if (accepted.some((a) => a.employeeId === employeeId && start <= a.end && a.start <= end)) status = "duplicate";
+    else if (overlaps.length) status = opts.overwrite ? "replace" : "exists";
+    if (status === "ok" || status === "replace") accepted.push({ employeeId, start, end });
+    result.push({
+      ...r,
+      employeeId,
+      status,
+      replaces: status === "replace" ? overlaps.map((o) => ({ id: o.id, clockIn: o.clockIn, clockOut: o.clockOut })) : undefined,
+      warning: status === "ok" || status === "replace" ? warningOf(r) : undefined,
+    });
   }
 
-  const counts = { ok: 0, exists: 0, duplicate: 0, unmapped: 0 };
+  const counts: Record<ImportStatus, number> = { ok: 0, replace: 0, exists: 0, duplicate: 0, unmapped: 0 };
   for (const r of result) counts[r.status]++;
   return { rows: result, errors, mapping, counts };
 }
 
-/** 確認画面と同じ判定をやり直し、「取り込む」の行だけ登録する */
-export async function applyImport(text: string, mapping: Record<string, string | null>, editor: Editor) {
-  const preview = await previewImport(text, mapping);
+/** 確認画面と同じ判定をやり直し、「取り込む」「上書き」の行だけ登録する */
+export async function applyImport(
+  text: string,
+  mapping: Record<string, string | null>,
+  editor: Editor,
+  opts: { overwrite?: boolean } = {},
+) {
+  const preview = await previewImport(text, mapping, opts);
   if (preview.errors.length) throw new UserError("読み取れない行があります。直してからもう一度確認してください");
-  const targets = preview.rows.filter((r) => r.status === "ok");
+  const targets = preview.rows.filter((r) => r.status === "ok" || r.status === "replace");
   if (!targets.length) throw new UserError("取り込める勤怠がありません");
   let created = 0;
+  let replaced = 0;
+  const deleted = new Set<string>();
   const failed: { line: number; error: string }[] = [];
   for (const r of targets) {
     try {
+      // 消してから登録する（消した勤怠は履歴に残り、勤怠画面から確認できる）
+      for (const o of r.replaces ?? []) {
+        if (deleted.has(o.id)) continue; // 1件の長い勤務が複数の行と重なっていた場合
+        await deleteSession(o.id, OVERWRITE_REASON, editor);
+        deleted.add(o.id);
+        replaced++;
+      }
       await createSession(r.employeeId!, toInput(r), IMPORT_REASON, editor);
       created++;
     } catch (e) {
@@ -97,5 +126,5 @@ export async function applyImport(text: string, mapping: Record<string, string |
       failed.push({ line: r.line, error: e.message });
     }
   }
-  return { created, skipped: preview.rows.length - targets.length, failed };
+  return { created, replaced, skipped: preview.rows.length - targets.length, failed };
 }
