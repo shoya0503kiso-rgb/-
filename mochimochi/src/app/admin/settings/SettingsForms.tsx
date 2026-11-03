@@ -211,7 +211,7 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
           <NumField name="chinchiroWinPoints" label="チンチロ" value={n.chinchiroWinPoints} />
           <NumField name="chinchiroBigWinPoints" label="チンチロ（役で勝ち）" value={n.chinchiroBigWinPoints} hint="ピンゾロ・ゾロ目・シゴロ" />
         </Section>
-        <Section title="トランプちゃんをなでる（もちもち）">
+        <Section title="トランプちゃんをなでる（なでなで）">
           <NumField name="mochiWinOdds" label="起きる確率 1 / ◯" value={n.mochiWinOdds} hint={`1回なでるごとに 1/${n.mochiWinOdds.toLocaleString()} で起きる`} />
           <NumField name="mochiWinPoints" label="起きたときのポイント" value={n.mochiWinPoints} />
           <NumField name="mochiDailyWinLimit" label="1日に起きる上限（回）" value={n.mochiDailyWinLimit} hint="上限まで起きたら、その日はもう起きません" />
