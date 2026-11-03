@@ -208,3 +208,29 @@ describe("勤怠異常チェック", () => {
     ]);
   });
 });
+
+describe("休憩チェックをしない出勤時刻（P-28）", () => {
+  const session = (inAt: string, outAt: string, date = "2026-10-12") => ({
+    businessDate: date,
+    clockIn: t(inAt),
+    clockOut: t(outAt),
+    breaks: [],
+  });
+  const check = (s: ReturnType<typeof session>, exempt: string, holiday = true) =>
+    detectAnomalies(s, { rules, isHoliday: holiday, now, breakCheckExemptFrom: exempt }).map((a) => a.code);
+
+  it("指定時刻以降の出勤は休憩不足を出さず、それより前は出す", () => {
+    expect(check(session("2026-10-12 17:30", "2026-10-13 00:00"), "17:30")).toEqual([]);
+    expect(check(session("2026-10-12 17:29", "2026-10-13 01:00"), "17:30")).toEqual(["HOLIDAY_BREAK"]);
+    expect(check(session("2026-10-12 16:30", "2026-10-13 00:00"), "16:30")).toEqual([]);
+    expect(check(session("2026-10-12 16:30", "2026-10-13 00:00"), "17:30")).toEqual(["HOLIDAY_BREAK"]);
+    // 平日の一般的な休憩不足も同じ
+    expect(check(session("2026-10-13 16:00", "2026-10-14 00:30", "2026-10-13"), "17:30", false)).toEqual(["BREAK_SHORT_LEGAL"]);
+    expect(check(session("2026-10-13 18:00", "2026-10-14 03:30", "2026-10-13"), "17:30", false)).toEqual([]);
+  });
+
+  it("空欄なら従来どおり判定し、休憩以外の異常は出す", () => {
+    expect(check(session("2026-10-12 18:00", "2026-10-13 02:00"), "")).toEqual(["HOLIDAY_BREAK"]);
+    expect(check(session("2026-10-12 18:00", "2026-10-13 08:00"), "17:30")).toEqual(["LONG_WORK", "OUT_OF_HOURS"]);
+  });
+});

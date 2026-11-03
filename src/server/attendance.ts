@@ -28,8 +28,18 @@ async function evaluator(from: DateStr, to: DateStr, now = new Date()) {
   const settings = await getSettings();
   const calendar = await loadCalendar(from, to, settings);
   const rules = anomalyRulesOf(settings);
+  const exempt = new Map(
+    (await prisma.employee.findMany({ where: { breakCheckExemptFrom: { not: null } }, select: { id: true, breakCheckExemptFrom: true } })).map(
+      (e) => [e.id, e.breakCheckExemptFrom!],
+    ),
+  );
   return (s: SessionWithBreaks): Anomaly[] =>
-    detectAnomalies(s, { rules, isHoliday: calendar.isHoliday(s.businessDate), now });
+    detectAnomalies(s, {
+      rules,
+      isHoliday: calendar.isHoliday(s.businessDate),
+      now,
+      breakCheckExemptFrom: exempt.get(s.employeeId) ?? settings.breakCheckExemptFrom,
+    });
 }
 
 // ───── 月次勤怠 ─────
@@ -114,6 +124,17 @@ function normalize(input: SessionInput, dayChangeHour: number) {
 
 /** 同じ従業員の他の勤怠と時間が重なっていないか（二重計上の防止） */
 async function assertNoOverlap(employeeId: string, v: { clockIn: Date | null; clockOut: Date | null }, excludeId?: string) {
+  const o = await findOverlap(employeeId, v, excludeId);
+  if (o) throw new UserError(`${o.businessDate} の別の勤怠と時間が重なっています。重複していないか確認してください。`);
+}
+
+/** 時間が重なる同じ従業員の勤怠（なければ null） */
+export async function findOverlap(employeeId: string, v: { clockIn: Date | null; clockOut: Date | null }, excludeId?: string) {
+  return (await findOverlaps(employeeId, v, excludeId))[0] ?? null;
+}
+
+/** 時間が重なる同じ従業員の勤怠すべて */
+export async function findOverlaps(employeeId: string, v: { clockIn: Date | null; clockOut: Date | null }, excludeId?: string) {
   const start = v.clockIn ?? v.clockOut!;
   const end = v.clockOut ?? v.clockIn!;
   const near = await prisma.workSession.findMany({
@@ -127,13 +148,11 @@ async function assertNoOverlap(employeeId: string, v: { clockIn: Date | null; cl
       ],
     },
   });
-  for (const o of near) {
+  return near.filter((o) => {
     const os = o.clockIn ?? o.clockOut!;
     const oe = o.clockOut ?? o.clockIn!;
-    if (start.getTime() <= oe.getTime() && os.getTime() <= end.getTime()) {
-      throw new UserError(`${o.businessDate} の別の勤怠と時間が重なっています。重複していないか確認してください。`);
-    }
-  }
+    return start.getTime() <= oe.getTime() && os.getTime() <= end.getTime();
+  });
 }
 
 export async function getSessionDetail(id: string, now = new Date()) {

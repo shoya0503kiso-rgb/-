@@ -24,6 +24,27 @@
 | [07 店長向けマニュアル](docs/07-manual-manager.md) | 毎日・毎月の操作手順 |
 | [08 スタッフ向けマニュアル](docs/08-manual-staff.md) | 打刻・LINE の使い方（そのまま配布できます） |
 
+## ミニゲーム「ディーラークエスト」
+
+`/dealer-quest` でログインなしに遊べるスワイプゲーム（本体は `public/dealer-quest.html`）。ランキングは `/api/dealer-quest/scores`（公開API）経由で `DealerQuestScore` テーブルに保存します。登録は全体で1万人まで、同じ接続元からの新規登録は1時間20人までです。
+
+不適切な名前や記録を消すときは、Neon の SQL Editor で実行します。
+
+```sql
+SELECT "playerId", name, tables FROM "DealerQuestScore" ORDER BY tables DESC LIMIT 50;
+DELETE FROM "DealerQuestScore" WHERE "playerId" = '（消したい行のplayerId）';
+```
+
+## ミニゲーム「お絵描きバトル」
+
+`/drawing-battle` でログインなしに遊べるパーティーゲーム（本体は `public/drawing-battle.html`）。スマホのブラウザで2〜8人、ホストが部屋を作り、ほかの人はルームコードかQRで参加します。
+
+- 描いた絵（背景透過）がそのままキャラになり、自動のターン制でトーナメントを戦う。**能力値はなく、勝敗は完全ランダム**（先攻・ダメージ・会心・ミスすべて乱数）
+- 対戦の計算はホストの端末だけで行い、結果を `/api/drawing-battle/rooms/[code]` 経由で全員に配る。各端末はサーバー時刻に合わせて同じ場面を再生する（途中で読み込み直しても追いつく）
+- 人数が2のべき乗にならないときは、ロビーの設定で「CPUで埋める」か「不戦勝」。時間切れで提出しなかった人はCPUの落書きモンスターが代わりに出場
+- 部屋とプレイヤーは `DrawBattleRoom` / `DrawBattlePlayer` テーブル（ビルド時の db push で自動作成）。12時間たった部屋は新しい部屋を作るときに消える。部屋は全体で1000、同じ接続元から1時間30部屋まで
+- 端末どうしの同期は約1秒ごとのポーリング（Vercel でそのまま動くよう WebSocket は使っていない）。ホストが画面を閉じると対戦が始まらないので、ホストは開いたままにする
+
 ## ローカルで動かす
 
 Node.js 20 以上。
@@ -76,6 +97,8 @@ npm run build && npm run e2e   # 画面のE2Eテスト（Playwright、prisma/e2e
    ```bash
    LINE_CHANNEL_ACCESS_TOKEN=xxxx node scripts/setup-line-richmenu.mjs
    ```
+
+   ターミナルを使わない場合は、LINE Official Account Manager の「リッチメニュー」で、テンプレート「大・4分割（2×2）」に `assets/line/richmenu-large-2x2.jpg` をアップロードし、各ボタンのアクションをテキスト（左上から `シフト提出` / `シフト確認` / `勤務時間` / `給与目安`）にします。
 
 8. 店舗の iPad の Safari で `https://<本番ドメイン>/kiosk` を開き「ホーム画面に追加」→ **ホーム画面のアイコンから開いて**「打刻端末として登録する」から登録（iOS ではホーム画面のアプリと Safari でログイン情報が共有されないことがあるため、アプリ側で登録します）
 

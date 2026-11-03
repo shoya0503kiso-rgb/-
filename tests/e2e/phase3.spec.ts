@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { ensureDeadlineOpen } from "./deadline";
 
 async function login(page: Page) {
   await page.goto("/login");
@@ -18,6 +19,7 @@ test("Phase 3: 希望 → 受付終了 → 月次条件 → 自動作成 → 手
   // 受付前なら開始（Phase 2 のテストで開始済みの場合もある）
   const startBtn = page.getByRole("button", { name: "受付開始（提出依頼を送信）" });
   if (await startBtn.isVisible()) {
+    await ensureDeadlineOpen(page);
     page.once("dialog", (d) => d.accept());
     await startBtn.click();
     await expect(page.getByText(/受付を開始しました/)).toBeVisible();

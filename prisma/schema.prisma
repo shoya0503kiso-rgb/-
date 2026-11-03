@@ -47,6 +47,8 @@ model StoreSetting {
   holidayIncludesPublic       Boolean  @default(true)
   holidayBreakWorkMinutes     Int      @default(420)
   holidayBreakRequiredMinutes Int      @default(60)
+  /// この時刻以降の出勤は休憩不足のチェックをしない（P-28。"" ならチェックする）
+  breakCheckExemptFrom        String   @default("17:30")
   // シフト関連（P-19, P-24, P-25）
   lateGraceMinutes            Int      @default(5)
   maxConsecutiveDays          Int      @default(5)
@@ -95,6 +97,8 @@ model Employee {
   baseMaxDays    Int?
   baseMinDays    Int?
   note           String   @default("")
+  /// 休憩不足のチェックをしない出勤時刻（P-28）。null なら店舗設定に従う
+  breakCheckExemptFrom String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -416,4 +420,54 @@ model ShiftPublication {
   publishedAt DateTime    @default(now())
 
   @@unique([periodId, version])
+}
+
+/// ミニゲーム「ディーラークエスト」のランキング（1プレイヤー1件、自己ベストのみ）
+model DealerQuestScore {
+  playerId    String   @id // 端末ごとのランダムID（公開しない）
+  name        String
+  tables      Int
+  cards       Int
+  rate        Int // 成功率（%）
+  perfectRate Int // パーフェクト率（%）
+  maxCombo    Int
+  ip          String? // 新規作成の回数制限用（表示しない）
+  achievedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([tables, perfectRate, cards])
+  @@index([ip, createdAt])
+}
+
+// ミニゲーム「お絵描きバトル」の部屋。ログイン不要。12時間たった部屋は新しい部屋を作るときに消す
+model DrawBattleRoom {
+  code        String             @id // 参加用のルームコード（英大文字・数字5桁）
+  hostId      String // ホストの DrawBattlePlayer.id
+  phase       String             @default("lobby") // lobby / drawing / battle
+  cpuFill     Boolean            @default(true) // 端数をCPUで埋める（OFFなら不戦勝）
+  drawSeconds Int                @default(60)
+  drawEndsAt  DateTime?
+  battle      String? // ホストが計算した対戦結果（JSON）。全員の端末がこれを再生する
+  version     Int                @default(0) // 変わったときだけ端末に送り直すための番号
+  ip          String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @default(now())
+  players     DrawBattlePlayer[]
+
+  @@index([updatedAt])
+  @@index([ip, createdAt])
+}
+
+model DrawBattlePlayer {
+  id       String         @id @default(cuid())
+  roomCode String
+  room     DrawBattleRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  token    String         @unique // 本人確認用（本人の端末だけが持つ）
+  seat     Int // 参加順（1〜8）
+  name     String? // キャラ名
+  drawing  String? // 提出した絵（背景透過のPNG data URL）
+  leftAt   DateTime? // バトル中に抜けた（ロビーに戻るときに消す）
+  joinedAt DateTime       @default(now())
+
+  @@unique([roomCode, seat])
 }
