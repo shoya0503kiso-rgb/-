@@ -48,8 +48,11 @@ model StoreSetting {
   pointName             String    @default("もちもちポイント")
   /// ロゴ画像（data URL）。null なら仮ロゴ
   logoData              String?
-  /// 連打ゲームのボタンに出す文字と、鳴らす言葉
+  /// 未使用（旧：連打ボタンの文字）。既存データを消さないよう列だけ残す
   mochiLabel            String    @default("もちもち")
+  /// お店のキャラクターの名前（なでなで画面・ゲームの相手）
+  characterName         String    @default("トランプちゃん")
+  /// なでたときに鳴らす言葉
   mochiWord             String    @default("もち")
   /// 「もち」の音声（data URL）。null なら端末の読み上げで鳴らす
   mochiSoundData        String?
@@ -74,11 +77,15 @@ model StoreSetting {
   chinchiroWinPoints    Int       @default(20)
   /// チンチロで役（ピンゾロ・ゾロ目・シゴロ）で勝ったとき
   chinchiroBigWinPoints Int       @default(50)
-  // ── もちもち連打 ──
-  /// 1タップあたりの当選確率 = 1 / mochiWinOdds
-  mochiWinOdds          Int       @default(10000)
+  // ── トランプちゃんをなでる（もちもち） ──
+  /// 1なでごとにトランプちゃんが起きる確率 = 1 / mochiWinOdds
+  mochiWinOdds          Int       @default(50000)
   mochiWinPoints        Int       @default(100)
   mochiDailyWinLimit    Int       @default(1)
+  // ── ランキングの公開（オフにするとお客さんの画面に出さない。記録は続く） ──
+  rankingDartsEnabled     Boolean @default(true)
+  rankingPokerEnabled     Boolean @default(true)
+  rankingSubmarineEnabled Boolean @default(true)
   // ── 会員登録 ──
   /// LINE を使わない仮登録（ニックネームだけ）を許可する。LINE 連携を始めたらオフ推奨
   guestSignupEnabled    Boolean   @default(true)

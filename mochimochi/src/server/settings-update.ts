@@ -15,7 +15,7 @@ const numbersSchema = z.object({
   jankenWinPoints: int(0, 100000, "じゃんけんのポイント"),
   chinchiroWinPoints: int(0, 100000, "チンチロのポイント"),
   chinchiroBigWinPoints: int(0, 100000, "チンチロ役のポイント"),
-  mochiWinOdds: int(1, 100000000, "もちもちの当選確率"),
+  mochiWinOdds: int(1, 100000000, "トランプちゃんが起きる確率"),
   mochiWinPoints: int(0, 1000000, "もちもちの当選ポイント"),
   mochiDailyWinLimit: int(0, 1000, "もちもちの1日の当選上限"),
   guestSignupEnabled: z.boolean(),
@@ -47,9 +47,17 @@ const brandSchema = z.object({
   storeName: text(40, "店名"),
   storeSubName: text(60, "サブタイトル", false),
   pointName: text(20, "ポイントの名前"),
-  mochiLabel: text(10, "連打ボタンの文字"),
+  characterName: text(20, "キャラクターの名前"),
   mochiWord: text(10, "鳴らす言葉"),
 });
+
+const RANKING_FIELD = { darts: "rankingDartsEnabled", poker: "rankingPokerEnabled", submarine: "rankingSubmarineEnabled" } as const;
+
+/** ランキングをお客さんに見せるかどうか */
+export async function setRankingVisible(kind: string, visible: boolean) {
+  if (!(kind in RANKING_FIELD)) throw new UserError("不正な操作です");
+  await prisma.storeSetting.update({ where: { id: 1 }, data: { [RANKING_FIELD[kind as keyof typeof RANKING_FIELD]]: !!visible } });
+}
 
 export async function updateBrand(input: unknown) {
   const d = parse(brandSchema, input);

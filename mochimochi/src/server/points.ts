@@ -8,7 +8,7 @@ export const KIND_LABEL: Record<string, string> = {
   checkin: "来店",
   stamp_card: "スタンプカード達成",
   game: "デイリーゲーム",
-  mochi: "もちもち当選",
+  mochi: "トランプちゃんが起きた",
   darts: "ダーツ",
   poker: "ポーカー",
   manual: "スタッフ調整",

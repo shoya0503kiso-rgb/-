@@ -26,7 +26,7 @@ export async function getBrand() {
     storeName: s.storeName,
     storeSubName: s.storeSubName,
     pointName: s.pointName,
-    mochiLabel: s.mochiLabel,
+    characterName: s.characterName,
     mochiWord: s.mochiWord,
     hasLogo: !!s.logoData,
     hasSound: !!s.mochiSoundData,
@@ -36,6 +36,14 @@ export async function getBrand() {
 }
 
 export type Brand = Awaited<ReturnType<typeof getBrand>>;
+
+export type RankingKind = "darts" | "poker" | "submarine";
+export const RANKING_KINDS: RankingKind[] = ["darts", "poker", "submarine"];
+
+/** お客さんに見せるランキング */
+export function visibleRankings(s: { rankingDartsEnabled: boolean; rankingPokerEnabled: boolean; rankingSubmarineEnabled: boolean }) {
+  return { darts: s.rankingDartsEnabled, poker: s.rankingPokerEnabled, submarine: s.rankingSubmarineEnabled };
+}
 
 /** 今日の営業日 */
 export async function today(now = new Date()) {

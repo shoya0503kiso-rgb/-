@@ -7,7 +7,7 @@ import { prisma } from "@/server/db";
 import { requireMember } from "@/server/member-auth";
 import { pointDayLabel } from "@/server/points";
 import { myRankings } from "@/server/rankings";
-import { getRankTiers, getSettings, rankFor, today } from "@/server/settings";
+import { getRankTiers, getSettings, rankFor, today, visibleRankings } from "@/server/settings";
 import { logoutAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,7 @@ export default async function MyPage() {
     prisma.redemption.count({ where: { memberId: member.id, status: "pending" } }),
   ]);
   const rank = rankFor(member.visitCount, tiers);
+  const show = visibleRankings(s);
 
   return (
     <div className="space-y-4">
@@ -71,20 +72,22 @@ export default async function MyPage() {
         <StampCard count={member.stampCount} perCard={s.stampsPerCard} bonus={s.stampCardBonus} pointName={s.pointName} />
       </Panel>
 
-      <Panel title={`${formatMonth(month)}のランキング`} action={<Link href="/ranking" className="text-sm text-rose-600">すべて見る ›</Link>}>
-        <ul className="divide-y divide-slate-100 text-sm">
-          <RankLine label="🎯 ダーツ" r={ranks.darts} unit="pt" />
-          <RankLine label="🃏 ポーカー" r={ranks.poker} unit="pt" />
-          <RankLine label="🍺 サブマリン" r={ranks.submarine} unit="杯" />
-        </ul>
-      </Panel>
+      {(show.darts || show.poker || show.submarine) && (
+        <Panel title={`${formatMonth(month)}のランキング`} action={<Link href="/ranking" className="text-sm text-rose-600">すべて見る ›</Link>}>
+          <ul className="divide-y divide-slate-100 text-sm">
+            {show.darts && <RankLine label="🎯 ダーツ" r={ranks.darts} unit="pt" />}
+            {show.poker && <RankLine label="🃏 ポーカー" r={ranks.poker} unit="pt" />}
+            {show.submarine && <RankLine label="🍺 サブマリン" r={ranks.submarine} unit="杯" />}
+          </ul>
+        </Panel>
+      )}
 
       <Panel>
         <Link href="/mochi" className="flex items-center justify-between">
           <span className="flex items-center gap-2 font-bold text-slate-800">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={IMG.tigerShake} alt="" className="h-10 w-10 object-contain" />
-            累計「{s.mochiWord}」
+            {s.characterName}をなでた回数
           </span>
           <span className="text-xl font-extrabold text-rose-600">{member.mochiTotal.toLocaleString()}回</span>
         </Link>

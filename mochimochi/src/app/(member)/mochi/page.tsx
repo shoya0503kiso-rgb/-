@@ -10,7 +10,7 @@ export default async function MochiPage() {
   const [brand, s, status] = await Promise.all([getBrand(), getSettings(), mochiStatus(member.id)]);
   return (
     <MochiTapper
-      label={brand.mochiLabel}
+      name={brand.characterName}
       word={brand.mochiWord}
       soundUrl={brand.soundUrl}
       pointName={s.pointName}

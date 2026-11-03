@@ -23,7 +23,7 @@ type Numbers = {
   geoLng: number | null;
   geoRadiusM: number;
 };
-type Brand = { storeName: string; storeSubName: string; pointName: string; mochiLabel: string; mochiWord: string; logoUrl: string; hasLogo: boolean; soundUrl: string | null };
+type Brand = { storeName: string; storeSubName: string; pointName: string; characterName: string; mochiWord: string; logoUrl: string; hasLogo: boolean; soundUrl: string | null };
 type Rank = { name: string; minVisits: number; color: string };
 
 function useRunner() {
@@ -119,10 +119,10 @@ function BrandForm({ brand }: { brand: Brand }) {
               <Input name="pointName" defaultValue={brand.pointName} required maxLength={20} />
             </Field>
             <div className="grid grid-cols-2 gap-2">
-              <Field label="連打ボタンの文字">
-                <Input name="mochiLabel" defaultValue={brand.mochiLabel} required maxLength={10} />
+              <Field label="キャラクターの名前">
+                <Input name="characterName" defaultValue={brand.characterName} required maxLength={20} />
               </Field>
-              <Field label="鳴らす言葉">
+              <Field label="なでたときの言葉">
                 <Input name="mochiWord" defaultValue={brand.mochiWord} required maxLength={10} />
               </Field>
             </div>
@@ -132,7 +132,7 @@ function BrandForm({ brand }: { brand: Brand }) {
           </form>
         </div>
         <div className="rounded-lg bg-slate-50 p-3 text-sm">
-          <div className="font-bold">「{brand.mochiWord}」の音声</div>
+          <div className="font-bold">なでたときの音（「{brand.mochiWord}」）</div>
           <p className="text-xs text-slate-600">
             {brand.soundUrl ? "アップロードした音声を鳴らしています。" : "いまは端末の読み上げ機能で鳴らしています。声を録音したファイル（mp3/m4a/wav・1MBまで）をアップロードすると差し替わります。"}
           </p>
@@ -211,10 +211,10 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
           <NumField name="chinchiroWinPoints" label="チンチロ" value={n.chinchiroWinPoints} />
           <NumField name="chinchiroBigWinPoints" label="チンチロ（役で勝ち）" value={n.chinchiroBigWinPoints} hint="ピンゾロ・ゾロ目・シゴロ" />
         </Section>
-        <Section title="もちもち連打">
-          <NumField name="mochiWinOdds" label="当選確率 1 / ◯" value={n.mochiWinOdds} hint={`1タップごとに 1/${n.mochiWinOdds.toLocaleString()} で当たり`} />
-          <NumField name="mochiWinPoints" label="当選ポイント" value={n.mochiWinPoints} />
-          <NumField name="mochiDailyWinLimit" label="1日の当選上限（回）" value={n.mochiDailyWinLimit} />
+        <Section title="トランプちゃんをなでる（もちもち）">
+          <NumField name="mochiWinOdds" label="起きる確率 1 / ◯" value={n.mochiWinOdds} hint={`1回なでるごとに 1/${n.mochiWinOdds.toLocaleString()} で起きる`} />
+          <NumField name="mochiWinPoints" label="起きたときのポイント" value={n.mochiWinPoints} />
+          <NumField name="mochiDailyWinLimit" label="1日に起きる上限（回）" value={n.mochiDailyWinLimit} hint="上限まで起きたら、その日はもう起きません" />
         </Section>
         <Section title="チェックインの位置情報チェック（任意）">
           <label className="flex items-center gap-2 text-sm sm:col-span-2">

@@ -185,6 +185,20 @@ describe("ランキング・結果入力", () => {
   });
 });
 
+describe("ランキングの公開", () => {
+  it("1つずつオン・オフできる", async () => {
+    const { setRankingVisible } = await import("@/server/settings-update");
+    const { visibleRankings } = await import("@/server/settings");
+    expect(visibleRankings(await getSettings())).toEqual({ darts: true, poker: true, submarine: true });
+    await setRankingVisible("poker", false);
+    await setRankingVisible("submarine", false);
+    expect(visibleRankings(await getSettings())).toEqual({ darts: true, poker: false, submarine: false });
+    await setRankingVisible("submarine", true);
+    expect(visibleRankings(await getSettings())).toEqual({ darts: true, poker: false, submarine: true });
+    await expect(setRankingVisible("bingo", false)).rejects.toThrow("不正");
+  });
+});
+
 describe("ポイント", () => {
   it("手動の付与・減算（残高はマイナスにしない）", async () => {
     const a = await makeMember();

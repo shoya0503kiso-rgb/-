@@ -6,7 +6,7 @@ import { IMG } from "@/lib/brand-images";
 import { addMonths, formatMonth, isValidMonth, monthOf } from "@/lib/time";
 import { requireMember } from "@/server/member-auth";
 import { gameRanking, submarineRanking } from "@/server/rankings";
-import { today } from "@/server/settings";
+import { getSettings, today, visibleRankings } from "@/server/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,20 @@ const TABS = [
 export default async function RankingPage({ searchParams }: { searchParams: Promise<{ t?: string; m?: string }> }) {
   const sp = await searchParams;
   const member = await requireMember("/ranking");
-  const tabInfo = TABS.find((t) => t.key === sp.t) ?? TABS[0];
+  // 管理画面でオフにしたランキングは出さない
+  const visible = visibleRankings(await getSettings());
+  const tabs = TABS.filter((t) => visible[t.key]);
+  if (tabs.length === 0) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-xl font-bold">ランキング</h1>
+        <Panel>
+          <p className="py-6 text-center text-sm text-slate-500">ランキングはただいま準備中です</p>
+        </Panel>
+      </div>
+    );
+  }
+  const tabInfo = tabs.find((t) => t.key === sp.t) ?? tabs[0];
   const tab = tabInfo.key;
   const current = monthOf(await today());
   const month = sp.m === "all" && tab !== "submarine" ? "all" : sp.m && isValidMonth(sp.m) ? sp.m : current;
@@ -33,8 +46,8 @@ export default async function RankingPage({ searchParams }: { searchParams: Prom
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={tabInfo.img} alt="" className={`h-40 w-full object-cover ${tabInfo.pos}`} />
       </div>
-      <div className="grid grid-cols-3 gap-1 rounded-2xl bg-white p-1 ring-1 ring-rose-100">
-        {TABS.map((t) => (
+      <div className={cx("grid gap-1 rounded-2xl bg-white p-1 ring-1 ring-rose-100", ["", "grid-cols-1", "grid-cols-2", "grid-cols-3"][tabs.length])}>
+        {tabs.map((t) => (
           <Link key={t.key} href={href(t.key, month === "all" && t.key === "submarine" ? current : month)} className={cx("rounded-xl py-2 text-center text-sm font-bold", tab === t.key ? "bg-rose-500 text-white" : "text-slate-600")}>
             {t.label}
           </Link>

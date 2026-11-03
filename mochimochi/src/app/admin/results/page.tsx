@@ -1,12 +1,14 @@
+import { RankingToggle } from "@/components/admin/RankingToggle";
 import { Card, Empty, PageHeader } from "@/components/ui";
 import { formatDate } from "@/lib/time";
 import { prisma } from "@/server/db";
 import { GAME_LABEL, type GameKind } from "@/server/rankings";
-import { today } from "@/server/settings";
+import { getSettings, today } from "@/server/settings";
 import { DeleteMatchButton, ResultForm } from "./ResultForm";
 
 export default async function ResultsPage() {
-  const [date, rules, matches] = await Promise.all([
+  const [s, date, rules, matches] = await Promise.all([
+    getSettings(),
     today(),
     prisma.placePointRule.findMany({ orderBy: [{ game: "asc" }, { place: "asc" }] }),
     prisma.match.findMany({ orderBy: [{ date: "desc" }, { createdAt: "desc" }], take: 30, include: { entries: { include: { member: true }, orderBy: { place: "asc" } } } }),
@@ -17,6 +19,12 @@ export default async function ResultsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="ダーツ・ポーカーの結果入力" description="順位を入れて登録すると、順位に応じたポイントが自動で付与され、ランキングに反映されます（順位ごとのポイントは「設定」で変更）" />
+      <Card title="ランキングの公開">
+        <div className="grid gap-x-6 sm:grid-cols-2">
+          <RankingToggle kind="darts" visible={s.rankingDartsEnabled} />
+          <RankingToggle kind="poker" visible={s.rankingPokerEnabled} />
+        </div>
+      </Card>
       <ResultForm today={date} table={table} />
       <Card title="最近の結果">
         {matches.length === 0 ? (

@@ -3,10 +3,11 @@ import { BrandHeader } from "@/components/member/BrandHeader";
 import { LineLinker } from "@/components/member/LineLinker";
 import { lineLoginEnabled } from "@/server/line";
 import { getMember } from "@/server/member-auth";
-import { getBrand } from "@/server/settings";
+import { getBrand, getSettings, visibleRankings } from "@/server/settings";
 
 export default async function MemberLayout({ children }: { children: React.ReactNode }) {
-  const [brand, member] = await Promise.all([getBrand(), getMember()]);
+  const [brand, member, s] = await Promise.all([getBrand(), getMember(), getSettings()]);
+  const v = visibleRankings(s);
   // 公式LINE を始めた後、仮登録の会員が開いたら LINE を紐付ける
   const needsLink = lineLoginEnabled() && member && !member.lineUserId;
   return (
@@ -20,7 +21,7 @@ export default async function MemberLayout({ children }: { children: React.React
         {needsLink && <LineLinker liffId={process.env.NEXT_PUBLIC_LIFF_ID ?? ""} />}
         {children}
       </main>
-      <BottomNav />
+      <BottomNav showRanking={v.darts || v.poker || v.submarine} />
     </div>
   );
 }

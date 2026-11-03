@@ -5,7 +5,7 @@ import { IMG } from "@/lib/brand-images";
 import { mochiTapAction } from "../actions";
 
 type Status = { total: number; todayTaps: number; todayWins: number; winLimit: number };
-type Pop = { id: number; x: number };
+type Pop = { id: number; x: number; y: number; heart: boolean };
 
 const FLUSH_MS = 800;
 
@@ -51,15 +51,18 @@ function useMochiSound(soundUrl: string | null, word: string) {
   }, [soundUrl, word, load]);
 }
 
+/** なでた回数としてまとめる指の移動距離（px）。こするようになでても数える */
+const STROKE_PX = 48;
+
 export function MochiTapper({
-  label,
+  name,
   word,
   soundUrl,
   pointName,
   winPoints,
   initial,
 }: {
-  label: string;
+  name: string;
   word: string;
   soundUrl: string | null;
   pointName: string;
@@ -71,11 +74,14 @@ export function MochiTapper({
   const [pops, setPops] = useState<Pop[]>([]);
   const [win, setWin] = useState<number | null>(null);
   const [muted, setMuted] = useState(false);
-  const [pressed, setPressed] = useState(false);
+  const [squish, setSquish] = useState(0);
   const pendingRef = useRef(0);
   const sending = useRef(false);
   const popId = useRef(0);
+  const dragFrom = useRef<{ x: number; y: number } | null>(null);
   const play = useMochiSound(soundUrl, word);
+  // 今日の上限まで起きたら、その日は起きたまま
+  const awake = status.winLimit > 0 && status.todayWins >= status.winLimit;
 
   const flush = useCallback(async () => {
     if (sending.current || pendingRef.current === 0) return;
@@ -103,25 +109,90 @@ export function MochiTapper({
     };
   }, [flush]);
 
-  function tap(e: React.PointerEvent) {
-    e.preventDefault();
+  /** 1回なでた */
+  function pet(el: HTMLElement, clientX: number, clientY: number) {
     pendingRef.current += 1;
     setPending(pendingRef.current);
+    setSquish((n) => n + 1);
     if (!muted) play();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
     const id = ++popId.current;
-    setPops((p) => [...p.slice(-12), { id, x: ((e.clientX - rect.left) / rect.width) * 100 }]);
+    setPops((p) => [
+      ...p.slice(-12),
+      { id, x: ((clientX - rect.left) / rect.width) * 100, y: ((clientY - rect.top) / rect.height) * 100, heart: id % 3 === 0 },
+    ]);
     setTimeout(() => setPops((p) => p.filter((x) => x.id !== id)), 700);
   }
 
   return (
     <div className="no-select space-y-4">
-      <div className="flex items-end justify-between">
+      <div className="text-center">
+        <h1 className="text-2xl font-black text-rose-600">{awake ? `${name}が起きてるよ！` : `${name}をなでよう`}</h1>
+        <p className="mt-1 text-xs text-slate-600">
+          {awake ? (
+            "今日はもう起きました。また明日なでてね"
+          ) : (
+            <>
+              すやすや寝ています…。なでていると、ごくまれに起きるかも？
+              <br />
+              起きたら <b className="text-rose-600">{winPoints}</b> {pointName}！
+            </>
+          )}
+        </p>
+      </div>
+
+      <div
+        role="button"
+        aria-label={`${name}をなでる`}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+          dragFrom.current = { x: e.clientX, y: e.clientY };
+          pet(e.currentTarget as HTMLElement, e.clientX, e.clientY);
+        }}
+        onPointerMove={(e) => {
+          const from = dragFrom.current;
+          if (!from) return;
+          if (Math.hypot(e.clientX - from.x, e.clientY - from.y) >= STROKE_PX) {
+            dragFrom.current = { x: e.clientX, y: e.clientY };
+            pet(e.currentTarget as HTMLElement, e.clientX, e.clientY);
+          }
+        }}
+        onPointerUp={() => (dragFrom.current = null)}
+        onPointerCancel={() => (dragFrom.current = null)}
+        onContextMenu={(e) => e.preventDefault()}
+        className="no-select relative mx-auto aspect-square w-full max-w-sm cursor-pointer touch-none overflow-hidden rounded-full bg-[#f897b1] shadow-[0_10px_0_#f472b6] ring-4 ring-white"
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={IMG.tigerShake} alt="" className="-mb-2 w-20 shrink-0" />
-        <div className="flex-1 pl-2">
-          <div className="text-xs text-slate-500">累計「{word}」</div>
-          <div className="text-3xl font-extrabold text-rose-600">{(status.total + pending).toLocaleString()}</div>
+        <img
+          key={awake ? "awake" : `sleep-${squish}`}
+          src={awake ? IMG.trumpAwake : IMG.trumpSleep}
+          alt={name}
+          draggable={false}
+          className={`pointer-events-none h-full w-full ${awake ? "wake object-contain p-6" : squish ? "squish object-cover" : "breathe object-cover"}`}
+        />
+        {!awake && (
+          <>
+            <span className="zzz pointer-events-none absolute top-[12%] left-[58%] text-3xl font-black text-white drop-shadow">Z</span>
+            <span className="zzz pointer-events-none absolute top-[16%] left-[50%] text-2xl font-black text-white drop-shadow [animation-delay:1s]">z</span>
+            <span className="zzz pointer-events-none absolute top-[20%] left-[44%] text-xl font-black text-white drop-shadow [animation-delay:2s]">z</span>
+          </>
+        )}
+        {pops.map((p) => (
+          <span
+            key={p.id}
+            className={`mochi-pop pointer-events-none absolute font-black drop-shadow ${p.heart ? "text-3xl text-rose-500" : "text-2xl text-white"}`}
+            style={{ left: `${p.x}%`, top: `${p.y - 10}%` }}
+          >
+            {p.heart ? "♥" : word}
+          </span>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-rose-100">
+        <div>
+          <div className="text-xs text-slate-500">なでた回数（累計「{word}」）</div>
+          <div className="text-2xl font-extrabold text-rose-600">{(status.total + pending).toLocaleString()}</div>
         </div>
         <div className="text-right text-xs text-slate-500">
           今日 {(status.todayTaps + pending).toLocaleString()}回
@@ -132,42 +203,16 @@ export function MochiTapper({
         </div>
       </div>
 
-      <div className="relative">
-        <button
-          aria-label={label}
-          onPointerDown={(e) => {
-            setPressed(true);
-            tap(e);
-          }}
-          onPointerUp={() => setPressed(false)}
-          onPointerLeave={() => setPressed(false)}
-          onContextMenu={(e) => e.preventDefault()}
-          className="no-select flex aspect-square w-full items-center justify-center rounded-full bg-gradient-to-b from-white to-rose-100 shadow-[0_12px_0_#fda4af] ring-4 ring-rose-200 transition-transform"
-          style={{ transform: pressed ? "translateY(8px) scale(0.97)" : undefined, boxShadow: pressed ? "0 4px 0 #fda4af" : undefined }}
-        >
-          <span className="text-6xl font-black tracking-tight text-rose-500 drop-shadow-sm">{label}</span>
-        </button>
-        {pops.map((p) => (
-          <span key={p.id} className="mochi-pop pointer-events-none absolute top-1/4 text-2xl font-black text-rose-400" style={{ left: `${p.x}%` }}>
-            {word}
-          </span>
-        ))}
-      </div>
-
-      <p className="text-center text-xs text-slate-500">
-        ひたすら押すだけ！ ごくまれに <b className="text-rose-600">{winPoints}</b> {pointName} が当たるかも…？
-        {status.todayWins >= status.winLimit && status.winLimit > 0 && <span className="block">今日の当たりは出ました。また明日！</span>}
-      </p>
-
       {win !== null && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 p-6" onClick={() => setWin(null)}>
           <div className="w-full max-w-xs rounded-3xl bg-white p-6 text-center shadow-xl">
-            <div className="text-6xl">🎊</div>
-            <div className="mt-2 text-2xl font-black text-rose-600">大当たり！</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={IMG.trumpAwake} alt="" className="wake mx-auto w-40" />
+            <div className="mt-2 text-2xl font-black text-rose-600">{name}が起きた！</div>
             <div className="mt-2 text-lg font-bold">
               +{win} {pointName}
             </div>
-            <button className="mt-5 w-full rounded-xl bg-rose-500 py-3 font-bold text-white">やったー！</button>
+            <button className="mt-5 w-full rounded-xl bg-rose-500 py-3 font-bold text-white">おはよう！</button>
           </div>
         </div>
       )}

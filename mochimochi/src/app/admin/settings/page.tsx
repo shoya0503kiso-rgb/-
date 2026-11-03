@@ -1,4 +1,5 @@
-import { PageHeader } from "@/components/ui";
+import { RankingToggle } from "@/components/admin/RankingToggle";
+import { Card, PageHeader } from "@/components/ui";
 import { lineLoginEnabled } from "@/server/line";
 import { prisma } from "@/server/db";
 import { getBrand, getRankTiers, getSettings } from "@/server/settings";
@@ -9,12 +10,20 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="設定" description="ロゴ・店名・ポイント量・ゲームの確率・ランクなど。数字はすべて仮の値なので、運用しながら調整してください" />
+      <Card title="ランキングの公開">
+        <p className="mb-1 text-xs text-slate-500">オフにすると、お客さんの画面（ランキング・マイページの順位）に出なくなります。結果やサブマリンの入力・ポイント付与はそのまま続きます</p>
+        <div className="divide-y divide-slate-100">
+          <RankingToggle kind="darts" visible={s.rankingDartsEnabled} />
+          <RankingToggle kind="poker" visible={s.rankingPokerEnabled} />
+          <RankingToggle kind="submarine" visible={s.rankingSubmarineEnabled} />
+        </div>
+      </Card>
       <SettingsForms
         brand={{
           storeName: s.storeName,
           storeSubName: s.storeSubName,
           pointName: s.pointName,
-          mochiLabel: s.mochiLabel,
+          characterName: s.characterName,
           mochiWord: s.mochiWord,
           logoUrl: brand.logoUrl,
           hasLogo: brand.hasLogo,

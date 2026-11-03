@@ -14,7 +14,7 @@ const RESULT_TEXT = { win: "かち！", lose: "まけ…", draw: "わかれ" } a
 type Played = { game: string; result: string; points: number };
 type Rewards = { janken: number; chinchiro: number; chinchiroBig: number };
 
-export function GameBoard({ played, pointName, rewards }: { played: Played | null; pointName: string; rewards: Rewards }) {
+export function GameBoard({ played, pointName, characterName, rewards }: { played: Played | null; pointName: string; characterName: string; rewards: Rewards }) {
   const [tab, setTab] = useState<"janken" | "chinchiro">("janken");
   // この画面で遊び終えたら、結果を出したままタブを固定する
   const [finished, setFinished] = useState(false);
@@ -29,7 +29,7 @@ export function GameBoard({ played, pointName, rewards }: { played: Played | nul
         </p>
         <p className="mt-3 text-center text-sm text-slate-500">また明日あそんでね！</p>
         <Link href="/mochi" className="mt-4 block rounded-xl bg-rose-500 py-3 text-center font-bold text-white">
-          もちもち連打へ
+          {characterName}をなでに行く
         </Link>
       </Panel>
     );
@@ -49,15 +49,15 @@ export function GameBoard({ played, pointName, rewards }: { played: Played | nul
         ))}
       </div>
       {tab === "janken" ? (
-        <Janken onDone={() => setFinished(true)} reward={rewards.janken} pointName={pointName} />
+        <Janken onDone={() => setFinished(true)} reward={rewards.janken} pointName={pointName} characterName={characterName} />
       ) : (
-        <Chinchiro onDone={() => setFinished(true)} rewards={rewards} pointName={pointName} />
+        <Chinchiro onDone={() => setFinished(true)} rewards={rewards} pointName={pointName} characterName={characterName} />
       )}
     </div>
   );
 }
 
-function Janken({ onDone, reward, pointName }: { onDone: () => void; reward: number; pointName: string }) {
+function Janken({ onDone, reward, pointName, characterName }: { onDone: () => void; reward: number; pointName: string; characterName: string }) {
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<{ player: Hand; house: Hand; result: "win" | "lose" | "draw"; points: number } | null>(null);
   const [error, setError] = useState("");
@@ -86,7 +86,7 @@ function Janken({ onDone, reward, pointName }: { onDone: () => void; reward: num
         </div>
         <div className="text-lg font-bold text-slate-400">VS</div>
         <div>
-          <div className="text-xs text-slate-500">もちもちトラ</div>
+          <div className="text-xs text-slate-500">{characterName}</div>
           <div className="text-6xl">{last ? HAND_ICON[last.house] : "❔"}</div>
         </div>
       </div>
@@ -119,7 +119,7 @@ function Janken({ onDone, reward, pointName }: { onDone: () => void; reward: num
 
 type Roll = { rolls: number[][]; hand: ChinchiroHand };
 
-function Chinchiro({ onDone, rewards, pointName }: { onDone: () => void; rewards: Rewards; pointName: string }) {
+function Chinchiro({ onDone, rewards, pointName, characterName }: { onDone: () => void; rewards: Rewards; pointName: string; characterName: string }) {
   const [phase, setPhase] = useState<"ready" | "rolling" | "done">("ready");
   const [result, setResult] = useState<{ player: Roll; house: Roll; result: "win" | "lose" | "draw"; points: number } | null>(null);
   const [error, setError] = useState("");
@@ -140,7 +140,7 @@ function Chinchiro({ onDone, rewards, pointName }: { onDone: () => void; rewards
   return (
     <Panel>
       <p className="text-center text-sm text-slate-600">
-        親（もちもちトラ）より強い目で勝ち！ 勝ち <b className="text-rose-600">{rewards.chinchiro}</b>／役で勝ち <b className="text-rose-600">{rewards.chinchiroBig}</b> {pointName}
+        親（{characterName}）より強い目で勝ち！ 勝ち <b className="text-rose-600">{rewards.chinchiro}</b>／役で勝ち <b className="text-rose-600">{rewards.chinchiroBig}</b> {pointName}
       </p>
       <p className="mt-1 text-center text-[11px] text-slate-400">ピンゾロ ＞ ゾロ目 ＞ シゴロ ＞ 目 ＞ 目なし ＞ ヒフミ</p>
       {phase === "rolling" && <div className="dice-shake my-8 text-center text-6xl">🎲🎲🎲</div>}
@@ -151,7 +151,7 @@ function Chinchiro({ onDone, rewards, pointName }: { onDone: () => void; rewards
       )}
       {result && phase === "done" && (
         <div className="mt-4 space-y-3">
-          <DiceRow label="もちもちトラ（親）" roll={result.house} />
+          <DiceRow label={`${characterName}（親）`} roll={result.house} />
           <DiceRow label="あなた" roll={result.player} />
           <p className={cx("text-center text-2xl font-extrabold", result.result === "win" ? "text-rose-600" : "text-slate-600")}>
             {RESULT_TEXT[result.result]}
@@ -187,7 +187,7 @@ function AfterPlay() {
   return (
     <div className="mt-4 grid grid-cols-2 gap-3">
       <Link href="/mochi" className="rounded-xl bg-rose-500 py-3 text-center text-sm font-bold text-white">
-        もちもち連打
+        なでなで
       </Link>
       <Link href="/me" className="rounded-xl bg-white py-3 text-center text-sm font-bold text-rose-600 ring-1 ring-rose-200">
         マイページ

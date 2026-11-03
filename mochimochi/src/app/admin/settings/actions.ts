@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { adminAction } from "@/server/admin-action";
 import { UserError } from "@/server/errors";
 import { isGameKind } from "@/server/rankings";
-import { updateAsset, updateBrand, updateNumbers, updatePlacePoints, updateRanks } from "@/server/settings-update";
+import { setRankingVisible, updateAsset, updateBrand, updateNumbers, updatePlacePoints, updateRanks } from "@/server/settings-update";
 
 function done() {
   revalidatePath("/", "layout");
@@ -30,6 +30,13 @@ export async function saveAssetAction(kind: string, dataUrl: string | null) {
     await updateAsset(kind, dataUrl === null ? null : String(dataUrl));
     done();
   }, dataUrl === null ? "元に戻しました" : "アップロードしました");
+}
+
+export async function setRankingVisibleAction(kind: string, visible: boolean) {
+  return adminAction(async () => {
+    await setRankingVisible(String(kind), !!visible);
+    done();
+  }, visible ? "お客さんに表示しました" : "お客さんの画面から隠しました");
 }
 
 export async function saveRanksAction(input: unknown) {

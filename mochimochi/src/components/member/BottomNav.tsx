@@ -12,12 +12,13 @@ const ITEMS = [
   { href: "/calendar", label: "予定", icon: "📅" },
 ];
 
-export function BottomNav() {
+export function BottomNav({ showRanking = true }: { showRanking?: boolean }) {
   const path = usePathname();
+  const items = ITEMS.filter((it) => showRanking || it.href !== "/ranking");
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-rose-100 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-      <ul className="mx-auto grid max-w-md grid-cols-5">
-        {ITEMS.map((it) => {
+      <ul className={cx("mx-auto grid max-w-md", items.length === 5 ? "grid-cols-5" : "grid-cols-4")}>
+        {items.map((it) => {
           const active = path === it.href || path.startsWith(`${it.href}/`);
           return (
             <li key={it.href}>

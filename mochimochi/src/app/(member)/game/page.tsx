@@ -28,6 +28,7 @@ export default async function GamePage() {
       <GameBoard
         played={played ? { game: played.game, result: played.result, points: played.points } : null}
         pointName={s.pointName}
+        characterName={s.characterName}
         rewards={{
           janken: applyPointDay(s.jankenWinPoints, pointDay, "game"),
           chinchiro: applyPointDay(s.chinchiroWinPoints, pointDay, "game"),
