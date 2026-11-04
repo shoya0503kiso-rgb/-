@@ -165,6 +165,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .st-q.in{animation:qin .7s cubic-bezier(.2,1.4,.4,1)}
 @keyframes qin{from{transform:translateY(-3vh) scale(1.2);opacity:0}}
 
+/* standby: the slot time has come, waiting for staff Start */
+#standby{position:absolute;inset:0;z-index:35;overflow:hidden}
+.sb-in{position:absolute;inset:0;z-index:47;display:grid;place-items:center;align-content:center;gap:2.2vh;text-align:center;padding-inline:6vw}
+.sb-main{font-family:var(--f-display);font-size:11.5vh;line-height:1.12;filter:drop-shadow(0 .7vh 0 var(--wine)) drop-shadow(0 1.4vh 3vh rgba(0,0,0,.6));animation:sbPulse 2.4s ease-in-out infinite}
+@keyframes sbPulse{50%{transform:scale(1.035)}}
+.sb-time{font-family:var(--f-num);font-weight:700;font-size:4.4vh;color:var(--cream);letter-spacing:.06em}
+.sb-sub{font-size:3vh;font-weight:900;color:var(--gold-pale)}
+.sb-count{display:inline-block;justify-self:center;padding:.6vh 2.4vw;border-radius:99px;background:rgba(25,10,28,.6);border:.25vh solid var(--line);font-size:2.4vh;font-weight:900}
 /* opening curtain */
 .curtain{position:absolute;top:0;bottom:0;width:51%;z-index:46;transition:transform 1.2s cubic-bezier(.7,0,.25,1);
   background:linear-gradient(180deg,rgba(0,0,0,.25),transparent 12%),repeating-linear-gradient(90deg,#6b1640 0 2vw,#8f2456 3.2vw,#5a1338 5vw,#4a0f2e 6vw);box-shadow:inset 0 -2.6vh 0 -1vh var(--gold-deep)}
@@ -311,6 +319,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .btn:hover{border-color:var(--gold)}
 .btn:active{transform:scale(.98)}
 .btn.gold{background:linear-gradient(180deg,#ffeab0,var(--gold) 50%,var(--gold-deep));color:var(--ink-on-gold);border-color:var(--gold)}
+.start-btn{animation:startPulse 1.3s ease-in-out infinite}
+@keyframes startPulse{50%{box-shadow:0 0 0 6px rgba(255,141,181,.35),0 0 24px rgba(255,141,181,.6)}}
+.due-bar{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--rose);background:linear-gradient(90deg,var(--rose-deep),#9a2a5c);color:#fff;font-weight:900;font-size:14px;animation:startPulse 1.3s ease-in-out infinite}
 .btn.rose{background:linear-gradient(180deg,#ff9fc2,var(--rose-deep));color:#fff;border-color:var(--rose)}
 .btn.red{border-color:rgba(255,107,138,.5);color:#ffb3c4}
 .btn.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
@@ -393,6 +404,10 @@ button.ck{cursor:pointer}
 .mh-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .mh-h b{font-family:var(--f-display);font-weight:400;font-size:19px;color:var(--gold-pale)}
 .mh-h span{font-size:12px;font-weight:700;color:var(--mute);margin-right:auto}
+.kbox{display:grid;gap:8px;padding:12px;border-radius:14px;background:var(--field);border:1px solid var(--line)}
+.kbox pre{margin:0;white-space:pre-wrap;word-break:break-all;font-size:12.5px;line-height:1.6;font-family:ui-monospace,"SF Mono",Menlo,monospace;color:var(--cream);max-height:220px;overflow:auto}
+.kbox .lab{font-size:12px;font-weight:900;color:var(--mute)}
+.ktag{flex:none;font-size:11px;font-weight:900;padding:1px 7px;border-radius:6px;background:rgba(98,182,255,.18);color:var(--r-n);border:1px solid rgba(98,182,255,.45)}
 .setrow{display:flex;align-items:center;gap:12px;justify-content:space-between}
 .setrow .t{display:grid;gap:2px;min-width:0}
 .setrow .t b{font-size:15px;font-weight:900}
@@ -475,6 +490,7 @@ button.ck{cursor:pointer}
   <div class="sheet" id="tvSheet" role="dialog" aria-label="スタッフメニュー" hidden>
     <div class="sh-head"><b>スタッフメニュー</b><button class="btn sm" id="shClose">閉じる</button></div>
     <div class="sh-sec">
+      <button class="btn rose big start-btn" id="shStart" hidden>スタート</button>
       <button class="btn gold big" id="shDraw">今すぐ抽選</button>
       <button class="btn sm" id="shTest">テスト抽選（履歴に残さない）</button>
     </div>
@@ -484,7 +500,7 @@ button.ck{cursor:pointer}
       <div class="row"><input class="grow" type="text" id="shAdd" placeholder="名前を追加（、で複数）" autocomplete="off" enterkeyhint="done"><button class="btn sm gold" id="shAddBtn">追加</button></div>
     </div>
     <div class="sh-sec">
-      <div class="setrow"><div class="t"><b>毎時の自動抽選</b><span class="help" id="shNext"></span></div><button class="tg" role="switch" id="shAuto" aria-label="毎時の自動抽選"></button></div>
+      <div class="setrow"><div class="t"><b>毎時の抽選タイム</b><span class="help" id="shNext"></span></div><button class="tg" role="switch" id="shAuto" aria-label="毎時の自動抽選"></button></div>
       <div class="setrow"><div class="t"><b>演出を短めにする</b></div><button class="tg" role="switch" id="shShort" aria-label="演出を短めにする"></button></div>
       <div class="setrow"><div class="t"><b>並の景品を使う</b><span class="help" id="shNamiN"></span></div><button class="tg" role="switch" id="shNami" data-mhset="並" aria-label="並の景品を使う"></button></div>
       <div class="setrow"><div class="t"><b>極の景品を使う</b><span class="help" id="shKiwamiN"></span></div><button class="tg" role="switch" id="shKiwami" data-mhset="極" aria-label="極の景品を使う"></button></div>
@@ -502,6 +518,16 @@ button.ck{cursor:pointer}
   <div id="cd" hidden>
     <div class="cd-l foil">ラッキーアワー抽選まで</div>
     <div class="cd-ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="46"></circle><circle class="fg" id="cdRing" cx="50" cy="50" r="46"></circle></svg><div id="cdNum">10</div></div>
+  </div>
+  <div id="standby" hidden>
+    <div class="curtain l"></div><div class="curtain r"></div>
+    <div class="sb-in">
+      <div class="ribbon">IT'S LUCKY HOUR</div>
+      <div class="sb-main foil">さあ、今から<br>抽選をはじめます！</div>
+      <div class="sb-time" id="sbTime"></div>
+      <div class="sb-sub">着席中のみなさん、テレビにご注目ください</div>
+      <div class="sb-count" id="sbCount"></div>
+    </div>
   </div>
   <div id="stage"></div>
   <canvas id="fx"></canvas>
@@ -526,6 +552,7 @@ button.ck{cursor:pointer}
           <button class="btn sm" id="admToTv">テレビ画面</button>
         </div>
       </div>
+      <button class="due-bar" id="admDue" hidden>抽選の時間です。ここを押して「スタート」へ</button>
       <button class="back-tv" id="admBack" hidden>テレビ画面に戻る ・ このスマホでテレビを映しているなら、戻らないと自動抽選が止まったままです</button>
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" data-tab="draw" aria-selected="true">いま</button>
@@ -575,7 +602,7 @@ button.ck{cursor:pointer}
       </div>
       <div class="box">
         <h2><span>リング卓の参加者</span><span class="hint" id="pSummary"></span></h2>
-        <p class="help">行をタップすると着席と離席が切り替わります。抽選されるのは「着席」の人だけです。</p>
+        <p class="help">行をタップすると着席と離席が切り替わります。抽選されるのは「着席」の人だけです。「カルテ」の印がある人は箱カルテと連携していて、リングを退店すると自動で外れます。</p>
         <div class="plist" id="pList"></div>
         <div class="row">
           <button class="btn sm" id="pAllOn">全員を着席に</button>
@@ -622,7 +649,7 @@ button.ck{cursor:pointer}
     <div class="sec" data-pane="settings" hidden>
       <div class="box">
         <h2>自動抽選<span class="save-note" id="stSave"></span></h2>
-        <div class="setrow"><div class="t"><b>毎時の自動抽選</b><span class="help">テレビ画面が開いている間、決まった時刻に自動で始まります</span></div><button class="tg" role="switch" id="stAuto" aria-label="毎時の自動抽選"></button></div>
+        <div class="setrow"><div class="t"><b>毎時の抽選タイム</b><span class="help">決まった時刻にテレビのカウントダウンが0になると、テレビは待機画面になり、スマホに「スタート」ボタンが出ます。押すと抽選が始まります（30分押さなければその回はお休み）</span></div><button class="tg" role="switch" id="stAuto" aria-label="毎時の自動抽選"></button></div>
         <div class="field"><label for="stMinute">毎時 何分に抽選するか</label>
           <div class="presets" id="minPresets"><button data-min="0">00分</button><button data-min="15">15分</button><button data-min="30">30分</button><button data-min="45">45分</button><input type="number" id="stMinute" min="0" max="59" inputmode="numeric" aria-label="分を直接入力"><span class="unit">分</span></div>
           <p class="help">時刻を変えるのは抽選のない時間帯がおすすめです。10分以内に過ぎた時刻にすると、その場で抽選が始まります。</p>
@@ -638,6 +665,11 @@ button.ck{cursor:pointer}
       <div class="box">
         <h2>公平ルール</h2>
         <div class="setrow"><div class="t"><b>直前の当選者を外す</b><span class="help">前回当たった人を次の抽選から外します（着席が2人以上のとき）</span></div><button class="tg" role="switch" id="stExcl" aria-label="直前の当選者を外す"></button></div>
+      </div>
+      <div class="box">
+        <h2>箱カルテ連携<span class="hint">リングの入退店を自動で反映</span></h2>
+        <p class="help">箱カルテでリングに入った人は自動で「着席」の参加者になり、リングを退店すると自動で参加者から外れます。手で追加した人はそのまま残ります。</p>
+        <div id="karteBody"></div>
       </div>
       <div class="box">
         <h2>テレビの見出し</h2>
@@ -745,6 +777,7 @@ async function apiPost(body) {
 }
 function applyApi(j, startedAt) {
   store.api.v = j.version; store.api.pinSet = !!j.pinSet;
+  if (store.api.syncKeyAt !== (j.syncKeyAt ?? null)) { store.api.syncKeyAt = j.syncKeyAt ?? null; if (!$('#admin').hidden && curTab === 'settings') renderKarte(); }
   if (!j.docs) return;
   for (const k of Object.keys(DEF)) {
     // a local write that is in flight (or finished after this poll left) is newer than what came back
@@ -978,6 +1011,7 @@ $('#goTv').onclick = () => go('tv');
 $('#goAdmin').onclick = () => go('admin');
 $('#admToTv').onclick = () => go('tv');
 $('#admBack').onclick = () => go('tv');
+$('#admDue').onclick = () => showTab('draw');
 $('#tvToAdmin').onclick = () => go('admin');
 addEventListener('hashchange', route);
 const isTv = () => !$('#tv').hidden;
@@ -1040,7 +1074,8 @@ function renderSheet() {
   [['並', '#shNami', '#shNamiN'], ['極', '#shKiwami', '#shKiwamiN']].forEach(([g, tg, lb]) => { const n = mhCount(g, cfg.prizes); $(tg).setAttribute('aria-checked', n > 0); $(lb).textContent = `${n} / ${MH[g].length} 種を使用中`; });
   $('#shNext').textContent = cfg.auto ? `次回 ${hhmm(nextSlot(cfg))}（毎時${pad2(cfg.minute)}分）` : 'オフ：手動のときだけ抽選します';
   const ready = eligible(cfg).length > 0 && prizePool(cfg).length > 0;
-  const showing = tv.busy || tv.counting || tv.creating;
+  const showing = tv.busy || tv.counting || tv.creating, due = dueSlot(cfg);
+  $('#shStart').hidden = !due; if (due) { $('#shStart').textContent = `${hhmm(due.at)} の抽選をスタート`; $('#shStart').disabled = !ready || showing; }
   $('#shDraw').disabled = !ready || showing; $('#shTest').disabled = !ready || showing;
   $('#shWarn').hidden = !tv.wakeFail;
   if (!ready) $('#shNext').textContent += eligible(cfg).length ? ' ／ 景品が未登録です' : ' ／ 着席の人がいません';
@@ -1055,6 +1090,7 @@ $('#shAuto').onclick = () => setCfg({auto:!getCfg().auto});
 $('#shShort').onclick = () => setCfg({short:!getCfg().short});
 ['#shNami', '#shKiwami'].forEach(id => $(id).onclick = e => { const g = e.currentTarget.dataset.mhset; mhSet(g, MH[g].map(x => x[0]), mhCount(g) === 0); });
 const showBusy = () => tv.busy || tv.counting || tv.creating;
+$('#shStart').onclick = () => { const due = dueSlot(); if (due && !showBusy()) { closeSheet(); startDue(due.hk); } };
 armed($('#shDraw'), 'もう一度押すとスタート', async () => { if (showBusy()) { toast('いま抽選中です。終わってからもう一度どうぞ'); return; } const r = await createDraw('manual'); if (r.error) toast(r.error); else closeSheet(); });
 armed($('#shTest'), 'もう一度押すとテスト開始', async () => { if (showBusy()) { toast('いま抽選中です。終わってからもう一度どうぞ'); return; } const r = await createDraw('test'); if (r.error) toast(r.error); else closeSheet(); });
 /* portrait phone hint */
@@ -1079,6 +1115,7 @@ function renderTvIdle() {
 function tvTick() {
   if (!isTv()) return;
   const now = new Date(), cfg = getCfg(), tvEl = $('#tv');
+  updateStandby();
   $('#tvClock').textContent = hhmm(now) + ':' + pad2(now.getSeconds());
   const nx = $('#tvNext');
   if (!cfg.auto) { nx.textContent = '手動抽選モード'; nx.classList.add('off'); tvEl.classList.remove('soon'); $('#tvNextLabel').textContent = 'スタッフの合図で抽選します'; $('#tvNextAt').textContent = ''; return; }
@@ -1090,18 +1127,32 @@ function tvTick() {
   const m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60;
   nx.textContent = `${pad2(m)}:${pad2(s)}`;
   $('#tvNextAt').textContent = `毎時 ${pad2(cfg.minute)}分に抽選 ・ 次回 ${hhmm(slot)}`;
-  // countdown & auto draw
-  if (tv.busy || tv.creating) return;
+  // countdown to the slot; at 0 the TV waits on the standby screen until a staff phone presses Start
+  if (tv.busy) return;
   const hk = hourKeyOf(slot);
-  // catch-up: the last slot passed while a show was running (or the TV was just opened) — run it now, within 10 min
-  const prev = new Date(slot.getTime() - 3600000), phk = hourKeyOf(prev);
-  if (now - prev < 600000 && !hourDone(phk) && tv.skipHour !== phk && tv.countdownFor !== phk) { runCountdown(new Date(Date.now() + cfg.countdown * 1000), phk); return; }
-  if (hourDone(hk) || tv.skipHour === hk) return;
+  if (hourDone(hk)) return;
   if (ms <= cfg.countdown * 1000 && tv.countdownFor !== hk) runCountdown(slot, hk);
+}
+/* the slot whose draw is waiting for a staff Start (up to 30 min after the slot time) */
+const DUE_MS = 30 * 60000;
+function dueSlot(cfg = getCfg(), now = new Date()) {
+  if (!cfg.auto) return null;
+  const at = new Date(nextSlot(cfg, now).getTime() - 3600000), hk = hourKeyOf(at);
+  if (now - at > DUE_MS || hourDone(hk)) return null;
+  return {hk, at};
+}
+function updateStandby() {
+  const due = dueSlot(), show = isTv() && !!due && !tv.busy && !tv.counting, el = $('#standby');
+  if (show) { $('#sbTime').textContent = `${hhmm(due.at)} の抽選`; $('#sbCount').textContent = `抽選対象 ${eligible(getCfg()).length}名`; }
+  if (show === !el.hidden) return;
+  el.hidden = !show;
+  if (show) { $('#tv').classList.add('live'); SFX.chime(1568); SFX.chime(2093, .15, .7); FX.burst(GOLDS, 80, .5, .3); }
+  else if (!tv.busy && !tv.counting) $('#tv').classList.remove('live');
+  renderSheet();
 }
 setInterval(tvTick, 250);
 
-function hourDone(hk) { return getDraw().hourKey === hk || getHistory().some(h => h.hourKey === hk); }
+function hourDone(hk) { return getDraw().hourKey === hk || getCfg().skipHour === hk || getHistory().some(h => h.hourKey === hk); }
 async function runCountdown(slot, hk) {
   tv.countdownFor = hk; tv.counting = true; closeSheet(); $('#tvGate').hidden = true;
   const cd = $('#cd'), num = $('#cdNum'), ring = $('#cdRing'); cd.hidden = false; cd.classList.remove('hot'); $('#tv').classList.add('live');
@@ -1119,31 +1170,34 @@ async function runCountdown(slot, hk) {
     await sleep(60);
   }
   cd.hidden = true; cd.classList.remove('hot'); tv.counting = false;
-  if (hourDone(hk)) { if (!tv.busy) $('#tv').classList.remove('live'); return; }
-  await autoCreate(hk);
   if (!tv.busy) $('#tv').classList.remove('live');
+  updateStandby();
 }
-async function autoCreate(hk) {
-  tv.creating = true;
+/* Start pressed on a staff phone (or the TV's STAFF menu): only one device may create this slot's draw */
+async function startDue(hk) {
+  if (tv.creating) return;
+  tv.creating = true; renderSheet();
   try {
     if (store.mode === 'db') {
-      await sleep(rnd(900));
       let got = {acquired:true};
       try { got = await store.db.doc('hourly/lock').acquire({holder:TAB_ID, ttlMs:8000}); } catch {}
-      if (!got.acquired) { await sleep(4000); return; }
-      try { const s = await store.db.doc('hourly/draw').get(); if (s.exists && s.data().hourKey === hk) return; } catch {}
+      if (!got.acquired) { toast('ほかの端末がスタートしました'); return; }
+      try { const d = await store.db.doc('hourly/draw').get(); if (d.exists && d.data().hourKey === hk) { toast('この回の抽選はもう始まっています'); return; } } catch {}
     } else if (store.kind === 'api') {
-      await sleep(rnd(900));
       let got = {acquired:false};
-      try { got = await apiPost({action:'lock', holder:TAB_ID, ttlMs:8000}); } catch (e) { if (e.needPin) { tv.skipHour = hk; tvToast('スタッフPINが入っていないため、この画面では自動抽選ができません'); } else await sleep(4000); return; }
-      if (!got.acquired) { await sleep(4000); return; }
+      try { got = await apiPost({action:'lock', holder:TAB_ID, ttlMs:8000}); } catch (e) { toast(e.needPin ? 'スタッフPINを入れるとスタートできます' : '通信できませんでした。もう一度押してください'); return; }
+      if (!got.acquired) { toast('ほかの端末がスタートしました'); return; }
       try { await apiFetch(); } catch {}
-      if (getDraw().hourKey === hk) return;
     }
-    if (hourDone(hk)) return;
+    if (hourDone(hk)) { toast('この回の抽選はもう始まっています'); return; }
     const r = await createDraw('auto', hk);
-    if (r.error) { tv.skipHour = hk; tvToast(`${r.error}。今回の抽選はお休みです。`); }
-  } finally { tv.creating = false; renderSheet(); }
+    toast(r.error || 'テレビで抽選を始めました');
+  } finally { tv.creating = false; renderSheet(); if (!$('#admin').hidden) renderStatus(); }
+}
+function skipDue(hk) {
+  const before = getCfg().skipHour ?? null;
+  setCfg({skipHour:hk});
+  toast('今回の抽選はお休みにしました', {label:'元に戻す', fn:() => setCfg({skipHour:before})});
 }
 function tvToast(msg) { const t = document.createElement('div'); t.className = 'toast-tv'; t.textContent = msg; $('#tv').appendChild(t); setTimeout(() => t.remove(), 6000); }
 
@@ -1168,6 +1222,7 @@ function onDrawChange() {
 const STAGE_BG = '<div class="st-bg"><div class="beam b1"></div><div class="beam b2"></div></div><div class="vig"></div>';
 async function play(d) {
   closeSheet(); tv.busy = true; tv.lastPlayed = d.id; tv.speed = getCfg().short ? .62 : 1;
+  updateStandby();
   $('#cd').hidden = true; $('#tvGate').hidden = true; $('#tv').classList.add('live');
   const st = $('#stage'); st.innerHTML = STAGE_BG; st.className = 'on velvet';
   if (d.test) st.insertAdjacentHTML('beforeend', '<div class="badge-test">TEST</div>');
@@ -1487,6 +1542,7 @@ function renderAdmin(k = '*') {
   const players = getPlayers();
   $('#cntPlayers').textContent = players.filter(p => p.active).length;
   $('#admBack').hidden = !ownTvStopped();
+  $('#admDue').hidden = !(dueSlot() && curTab !== 'draw');
   if (curTab === 'draw') renderStatus();
   if (curTab === 'players') renderPlayers();
   if (curTab === 'prizes' && !document.activeElement?.closest('#prList,#missRow')) renderPrizes();
@@ -1495,7 +1551,7 @@ function renderAdmin(k = '*') {
 }
 let statusKey = '';
 const leftText = ms => `あと ${Math.floor(ms / 60000)}分${pad2(Math.floor(ms / 1000) % 60)}秒`;
-function statusKeyNow() { const d = getDraw(), c = getCfg(); return [d.id && Date.now() - d.at < 120000, tvAlive(), c.auto, hhmm(nextSlot(c))].join('|'); }
+function statusKeyNow() { const d = getDraw(), c = getCfg(); return [d.id && Date.now() - d.at < 120000, tvAlive(), c.auto, hhmm(nextSlot(c)), dueSlot(c)?.hk, tv.creating].join('|'); }
 const ownTvStopped = () => store.data.tv?.id === TAB_ID && !isTv();
 const tvAlive = () => { const t = store.data.tv; return !!t?.at && !ownTvStopped() && Date.now() - t.at < 150000; };
 function renderStatus() {
@@ -1506,6 +1562,11 @@ function renderStatus() {
   if (recent) {
     const w = d.candidates?.[d.winnerIndex]?.name;
     html = `<div class="eb">${d.test ? 'テスト抽選中' : '抽選中'} ・ ${hhmm(new Date(d.at))} 開始</div><div class="bigt txt">${esc(w)} さん</div><div class="sub">${d.picked == null ? 'カードを選んでもらっています' : 'カードが開かれました。結果はテレビで発表中'}</div>`;
+  } else if (dueSlot(cfg)) {
+    const due = dueSlot(cfg);
+    html = `<div class="eb">抽選の時間です</div><div class="bigt">${hhmm(due.at)}</div><div class="sub">テレビは「さあ、今から抽選をはじめます！」の画面で待っています</div>
+      <div class="row" style="margin-top:10px"><button class="btn big rose start-btn grow" data-start="${due.hk}" ${act && pool ? '' : 'disabled'}>スタート</button></div>
+      <div class="row"><button class="btn sm" data-skip="${due.hk}">今回はやらない</button><span class="help">${act && pool ? '30分たっても押さなければ、この回はお休みになります' : '着席の人と景品を登録するとスタートできます'}</span></div>`;
   } else if (cfg.auto) {
     const nx = nextSlot(cfg), ms = nx - Date.now();
     html = `<div class="eb">次の自動抽選</div><div class="bigt">${hhmm(nx)}</div><div class="sub"><span id="admLeft">${leftText(ms)}</span> ・ 毎時${pad2(cfg.minute)}分</div>`;
@@ -1517,7 +1578,7 @@ function renderStatus() {
     <button class="ck ${act ? '' : 'ng'}" data-go="players">着席 ${act}名${act ? '' : '：登録してください'}</button>
     <button class="ck ${pool ? '' : 'ng'}" data-go="prizes">景品 ${pool}種${pool ? '' : '：登録してください'}</button>
     ${alive ? '<span class="ck">テレビ画面 映っています</span>' : ownTvStopped() ? '<button class="ck ng" data-tv>このスマホのテレビ画面は止まっています（タップで戻る）</button>' : '<button class="ck ng" data-tv>テレビ画面 開いていません（タップで開く）</button>'}
-    <button class="ck ${cfg.auto ? '' : 'off'}" data-go="settings">自動抽選 ${cfg.auto ? 'オン' : 'オフ'}</button></div>`;
+    <button class="ck ${cfg.auto ? '' : 'off'}" data-go="settings">毎時の抽選 ${cfg.auto ? 'オン' : 'オフ'}</button></div>`;
   el.innerHTML = html; el.classList.toggle('live', !!recent); statusKey = statusKeyNow();
   $('#pickBox').hidden = !(recent && d.picked == null);
   const ready = act > 0 && pool > 0;
@@ -1531,6 +1592,8 @@ function renderStatus() {
   $('#lastWin').innerHTML = lw ? `<span>前回の当選</span><b>${hhmm(new Date(lw.at))} ${esc(lw.name)} さん → ${esc(lw.prize)}</b>` : '';
 }
 $('[data-pane=draw]').addEventListener('click', e => {
+  const st = e.target.closest('[data-start]'); if (st) { startDue(st.dataset.start); return; }
+  const sk = e.target.closest('[data-skip]'); if (sk) { skipDue(sk.dataset.skip); return; }
   if (e.target.closest('[data-tv]')) { go('tv'); return; }
   const g = e.target.closest('[data-go]'); if (g) { showTab(g.dataset.go); return; }
   const q = e.target.closest('.qchip'); if (q) { const list = clone(getPlayers()); const p = list.find(x => x.id === q.dataset.id); if (p) { p.active = !p.active; setPlayers(list); } }
@@ -1541,6 +1604,7 @@ armed($('#btnDrawTest'), 'もう一度押すとテスト開始', async () => { c
 
 /* every second only the countdown text changes; the chips are rebuilt only when their state changes, so taps are never lost */
 setInterval(() => {
+  if (!$('#admin').hidden) $('#admDue').hidden = !(dueSlot() && curTab !== 'draw');
   if ($('#admin').hidden || curTab !== 'draw') return;
   if (statusKeyNow() !== statusKey) { renderStatus(); return; }
   const l = $('#admLeft'); if (l) l.textContent = leftText(nextSlot(getCfg()) - Date.now());
@@ -1551,7 +1615,7 @@ function renderPlayers() {
   const ps = getPlayers(), el = $('#pList');
   $('#pSummary').textContent = `着席 ${ps.filter(p => p.active).length} ／ 登録 ${ps.length}`;
   el.innerHTML = ps.length ? ps.map(p => `<div class="prow ${p.active ? '' : 'off'}" data-id="${esc(p.id)}">
-      <button class="tgl" data-act="toggle" aria-pressed="${!!p.active}"><span class="nm">${esc(p.name)}</span><span class="state">${p.active ? '着席' : '離席'}</span></button>
+      <button class="tgl" data-act="toggle" aria-pressed="${!!p.active}"><span class="nm">${esc(p.name)}</span>${p.karteId ? '<span class="ktag">カルテ</span>' : ''}<span class="state">${p.active ? '着席' : '離席'}</span></button>
       <button class="x" data-act="del" aria-label="${esc(p.name)}を削除">削除</button></div>`).join('')
     : '<div class="empty">まだ誰もいません。上の欄に名前を入れて「追加」してください。</div>';
 }
@@ -1695,12 +1759,51 @@ $('#missRow').addEventListener('click', e => {
 });
 
 /* settings */
+/* 箱カルテ連携 */
+let karteIssued = null;
+function karteGuide(key) {
+  const url = `${location.origin}/api/lucky-hour/ring`;
+  return `ラッキーアワー（9High のリングゲーム毎時抽選）に、リングの入退店を知らせる処理を箱カルテに追加してください。
+
+送り先: POST ${url}
+ヘッダー: Content-Type: application/json / Authorization: Bearer ${key || '<連携キー>'}
+
+- お客さんがリングに入ったとき: {"action":"enter","id":"<カルテのお客さんID>","name":"<テレビに出す名前>"}
+- リングを退店したとき（卓移動・退店・会計など、リングにいなくなったとき）: {"action":"leave","id":"<カルテのお客さんID>"}
+- まとめて合わせるとき（任意。営業開始時や数分おきなど）: {"action":"sync","members":[{"id":"…","name":"…"}]}（いまリングにいる全員。いない人は外れます）
+
+返事: 成功すると {"ok":true,"seated":着席人数,"linked":連携中の人数}。連携キーがちがうと 401。
+id は毎回同じお客さんに同じ値を使い、name は20文字までに切られます。連携キーはパスワードと同じなので、画面やログに出さないでください。送信に失敗しても箱カルテの操作は止めず、次の操作か sync で追いつけば大丈夫です。`;
+}
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); btn.textContent = 'コピーしました'; }
+  catch { const pre = btn.closest('.kbox')?.querySelector('pre'); if (pre) { const r = document.createRange(); r.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } btn.textContent = '選択しました。長押しでコピー'; }
+  setTimeout(() => btn.textContent = btn.dataset.label, 2000);
+}
+function renderKarte() {
+  const el = $('#karteBody');
+  if (store.kind !== 'api') { el.innerHTML = '<p class="help">この連携は、お店のアプリの「/lucky-hour」で開いたときに使えます（claude.ai の画面からは使えません）。</p>'; return; }
+  const at = store.api.syncKeyAt;
+  el.innerHTML = `<div class="setrow"><div class="t"><b>連携キー</b><span class="help">${at ? `発行済み（${new Date(at).toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}）` : 'まだ発行していません'}</span></div>
+      <button class="btn sm ${at ? '' : 'gold'}" id="kIssue">${at ? '作り直す' : '連携キーを発行'}</button></div>
+    ${karteIssued ? `<div class="kbox"><span class="lab">連携キー（この画面を閉じると二度と表示されません）</span><pre id="kKey">${esc(karteIssued)}</pre><button class="btn sm" data-copy="key" data-label="キーをコピー">キーをコピー</button></div>` : ''}
+    <div class="kbox"><span class="lab">箱カルテを作っている Claude に貼る指示文</span><pre>${esc(karteGuide(karteIssued))}</pre><button class="btn sm" data-copy="guide" data-label="指示文をコピー">指示文をコピー</button></div>`;
+}
+$('#karteBody').addEventListener('click', async e => {
+  const c = e.target.closest('[data-copy]'); if (c) { copyText(c.dataset.copy === 'key' ? karteIssued : karteGuide(karteIssued), c); return; }
+  const b = e.target.closest('#kIssue'); if (!b) return;
+  if (store.api.syncKeyAt && !b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'もう一度押すと作り直します（古いキーは使えなくなります）'; setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.textContent = '作り直す'; } }, 3500); return; }
+  b.disabled = true;
+  try { const j = await apiPost({action:'issueSyncKey'}); karteIssued = j.key; store.api.syncKeyAt = Date.now(); renderKarte(); toast('連携キーを発行しました。指示文ごとコピーして箱カルテ側に渡してください'); }
+  catch (err) { toast(err.needPin ? 'スタッフPINを入れると発行できます' : (err.message || '発行できませんでした')); b.disabled = false; }
+});
 function renderSettings() {
   const c = getCfg();
   $('#stAuto').setAttribute('aria-checked', !!c.auto);
   $('#stExcl').setAttribute('aria-checked', !!c.excludeLast);
   $('#stShort').setAttribute('aria-checked', !!c.short);
   $('#stMinute').value = c.minute; $('#stCd').value = c.countdown; $('#stTitle').value = c.title;
+  renderKarte();
   $$('#minPresets [data-min]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.min === +c.minute));
   $$('#cdPresets [data-cd]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.cd === +c.countdown));
 }
