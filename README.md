@@ -24,6 +24,15 @@
 | [07 店長向けマニュアル](docs/07-manual-manager.md) | 毎日・毎月の操作手順 |
 | [08 スタッフ向けマニュアル](docs/08-manual-staff.md) | 打刻・LINE の使い方（そのまま配布できます） |
 
+## ラッキーアワー（店内テレビの毎時抽選）
+
+`/lucky-hour` でログインなしに開ける、リングゲームの毎時抽選ショー（本体は `artifacts/lucky-hour.html`。`public/lucky-hour.html` はそれを包み直した自動生成ファイルで、ビルド時に `scripts/sync-lucky-hour.mjs` が作り直します）。
+
+- 店内テレビのブラウザで `/lucky-hour#tv`、スタッフのスマホで `/lucky-hour#admin` を開く。どちらも同じデータ（`LuckyHourDoc` テーブル）を見て、約1〜4秒ごとのポーリングで同期する
+- 読み取りは誰でもできる。書き込み（着席の切り替え・抽選・設定）は **スタッフPIN** が必要。最初に開いた人が PIN（数字4〜8桁）を決め、テレビやほかのスマホでも同じ PIN を1回入れると端末に記憶される。5回続けて間違えると15分止まる
+- PIN を忘れたときは、本番DBで `DELETE FROM "LuckyHourDoc" WHERE key = '_pin';` を実行してから、もう一度開いて決め直す
+- 同じ HTML は claude.ai の Artifact としても動く（その場合は Artifact の共有データを使う）
+
 ## ミニゲーム「ディーラークエスト」
 
 `/dealer-quest` でログインなしに遊べるスワイプゲーム（本体は `public/dealer-quest.html`）。ランキングは `/api/dealer-quest/scores`（公開API）経由で `DealerQuestScore` テーブルに保存します。登録は全体で1万人まで、同じ接続元からの新規登録は1時間20人までです。

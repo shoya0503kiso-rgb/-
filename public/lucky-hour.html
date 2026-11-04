@@ -1,0 +1,1766 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!-- 自動生成：artifacts/lucky-hour.html を直して scripts/sync-lucky-hour.mjs を実行 -->
+<title>9High ラッキーアワー</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@500;700;900&family=Fredoka:wght@500;600;700&display=swap">
+<style>
+/* Layout: velvet-and-gold jewel box. TV = full-screen stage framed by chasing marquee bulbs; staff = one-column console with sticky tabs. Single dark look by design (shop TV + back-of-house phone). */
+:root{
+  --night:#190a1c; --night-2:#220e26; --wine:#3a0d29; --velvet:#5a1338; --velvet-hi:#8c2457;
+  --gold:#f2cd78; --gold-deep:#b9862f; --gold-pale:#fff0c8; --rose:#ff8db5; --rose-deep:#e2487f;
+  --cream:#fff5e8; --mute:#c6a8bb; --line:rgba(242,205,120,.26); --line-soft:rgba(255,240,200,.1);
+  --panel:#2a1130; --panel-2:#351739; --field:#1b0a1e; --ink-on-gold:#3a1a08;
+  --r-n:#62b6ff; --r-r:#b98aff; --r-sr:#f2cd78; --r-ur:#ff6fc8; --r-miss:#9b8b98;
+  --ok:#6fe0a6; --warn:#ffc56b; --bad:#ff6b8a;
+  --f-display:"Mochiy Pop One","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+  --f-body:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+  --f-num:"Fredoka","Arial Rounded MT Bold","Hiragino Maru Gothic ProN",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--night);color:var(--cream);font-family:var(--f-body);font-weight:500;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--night-2)}
+button{font-family:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.view[hidden]{display:none!important}
+.foil{background:linear-gradient(180deg,#fffbea 0%,#ffe6a3 30%,var(--gold) 52%,var(--gold-deep) 74%,#ffe9a8 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.velvet{background:
+  repeating-linear-gradient(45deg,rgba(255,230,240,.028) 0 1px,transparent 1px 44px),
+  repeating-linear-gradient(-45deg,rgba(255,230,240,.028) 0 1px,transparent 1px 44px),
+  radial-gradient(ellipse at 50% 32%,var(--velvet-hi) 0%,var(--velvet) 34%,var(--wine) 68%,var(--night) 100%)}
+.suit{font-family:"Hiragino Sans","Segoe UI Symbol","Apple Symbols",sans-serif;font-variant-emoji:text}
+
+/* ===== Launch ===== */
+#launch{min-height:100%;display:grid;place-items:center;padding-block:40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.launch-box{width:min(560px,100%);display:grid;gap:22px;text-align:center}
+.brand-sm{font-family:var(--f-num);font-weight:600;letter-spacing:.32em;color:var(--gold);font-size:13px}
+.brand-sm .suit{color:var(--rose);letter-spacing:.4em}
+.launch-title{font-family:var(--f-display);font-weight:400;font-size:clamp(36px,9vw,60px);line-height:1.12;margin:0;text-wrap:balance;filter:drop-shadow(0 4px 0 var(--wine)) drop-shadow(0 10px 18px rgba(0,0,0,.45))}
+.launch-title small{display:block;font-size:.42em;color:var(--rose);-webkit-text-fill-color:var(--rose);letter-spacing:.12em;margin-bottom:6px}
+.launch-sub{color:var(--mute);margin:0}
+.launch-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.launch-btn{padding:20px 18px;border-radius:20px;border:1.5px solid var(--line);background:rgba(25,10,28,.55);display:grid;gap:4px;text-align:left;transition:transform .15s,border-color .15s}
+.launch-btn b{font-family:var(--f-display);font-size:20px;font-weight:400}
+.launch-btn span{font-size:13px;color:var(--mute)}
+.launch-btn:hover{border-color:var(--gold);transform:translateY(-2px)}
+.launch-btn.primary{background:linear-gradient(160deg,#7a1f4a,#3a0d29);border-color:var(--gold)}
+.launch-btn.primary b{color:var(--gold-pale)}
+.conn{font-size:12px;color:var(--mute)}
+@media (max-width:480px){.launch-btns{grid-template-columns:1fr}}
+
+/* ===== TV ===== */
+#tv{position:fixed;inset:0;overflow:hidden}
+.bulbs{position:absolute;inset:calc(1.3vh + env(safe-area-inset-top,0px)) calc(1.3vh + env(safe-area-inset-right,0px)) calc(1.3vh + env(safe-area-inset-bottom,0px)) calc(1.3vh + env(safe-area-inset-left,0px));pointer-events:none;z-index:52;--b:2.8vh;--bulb:var(--gold-pale)}
+.bulbs::before{content:"";position:absolute;inset:calc(var(--b) * .5 - .25vh);border:.5vh solid rgba(185,134,47,.55);border-radius:1.6vh}
+.bulbs i{position:absolute}
+.bulbs .t,.bulbs .b{left:0;right:0;height:var(--b)}.bulbs .t{top:0}.bulbs .b{bottom:0}
+.bulbs .l,.bulbs .r{top:var(--b);bottom:var(--b);width:var(--b)}.bulbs .l{left:0}.bulbs .r{right:0}
+.bulbs i::before,.bulbs i::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at center,#fff 0 .22vh,var(--bulb) .32vh .5vh,rgba(255,214,140,.35) .62vh,transparent 1.05vh);background-size:var(--b) var(--b);animation:bulb 1.4s steps(1) infinite}
+.bulbs i::after{animation-delay:-.7s}
+.bulbs .t::before,.bulbs .b::before{background-repeat:repeat-x}
+.bulbs .t::after,.bulbs .b::after{background-repeat:repeat-x;background-position:calc(var(--b) / 2) 0}
+.bulbs .l::before,.bulbs .r::before{background-repeat:repeat-y}
+.bulbs .l::after,.bulbs .r::after{background-repeat:repeat-y;background-position:0 calc(var(--b) / 2)}
+@keyframes bulb{0%{opacity:1}50%{opacity:.18}}
+#tv.soon .bulbs i::before,#tv.soon .bulbs i::after{animation-duration:.7s}
+#tv.soon .bulbs i::after{animation-delay:-.35s}
+#tv.live .bulbs i::before,#tv.live .bulbs i::after{animation-duration:.32s}
+#tv.live .bulbs i::after{animation-delay:-.16s}
+#tv.live .bulbs{--bulb:#ffd2e4}
+.sparks{position:absolute;inset:0;pointer-events:none;z-index:1}
+.spark{position:absolute;width:var(--s,2vh);height:var(--s,2vh);background:var(--gold-pale);clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);opacity:0;animation:twinkle var(--d,4s) ease-in-out infinite;animation-delay:var(--dl,0s)}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:.85;transform:scale(1) rotate(45deg)}}
+.tv-frame{position:absolute;inset:0;display:grid;grid-template-rows:auto 1fr auto;padding:calc(6.2vh + env(safe-area-inset-top,0px)) calc(6vw + env(safe-area-inset-right,0px)) calc(5.6vh + env(safe-area-inset-bottom,0px)) calc(6vw + env(safe-area-inset-left,0px));z-index:3}
+.tv-top{display:flex;justify-content:space-between;align-items:center;gap:2vw}
+.tv-brand{font-family:var(--f-num);font-weight:700;letter-spacing:.3em;color:var(--gold);font-size:2.3vh;line-height:1.3}
+.tv-brand small{display:block;letter-spacing:.22em;color:var(--rose);font-size:1.6vh;font-weight:600}
+.tv-clock{font-family:var(--f-num);font-weight:600;font-size:3.4vh;color:var(--cream);font-variant-numeric:tabular-nums;padding:.4vh 1.6vw;border-radius:99px;border:.25vh solid var(--line);background:rgba(25,10,28,.45)}
+.tv-center{display:grid;place-items:center;text-align:center;align-content:center;gap:1.8vh}
+.tv-eyebrow{font-family:var(--f-num);font-weight:600;letter-spacing:.5em;font-size:2.2vh;color:var(--rose)}
+.tv-eyebrow .suit{letter-spacing:.2em;margin:0 .6vw}
+.tv-title{font-family:var(--f-display);font-weight:400;font-size:9vh;line-height:1.08;margin:0;text-wrap:balance;filter:drop-shadow(0 .55vh 0 var(--wine)) drop-shadow(0 1.2vh 2vh rgba(0,0,0,.5))}
+.plaque{position:relative;display:grid;justify-items:center;gap:.4vh;padding:1.8vh 5vw 2.2vh;border-radius:5vh;
+  background:linear-gradient(180deg,rgba(25,10,28,.72),rgba(58,13,41,.72));border:.35vh solid var(--gold-deep);box-shadow:inset 0 0 0 .5vh rgba(25,10,28,.9),inset 0 0 0 .75vh rgba(242,205,120,.45),0 2vh 5vh rgba(0,0,0,.45)}
+.tv-next-label{font-size:2.5vh;color:var(--gold-pale);letter-spacing:.24em;font-weight:700}
+.tv-next{font-family:var(--f-num);font-weight:700;font-size:19vh;line-height:.95;color:var(--cream);font-variant-numeric:tabular-nums;text-shadow:0 0 4vh rgba(255,141,181,.35),0 .6vh 0 var(--wine)}
+.tv-next.off{font-size:6.4vh;color:var(--gold-pale);font-family:var(--f-display);font-weight:400;padding-block:1vh}
+#tv.soon .tv-next{color:var(--gold-pale);animation:soonPulse 1s ease-in-out infinite}
+#tv.soon .tv-next-label{color:var(--rose)}
+@keyframes soonPulse{50%{text-shadow:0 0 7vh rgba(255,141,181,.85),0 .6vh 0 var(--wine);transform:scale(1.03)}}
+.tv-next-at{font-size:2.4vh;color:var(--gold);font-weight:700}
+.tv-players-label{font-size:2vh;color:var(--mute);letter-spacing:.2em;font-weight:700;margin-top:.6vh}
+.tv-players{display:flex;flex-wrap:wrap;justify-content:center;gap:1.1vh 1vw;max-width:82vw}
+.chip{display:inline-flex;align-items:center;gap:.6vw;padding:.55vh 1.5vw .55vh .7vw;border-radius:99px;background:rgba(25,10,28,.6);border:.2vh solid var(--line);font-size:2.2vh;font-weight:900}
+.chip::before{content:"";width:2.2vh;height:2.2vh;border-radius:50%;flex:none;background:radial-gradient(circle,var(--rose-deep) 0 38%,#fff 40% 48%,var(--rose-deep) 50%);box-shadow:0 0 0 .2vh #fff inset}
+.chip.out{opacity:.35}
+.chip.note{color:var(--mute);font-weight:700}.chip.note::before{display:none}
+.tv-bottom{display:flex;align-items:center;gap:1.6vw;padding:1.1vh 1.4vw;border-radius:99px;overflow:hidden;background:rgba(25,10,28,.6);border:.25vh solid var(--line)}
+.tv-bottom .lab{font-family:var(--f-num);font-weight:700;letter-spacing:.22em;color:var(--ink-on-gold);background:linear-gradient(180deg,#ffe9a8,var(--gold) 55%,var(--gold-deep));font-size:1.8vh;white-space:nowrap;padding:.4vh 1.4vw;border-radius:99px}
+.ticker{flex:1;min-width:0;overflow:hidden;white-space:nowrap;font-size:2.2vh;font-weight:700;color:var(--cream);mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+.ticker-inner{display:inline-block;padding-left:100%;animation:tick 40s linear infinite}
+.ticker-inner > span{margin-right:5vw}
+.ticker-inner .rar{font-family:var(--f-num);font-weight:700;margin-right:.5em}
+@keyframes tick{to{transform:translateX(-100%)}}
+.staff-btn{position:absolute;right:calc(2.4vw + env(safe-area-inset-right,0px));bottom:calc(.4vh + env(safe-area-inset-bottom,0px));z-index:80;opacity:.5;padding:4px 14px;border-radius:99px;border:1px solid var(--line);background:rgba(25,10,28,.9);font-family:var(--f-num);font-weight:700;font-size:12px;letter-spacing:.2em;color:var(--gold-pale);transition:opacity .2s}
+.staff-btn:hover,.staff-btn:focus-visible{opacity:1}
+/* staff sheet: lets one phone (mirrored to the TV) run the whole night without leaving the TV view */
+.sheet{position:absolute;top:0;right:0;bottom:0;width:min(400px,64vw);z-index:85;overflow-y:auto;overscroll-behavior:contain;background:rgba(34,14,38,.97);border-left:1px solid var(--line);box-shadow:-20px 0 40px rgba(0,0,0,.5);
+  padding:calc(14px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) 16px;display:grid;gap:12px;align-content:start;font-size:14px;animation:shIn .25s ease-out}
+@keyframes shIn{from{transform:translateX(30px);opacity:0}}
+.sh-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sh-head b{font-family:var(--f-display);font-weight:400;font-size:18px}
+.sh-sec{display:grid;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--line-soft)}
+.sh-l{font-size:13px;font-weight:900;display:flex;justify-content:space-between;gap:8px}
+.sh-l span{color:var(--mute);font-weight:700}
+.sheet .btn.big{padding:13px;font-size:17px}
+.sheet .qchip{padding:7px 12px 7px 9px;font-size:13.5px}
+.rotate{position:absolute;inset:0;z-index:88;display:grid;place-items:center;align-content:center;text-align:center;background:rgba(25,10,28,.96);padding:24px}
+.rotate .ph{width:52px;height:88px;border:4px solid var(--gold);border-radius:12px;margin:0 auto 20px;animation:rot 2.2s ease-in-out infinite}
+@keyframes rot{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+.rotate b{font-family:var(--f-display);font-weight:400;font-size:22px;display:block;line-height:1.4}
+.rotate p{color:var(--mute);font-size:14px;margin:10px auto 18px;max-width:30em}
+.badge-test{position:absolute;top:6.4vh;left:6vw;z-index:60;background:var(--warn);color:var(--ink-on-gold);font-family:var(--f-num);font-weight:700;padding:.3vh 1.4vw;border-radius:99px;font-size:1.8vh;letter-spacing:.2em}
+
+#tvGate{position:absolute;inset:0;z-index:90;display:grid;place-items:center;background:rgba(25,10,28,.82);backdrop-filter:blur(6px)}
+#tvGate button{padding:3vh 5vw;border-radius:99px;border:.4vh solid var(--gold);background:linear-gradient(180deg,#8c2457,#3a0d29);font-family:var(--f-display);font-size:4vh;color:var(--gold-pale);box-shadow:0 0 0 1vh rgba(242,205,120,.12),0 2vh 4vh rgba(0,0,0,.5)}
+#tvGate p{color:var(--mute);font-size:2vh;margin-top:2.4vh;text-align:center}
+#tvGate .gate-tips{max-width:76vw;margin-inline:auto;padding:1.2vh 2vw;border-radius:1.6vh;border:1px solid var(--line);color:var(--gold-pale);font-size:max(11px,1.9vh);line-height:1.6}
+.sh-warn{color:var(--warn);font-weight:700}
+
+/* countdown overlay */
+#cd{position:absolute;inset:0;z-index:40;display:grid;place-items:center;background:radial-gradient(circle,rgba(90,19,56,.55),rgba(25,10,28,.94) 70%);pointer-events:none}
+#cd .cd-l{position:absolute;top:12vh;width:100%;text-align:center;font-family:var(--f-display);font-size:5vh;letter-spacing:.06em}
+.cd-ring{position:relative;width:62vh;height:62vh;display:grid;place-items:center}
+.cd-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.cd-ring circle{fill:none;stroke-width:2.6}
+.cd-ring .bg{stroke:rgba(242,205,120,.18)}
+.cd-ring .fg{stroke:var(--gold);stroke-linecap:round;stroke-dasharray:289;transition:stroke-dashoffset .1s linear;filter:drop-shadow(0 0 1.2vh rgba(242,205,120,.8))}
+#cdNum{font-family:var(--f-num);font-weight:700;font-size:34vh;line-height:1;color:var(--cream);text-shadow:0 0 6vh rgba(242,205,120,.6),0 1vh 0 var(--wine);font-variant-numeric:tabular-nums}
+#cdNum.pop{animation:cdpop .9s cubic-bezier(.2,1.6,.4,1)}
+#cd.hot{background:radial-gradient(circle,rgba(226,72,127,.55),rgba(25,10,28,.95) 70%);animation:cdHot 1s ease-in-out infinite}
+#cd.hot #cdNum{color:var(--gold-pale);text-shadow:0 0 9vh rgba(255,141,181,.95),0 1vh 0 var(--wine)}
+#cd.hot .fg{stroke:var(--rose)}
+@keyframes cdHot{50%{background-size:120% 120%;filter:brightness(1.15)}}
+@keyframes cdpop{0%{transform:scale(1.9);opacity:0}30%{opacity:1}100%{transform:scale(1)}}
+
+/* stage */
+#stage{position:absolute;inset:0;z-index:30;display:none;overflow:hidden}
+#stage.on{display:block}
+#stage.flash::after{content:"";position:absolute;inset:0;background:#fff;animation:flash .5s ease-out forwards;pointer-events:none;z-index:50}
+@keyframes flash{from{opacity:.85}to{opacity:0}}
+.shake{animation:shake .45s}
+@keyframes shake{20%{transform:translate(-1.2vh,.6vh)}40%{transform:translate(1vh,-.8vh)}60%{transform:translate(-.6vh,-.4vh)}80%{transform:translate(.5vh,.5vh)}}
+.st-bg{position:absolute;inset:0;z-index:0;pointer-events:none}
+.beam{position:absolute;top:-10vh;width:40vh;height:130vh;transform-origin:50% 0;background:linear-gradient(180deg,rgba(255,240,200,.22),rgba(255,240,200,0) 85%);clip-path:polygon(44% 0,56% 0,100% 100%,0 100%);mix-blend-mode:screen}
+.beam.b1{left:8vw;animation:sway 6s ease-in-out infinite alternate}
+.beam.b2{right:8vw;animation:sway 6s ease-in-out infinite alternate-reverse}
+@keyframes sway{from{transform:rotate(-24deg)}to{transform:rotate(18deg)}}
+.vig{position:absolute;inset:0;pointer-events:none;z-index:4;box-shadow:inset 0 0 0 0 rgba(226,72,127,0);transition:box-shadow .15s}
+.vig.beat{box-shadow:inset 0 0 18vh 4vh rgba(226,72,127,.5)}
+.st-head{position:absolute;top:6.6vh;left:0;right:0;text-align:center;z-index:6;transition:opacity .3s}
+.st-step{font-family:var(--f-num);font-weight:600;letter-spacing:.42em;color:var(--rose);font-size:2.3vh}
+.st-q{font-family:var(--f-display);font-size:6.2vh;line-height:1.15;margin-top:.4vh;filter:drop-shadow(0 .45vh 0 var(--wine))}
+.st-q.in{animation:qin .7s cubic-bezier(.2,1.4,.4,1)}
+@keyframes qin{from{transform:translateY(-3vh) scale(1.2);opacity:0}}
+
+/* opening curtain */
+.curtain{position:absolute;top:0;bottom:0;width:51%;z-index:46;transition:transform 1.2s cubic-bezier(.7,0,.25,1);
+  background:linear-gradient(180deg,rgba(0,0,0,.25),transparent 12%),repeating-linear-gradient(90deg,#6b1640 0 2vw,#8f2456 3.2vw,#5a1338 5vw,#4a0f2e 6vw);box-shadow:inset 0 -2.6vh 0 -1vh var(--gold-deep)}
+.curtain::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3vh;background:repeating-linear-gradient(90deg,var(--gold) 0 .5vw,transparent .5vw 1vw);opacity:.9}
+.curtain.l{left:0}.curtain.r{right:0}
+#stage.opened .curtain.l{transform:translateX(-102%)}
+#stage.opened .curtain.r{transform:translateX(102%)}
+.open-title{position:absolute;inset:0;z-index:47;display:grid;place-items:center;align-content:center;gap:2vh;text-align:center;transition:opacity .5s,transform .6s}
+#stage.opened .open-title{opacity:0;transform:scale(1.3)}
+.ribbon{display:inline-block;position:relative;padding:.8vh 5vw;font-family:var(--f-num);font-weight:700;letter-spacing:.4em;font-size:2.8vh;color:var(--ink-on-gold);
+  background:linear-gradient(180deg,#ffe9a8,var(--gold) 55%,var(--gold-deep));clip-path:polygon(0 0,100% 0,96% 50%,100% 100%,0 100%,4% 50%)}
+.ot-main{font-family:var(--f-display);font-size:11vh;line-height:1.1;animation:otIn 1s cubic-bezier(.2,1.5,.35,1) both;filter:drop-shadow(0 .7vh 0 var(--wine)) drop-shadow(0 1.4vh 3vh rgba(0,0,0,.6))}
+.ot-sub{font-size:3vh;font-weight:900;color:var(--gold-pale);animation:qin .6s .5s both}
+@keyframes otIn{0%{transform:scale(.2) rotate(-8deg);opacity:0}100%{transform:none;opacity:1}}
+
+/* table */
+.table-wrap{position:absolute;left:50%;top:57%;transform:translate(-50%,-50%);width:min(84vw,128vh);aspect-ratio:16/8.4;z-index:2}
+.felt{position:absolute;left:14%;right:14%;top:16%;bottom:16%;border-radius:50%;
+  background:radial-gradient(ellipse at 50% 38%,#a8346a,#7a1d4a 55%,#4f1131);
+  box-shadow:0 0 0 1.5vh #3b1a10,0 0 0 1.9vh var(--gold-deep),0 0 0 2.3vh #2a120b,0 3vh 6vh rgba(0,0,0,.6),inset 0 0 6vh rgba(0,0,0,.45)}
+.felt::after{content:"";position:absolute;inset:7%;border-radius:50%;border:.3vh dashed rgba(255,240,200,.32)}
+.felt-logo{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:.4vh;text-align:center;font-family:var(--f-num);font-weight:700;letter-spacing:.3em;color:rgba(255,240,200,.35);font-size:5.6vh;line-height:1}
+.felt-logo small{font-size:2vh;letter-spacing:.6em;color:rgba(255,240,200,.3)}
+.felt-logo.say{font-family:var(--f-display);font-weight:400;letter-spacing:.04em;color:var(--gold-pale);font-size:6vh;animation:sayIn .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes sayIn{from{transform:scale(.4);opacity:0}}
+.seat{position:absolute;transform:translate(-50%,-50%);min-width:10vw;max-width:17vw;padding:1.1vh 1.4vw;border-radius:2vh;text-align:center;
+  background:linear-gradient(180deg,#3d1840,#240e28);border:.3vh solid rgba(242,205,120,.35);
+  font-weight:900;font-size:3.3vh;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .12s,opacity .5s,filter .5s;box-shadow:0 1vh 2vh rgba(0,0,0,.4)}
+.seat .no{display:block;font-family:var(--f-num);font-size:1.5vh;color:var(--rose);letter-spacing:.2em;font-weight:600}
+.seat.hot{background:linear-gradient(180deg,#fffbe9,var(--gold) 55%,var(--gold-deep));color:var(--ink-on-gold);border-color:#fff;transform:translate(-50%,-50%) scale(1.16);
+  box-shadow:0 0 3vh rgba(255,236,170,.95),0 0 9vh rgba(255,141,181,.55)}
+.seat.hot .no{color:var(--velvet)}
+.seat.dim{opacity:.16;filter:grayscale(1)}
+.seat.win{animation:winpulse .6s ease-in-out infinite alternate;overflow:visible}
+@keyframes winpulse{to{box-shadow:0 0 5vh #fff,0 0 13vh var(--rose)}}
+.crown{position:absolute;left:50%;top:-5.4vh;transform:translateX(-50%);font-size:5vh;line-height:1;color:var(--gold);filter:drop-shadow(0 .4vh 0 var(--wine));animation:crownIn .7s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes crownIn{from{transform:translate(-50%,-6vh) scale(.3);opacity:0}}
+.spot{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .4s;
+  background:radial-gradient(circle at var(--sx,50%) var(--sy,50%),transparent 0 9vh,rgba(25,10,28,.78) 22vh)}
+.spot.on{opacity:1}
+
+/* reel (many players) */
+.reel{position:absolute;left:50%;top:57%;transform:translate(-50%,-50%);width:min(70vw,110vh);height:38vh;overflow:hidden;border-radius:3vh;z-index:2;
+  background:linear-gradient(180deg,#14061a,#3a1240 50%,#14061a);box-shadow:0 0 0 1vh #3b1a10,0 0 0 1.4vh var(--gold-deep),0 3vh 6vh rgba(0,0,0,.6)}
+.reel::before,.reel::after{content:"";position:absolute;left:0;right:0;height:12vh;z-index:2;pointer-events:none}
+.reel::before{top:0;background:linear-gradient(#14061a,transparent)}
+.reel::after{bottom:0;background:linear-gradient(transparent,#14061a)}
+.reel-line{position:absolute;left:3%;right:3%;top:50%;height:12vh;transform:translateY(-50%);border:.4vh solid var(--gold);border-radius:2vh;z-index:3;box-shadow:0 0 3vh rgba(242,205,120,.55),inset 0 0 3vh rgba(255,141,181,.25)}
+.reel-strip{position:absolute;left:0;right:0;top:0;will-change:transform}
+.reel-item{height:12vh;display:grid;place-items:center;font-family:var(--f-display);font-size:6vh;white-space:nowrap}
+
+/* winner splash */
+.splash{position:absolute;inset:0;z-index:20;display:grid;place-items:center;align-content:center;gap:1.2vh;text-align:center;pointer-events:none}
+.splash .sp-crown{font-size:10vh;line-height:1;color:var(--gold);filter:drop-shadow(0 .6vh 0 var(--wine));animation:crownIn .8s cubic-bezier(.2,1.6,.4,1) both}
+.splash .nm{font-family:var(--f-display);font-size:15vh;line-height:1.05;max-width:90vw;overflow-wrap:anywhere;filter:drop-shadow(0 .8vh 0 var(--wine)) drop-shadow(0 1.6vh 3vh rgba(0,0,0,.55))}
+.splash .nm span{display:inline-block;animation:drop .7s cubic-bezier(.2,1.7,.4,1) both}
+@keyframes drop{0%{transform:translateY(-40vh) rotate(-20deg);opacity:0}60%{opacity:1}100%{transform:none}}
+.splash .san{font-size:4.6vh;font-family:var(--f-display);color:var(--cream);animation:qin .6s both;animation-delay:var(--sd,1s)}
+.rays{position:absolute;left:50%;top:50%;width:220vmax;height:220vmax;transform:translate(-50%,-50%);z-index:1;pointer-events:none;opacity:0;
+  background:repeating-conic-gradient(from 0deg,rgba(242,205,120,.16) 0 6deg,transparent 6deg 12deg,rgba(255,141,181,.12) 12deg 18deg,transparent 18deg 24deg);animation:spin 20s linear infinite}
+.rays.on{opacity:1;transition:opacity .6s}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+/* stage 2 */
+.for-who{font-size:3vh;color:var(--cream);margin-top:.6vh;font-weight:700}
+.for-who b{color:var(--gold);font-family:var(--f-display);font-weight:400;font-size:3.6vh}
+.aura{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity .6s,background .6s}
+.aura.on{opacity:1}
+.cards{position:absolute;left:50%;top:54%;width:min(84vw,120vh);height:46vh;transform:translate(-50%,-50%);z-index:5}
+.card{position:absolute;top:0;width:26%;height:100%;left:37%;perspective:160vh;transition:left .3s cubic-bezier(.5,0,.3,1),transform .45s,opacity .5s,filter .5s;background:none;border:0;padding:0}
+.card .ci{position:absolute;inset:0;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.3,1.4,.4,1)}
+.card.flip .ci{transform:rotateY(180deg)}
+.card .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:2.6vh;overflow:hidden;display:grid;place-items:center}
+.card .back{background:
+   radial-gradient(circle at 50% 50%,#5a1338 0 17%,var(--gold) 17.5% 19%,transparent 19.5%),
+   repeating-conic-gradient(from 0deg at 50% 50%,rgba(242,205,120,.2) 0 7.5deg,transparent 7.5deg 15deg),
+   repeating-linear-gradient(45deg,#7a1d4a 0 1.3vh,#651640 1.3vh 2.6vh);
+  border:.8vh solid var(--cream);box-shadow:inset 0 0 0 .5vh var(--gold-deep),0 2vh 4vh rgba(0,0,0,.6)}
+.card .back::before{content:"♥\FE0E";position:absolute;top:2vh;left:1.6vw;font-size:3vh;color:var(--gold-pale)}
+.card .back::after{content:"9";font-family:var(--f-num);font-weight:700;font-size:11vh;line-height:1;color:var(--gold-pale);text-shadow:0 .4vh 0 rgba(0,0,0,.4)}
+.card .front{transform:rotateY(180deg);align-content:center;gap:1.4vh;padding:2vh 1.4vw;text-align:center;background:linear-gradient(180deg,#fffaf0,#f6e6cf);color:#3a1a2a;border:.8vh solid var(--rc,var(--gold));box-shadow:inset 0 0 0 .5vh #fff}
+.card .front .rk{font-family:var(--f-num);font-weight:700;font-size:7.4vh;line-height:1;color:var(--rc,var(--gold));-webkit-text-stroke:.25vh #3a1a2a;paint-order:stroke fill}
+.card .front .pz{font-family:var(--f-display);font-size:3.4vh;line-height:1.3;overflow-wrap:anywhere;word-break:auto-phrase}
+.card.miss .front{background:linear-gradient(180deg,#e9e2e6,#cfc4ca)}
+.card.ur .front{background:linear-gradient(135deg,#ffd6ef,#fff3c4 30%,#cffff0 55%,#d6e2ff 80%,#ffd6ef);background-size:300% 300%;animation:holo 3s linear infinite;border-color:#fff}
+@keyframes holo{to{background-position:300% 300%}}
+.card.bob .ci{animation:bob 1.6s ease-in-out infinite;animation-delay:var(--bd,0s)}
+@keyframes bob{50%{transform:translateY(-1.4vh) rotate(1deg)}}
+.card.pickable{cursor:pointer}
+.card.pickable:hover{transform:translateY(-2vh)}
+.card.lift{transform:translateY(-2vh) scale(1.18);z-index:4}
+.card.fade{opacity:.4;filter:grayscale(.6);transform:translateY(4vh) scale(.9)}
+.card.glow .back{box-shadow:inset 0 0 0 .5vh var(--gold-deep),0 0 5vh var(--rc,var(--gold)),0 0 1.5vh var(--rc,var(--gold)),0 2vh 4vh rgba(0,0,0,.6)}
+.pick-bar{position:absolute;left:50%;bottom:7.5vh;transform:translateX(-50%);width:min(60vw,90vh);text-align:center;z-index:6}
+.pick-bar p{font-family:var(--f-display);font-size:3.2vh;margin:0 0 1.2vh}
+.pick-track{height:1.2vh;border-radius:1vh;background:rgba(255,240,200,.14);overflow:hidden}
+.pick-fill{height:100%;background:linear-gradient(90deg,var(--rose),var(--gold));transform-origin:left;width:100%}
+.stamp{position:absolute;left:50%;top:50%;z-index:44;pointer-events:none;font-family:var(--f-display);font-size:17vh;line-height:1;white-space:nowrap;color:var(--sc,#fff);
+  -webkit-text-stroke:1vh #fff;paint-order:stroke fill;filter:drop-shadow(0 1vh 0 var(--wine)) drop-shadow(0 0 4vh var(--sc,#fff));animation:stampIn 1.25s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes stampIn{0%{transform:translate(-50%,-50%) scale(3) rotate(-14deg);opacity:0}18%{transform:translate(-50%,-50%) scale(1) rotate(-8deg);opacity:1}80%{opacity:1;transform:translate(-50%,-50%) scale(1.04) rotate(-8deg)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.15) rotate(-8deg)}}
+.kakutei{position:absolute;inset:0;z-index:45;display:none;place-items:center;background:#0c0410}
+.kakutei.on{display:grid}
+.kakutei span{font-family:var(--f-display);font-size:26vh;background:linear-gradient(90deg,#ff6fc8,#ffd35f,#5fffd2,#62b6ff,#ff6fc8);background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:kk .5s linear infinite, glitch .18s steps(2) infinite}
+@keyframes kk{to{background-position:200% 0}}
+@keyframes glitch{50%{transform:translate(.6vh,-.4vh) skewX(-4deg)}}
+.result{position:absolute;left:50%;bottom:5.6vh;transform:translateX(-50%);z-index:12;width:min(84vw,136vh);text-align:center;display:grid;gap:.6vh;justify-items:center;animation:resIn .7s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes resIn{from{transform:translate(-50%,5vh) scale(.8);opacity:0}}
+.result .l1{font-size:2.8vh;font-weight:900;color:var(--gold-pale)}
+.result .l2{font-family:var(--f-display);font-size:5.2vh;line-height:1.2;color:var(--ink-on-gold);padding:1.2vh 6vw;max-width:100%;overflow-wrap:anywhere;
+  background:linear-gradient(180deg,#fffbe9,var(--gold) 60%,var(--gold-deep));clip-path:polygon(0 0,100% 0,97% 50%,100% 100%,0 100%,3% 50%)}
+.result .l2 em{font-style:normal;font-family:var(--f-num);font-weight:700;margin-right:.4em;color:var(--velvet)}
+.result.miss .l2{background:linear-gradient(180deg,#f3eaee,#c9bcc3);color:#3a1a2a}
+.ending{position:absolute;inset:0;z-index:15;display:grid;place-items:center;align-content:center;gap:1.4vh;text-align:center;animation:qin .7s both}
+.ending .e1{font-size:3.4vh;font-weight:900;color:var(--gold-pale)}
+.ending .e2{font-family:var(--f-num);font-weight:700;font-size:20vh;line-height:1;font-variant-numeric:tabular-nums;filter:drop-shadow(0 .8vh 0 var(--wine))}
+.ending .e3{font-size:2.8vh;color:var(--mute);font-weight:700}
+#fx{position:absolute;inset:0;z-index:55;pointer-events:none}
+.toast-tv{position:absolute;left:50%;top:16vh;transform:translateX(-50%);z-index:70;background:rgba(25,10,28,.9);border:.25vh solid var(--warn);color:var(--cream);padding:1.4vh 2.4vw;border-radius:99px;font-size:2.4vh;font-weight:700}
+
+/* ===== Admin ===== */
+#admin{min-height:100%;background:linear-gradient(180deg,var(--night-2),var(--night) 420px)}
+.adm-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:rgba(34,14,38,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.adm-top-in{max-width:760px;margin:0 auto;padding-block:12px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:10px}
+.adm-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.adm-head h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:21px;line-height:1.2}
+.adm-head h1 small{display:block;font-family:var(--f-num);font-weight:600;font-size:11px;letter-spacing:.3em;color:var(--rose)}
+.adm{max-width:760px;margin:0 auto;padding-block:18px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--mute)}
+.pill.ok::before{background:var(--ok)}.pill.warn::before{background:var(--warn)}
+.back-tv{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:12px;border:1px solid var(--rose);background:rgba(226,72,127,.2);color:var(--cream);font-weight:900;font-size:13px;line-height:1.5}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-inline:-6px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:9px 12px 11px;background:none;border:0;border-bottom:3px solid transparent;color:var(--mute);font-weight:900;font-size:14px}
+.tab[aria-selected="true"]{color:var(--gold-pale);border-bottom-color:var(--rose)}
+.tab .cnt{font-family:var(--f-num);font-weight:600;margin-left:5px;padding:0 7px;border-radius:99px;background:var(--panel-2);color:var(--gold);font-size:12px}
+.sec{display:grid;gap:14px}
+.box{background:var(--panel);border:1px solid var(--line-soft);border-radius:18px;padding:16px;display:grid;gap:12px}
+.box h2{margin:0;font-size:15px;font-weight:900;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.box h2 .hint{font-weight:700;font-size:12px;color:var(--mute)}
+.help{font-size:13px;color:var(--mute);margin:0}
+.btn{padding:10px 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel-2);font-weight:900;font-size:14px;transition:border-color .15s,transform .1s}
+.btn:hover{border-color:var(--gold)}
+.btn:active{transform:scale(.98)}
+.btn.gold{background:linear-gradient(180deg,#ffeab0,var(--gold) 50%,var(--gold-deep));color:var(--ink-on-gold);border-color:var(--gold)}
+.btn.rose{background:linear-gradient(180deg,#ff9fc2,var(--rose-deep));color:#fff;border-color:var(--rose)}
+.btn.red{border-color:rgba(255,107,138,.5);color:#ffb3c4}
+.btn.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn.big{padding:18px;font-size:19px;font-family:var(--f-display);font-weight:400;width:100%}
+.btn.sm{padding:7px 12px;font-size:13px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row > .grow{flex:1;min-width:0}
+input[type=text],input[type=number]{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--field);color:var(--cream);font:inherit;font-size:16px}
+input[type=number]{font-variant-numeric:tabular-nums;font-family:var(--f-num)}
+.empty{padding:18px;text-align:center;color:var(--mute);border:1.5px dashed var(--line);border-radius:14px;font-size:14px}
+
+/* now */
+.hero{position:relative;overflow:hidden;border-radius:22px;padding:18px 18px 16px;display:grid;gap:4px;border:1px solid var(--line)}
+.hero .eb{font-size:12px;font-weight:900;letter-spacing:.14em;color:var(--rose)}
+.hero .bigt{font-family:var(--f-num);font-weight:700;font-size:44px;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--gold-pale)}
+.hero .bigt.txt{font-family:var(--f-display);font-weight:400;font-size:26px;line-height:1.3;overflow-wrap:anywhere}
+.hero .sub{font-size:14px;font-weight:700;color:var(--cream)}
+.hero.live{border-color:var(--rose);box-shadow:0 0 0 3px rgba(255,141,181,.18)}
+.checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ck{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:900;padding:5px 10px;border-radius:99px;background:rgba(25,10,28,.55);border:1px solid var(--line-soft);color:var(--cream)}
+.ck::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.ck.ng{color:var(--warn);border-color:rgba(255,197,107,.45)}.ck.ng::before{background:var(--warn)}
+.ck.off::before{background:var(--mute)}
+button.ck{cursor:pointer}
+.qs{display:flex;flex-wrap:wrap;gap:8px}
+.qchip{display:inline-flex;align-items:center;gap:7px;padding:8px 14px 8px 10px;border-radius:99px;border:1.5px solid var(--line-soft);background:var(--panel-2);font-weight:900;font-size:14px;max-width:100%}
+.qchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.qchip::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:var(--mute);opacity:.5}
+.qchip[aria-pressed="true"]{border-color:var(--ok);background:rgba(111,224,166,.12)}
+.qchip[aria-pressed="true"]::before{background:var(--ok);opacity:1}
+.qchip[aria-pressed="false"]{color:var(--mute)}
+.pick-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pick-btns .btn{padding:16px 8px;font-size:16px}
+.lastw{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:700;color:var(--mute);min-width:0}
+.lastw b{color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+
+/* players */
+.plist{display:grid;gap:6px}
+.prow{display:flex;align-items:center;gap:6px;padding:4px;border-radius:14px;background:var(--panel-2);border:1px solid transparent}
+.prow.off{background:transparent;border-color:var(--line-soft)}
+.prow .tgl{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:8px 10px;background:none;border:0;border-radius:10px;text-align:left}
+.prow .tgl .nm{flex:1;min-width:0;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow.off .tgl .nm{color:var(--mute)}
+.state{font-size:12px;font-weight:900;padding:3px 10px;border-radius:99px;white-space:nowrap;background:rgba(111,224,166,.15);color:var(--ok);border:1px solid rgba(111,224,166,.5)}
+.prow.off .state{background:none;color:var(--mute);border-color:var(--line-soft)}
+.x{background:none;border:1px solid transparent;border-radius:10px;padding:8px 10px;color:var(--mute);font-size:13px;font-weight:700;white-space:nowrap}
+.x:hover{border-color:var(--line)}
+
+/* prizes */
+.odds{display:grid;gap:8px}
+.pbar{display:flex;height:16px;border-radius:99px;overflow:hidden;background:var(--field);border:1px solid var(--line-soft)}
+.pbar i{display:block;height:100%;background:var(--rc);transition:width .25s}
+.pbar i + i{box-shadow:inset 2px 0 0 var(--panel)}
+.olist{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;font-weight:700;color:var(--mute)}
+.olist span{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.olist i{width:9px;height:9px;border-radius:3px;background:var(--rc);flex:none}
+.olist b{font-family:var(--f-num);font-weight:600;color:var(--cream);font-variant-numeric:tabular-nums}
+.prize{display:grid;gap:10px;padding:12px;border-radius:16px;background:var(--panel-2);border:1px solid var(--line-soft);box-shadow:inset 4px 0 0 var(--rc,var(--gold))}
+.prize.disabled{opacity:.55}
+.pz-top,.pz-mid{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pz-top .pz-name{flex:1;min-width:0}
+.pz-mid{justify-content:space-between}
+.seg{display:inline-flex;padding:3px;border-radius:12px;background:var(--field);border:1px solid var(--line-soft);gap:2px}
+.seg button{min-width:44px;padding:7px 8px;border:0;border-radius:9px;background:none;font-family:var(--f-num);font-weight:700;font-size:14px;color:var(--mute)}
+.seg button[aria-pressed="true"]{background:var(--rc);color:#1d0b1a}
+.step{display:inline-flex;align-items:center;gap:4px}
+.step button{width:38px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--field);font-size:18px;font-weight:900;line-height:1}
+.step input{width:72px;text-align:center}
+.step label{font-size:12px;font-weight:900;color:var(--mute);margin-right:2px}
+.pz-bot{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pct{font-size:12.5px;font-weight:700;color:var(--mute)}
+.pct b{font-family:var(--f-num);font-weight:600;font-size:18px;color:var(--cream);font-variant-numeric:tabular-nums;margin-left:4px}
+.tg{position:relative;flex:none;width:52px;height:30px;border-radius:99px;border:1px solid var(--line);background:var(--field);padding:0}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--mute);transition:transform .18s,background .18s}
+.tg[aria-checked="true"]{background:rgba(111,224,166,.22);border-color:var(--ok)}
+.tg[aria-checked="true"]::after{transform:translateX(22px);background:var(--ok)}
+.mh{display:grid;gap:14px}
+.mh-g{display:grid;gap:8px}
+.mh-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mh-h b{font-family:var(--f-display);font-weight:400;font-size:19px;color:var(--gold-pale)}
+.mh-h span{font-size:12px;font-weight:700;color:var(--mute);margin-right:auto}
+.setrow{display:flex;align-items:center;gap:12px;justify-content:space-between}
+.setrow .t{display:grid;gap:2px;min-width:0}
+.setrow .t b{font-size:15px;font-weight:900}
+.rar-legend{display:flex;gap:6px 12px;flex-wrap:wrap;font-size:12px;font-weight:700;color:var(--mute)}
+.rar-legend span{display:inline-flex;align-items:center;gap:5px}
+.rar-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+/* settings */
+.field{display:grid;gap:8px}
+.field > label{font-size:13.5px;font-weight:900}
+.presets{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.presets button{padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:var(--field);font-family:var(--f-num);font-weight:600;font-size:14px}
+.presets button[aria-pressed="true"]{background:var(--gold);color:var(--ink-on-gold);border-color:var(--gold)}
+.presets input{width:84px}
+.unit{font-size:13px;font-weight:700;color:var(--mute)}
+
+/* history */
+.hsum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hsum div{padding:10px 12px;border-radius:14px;background:var(--panel-2);display:grid;gap:0}
+.hsum span{font-size:12px;font-weight:700;color:var(--mute)}
+.hsum b{font-family:var(--f-num);font-weight:600;font-size:24px;font-variant-numeric:tabular-nums}
+.hist{display:grid;gap:4px}
+.hday{font-size:12px;font-weight:900;color:var(--rose);letter-spacing:.1em;padding:8px 2px 2px}
+.hrow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;border-radius:12px;background:var(--panel-2);font-size:14px}
+.hrow time{font-family:var(--f-num);font-weight:600;font-size:15px;color:var(--mute);font-variant-numeric:tabular-nums}
+.hrow .who{font-weight:900;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow .what{font-size:13px;text-align:right;font-weight:700;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rtag{font-family:var(--f-num);font-weight:700;padding:1px 7px;border-radius:6px;font-size:12px;color:#1d0b1a;background:var(--rc)}
+.save-note{font-size:12px;font-weight:700;color:var(--ok);min-height:1em}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#2f1434;border:1px solid var(--gold);padding:10px 12px 10px 16px;border-radius:14px;z-index:99;font-size:14px;font-weight:700;max-width:calc(100% - 32px);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.toast button{flex:none;padding:6px 12px;border-radius:10px;border:0;background:var(--gold);color:var(--ink-on-gold);font-weight:900;font-size:13px}
+.pin-dlg{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px));background:rgba(25,10,28,.88);backdrop-filter:blur(6px)}
+.pin-box{width:min(380px,100%);display:grid;gap:12px;padding:22px;border-radius:20px;background:var(--panel);border:1px solid var(--gold-deep);font-size:15px}
+.pin-box b{font-family:var(--f-display);font-weight:400;font-size:22px}
+.pin-box p{margin:0;color:var(--mute);font-size:14px}
+.pin-box input{font-family:var(--f-num);font-size:28px;letter-spacing:.4em;text-align:center}
+.pin-err{color:var(--bad)!important;font-weight:700;min-height:1.2em}
+@media (prefers-reduced-motion:reduce){.shake,.kakutei span,.rays,.beam,.spark,.card.bob .ci,.card.ur .front,#tv.soon .tv-next{animation:none!important}.ticker-inner{animation-duration:90s}.bulbs i::before,.bulbs i::after{animation-duration:3s!important}}
+</style>
+
+<!-- ============ LAUNCH ============ -->
+<section id="launch" class="view velvet">
+  <div class="launch-box">
+    <div class="brand-sm"><span class="suit">♠&#xFE0E;♥&#xFE0E;</span> 9HIGH FUKUYAMA <span class="suit">♦&#xFE0E;♣&#xFE0E;</span></div>
+    <h1 class="launch-title"><small>リングゲーム</small><span class="foil">ラッキーアワー</span></h1>
+    <p class="launch-sub">1時間に1回、着席中のプレイヤーから1人を抽選。<br>当たった人がカードを1枚えらんで景品が決まります。</p>
+    <div class="launch-btns">
+      <button class="launch-btn primary" id="goTv"><b>テレビ画面</b><span>店内のテレビに映す抽選ショー。スマホ1台でもOK</span></button>
+      <button class="launch-btn" id="goAdmin"><b>スタッフ管理</b><span>着席・景品・確率・時刻の設定</span></button>
+    </div>
+    <div class="conn" id="connLaunch">接続を確認しています…</div>
+  </div>
+</section>
+
+<!-- ============ TV ============ -->
+<section id="tv" class="view velvet" hidden>
+  <div class="sparks" id="tvSparks"></div>
+  <div class="tv-frame">
+    <div class="tv-top">
+      <div class="tv-brand">9HIGH FUKUYAMA<small>RING GAME · LUCKY HOUR</small></div>
+      <div class="tv-clock" id="tvClock">--:--</div>
+    </div>
+    <div class="tv-center">
+      <div class="tv-eyebrow"><span class="suit">♠&#xFE0E;</span>EVERY HOUR<span class="suit">♥&#xFE0E;</span></div>
+      <h2 class="tv-title foil" id="tvTitle">毎時ラッキーアワー</h2>
+      <div class="plaque">
+        <div class="tv-next-label" id="tvNextLabel">次の抽選まで</div>
+        <div class="tv-next" id="tvNext">--:--</div>
+      </div>
+      <div class="tv-next-at" id="tvNextAt"></div>
+      <div class="tv-players-label" id="tvPlayersLabel"></div>
+      <div class="tv-players" id="tvPlayers"></div>
+    </div>
+    <div class="tv-bottom">
+      <div class="lab">WINNERS</div>
+      <div class="ticker"><div class="ticker-inner" id="tvTicker"></div></div>
+    </div>
+  </div>
+  <button class="staff-btn" id="tvStaff" aria-haspopup="dialog" aria-controls="tvSheet">STAFF</button>
+  <div class="sheet" id="tvSheet" role="dialog" aria-label="スタッフメニュー" hidden>
+    <div class="sh-head"><b>スタッフメニュー</b><button class="btn sm" id="shClose">閉じる</button></div>
+    <div class="sh-sec">
+      <button class="btn gold big" id="shDraw">今すぐ抽選</button>
+      <button class="btn sm" id="shTest">テスト抽選（履歴に残さない）</button>
+    </div>
+    <div class="sh-sec">
+      <div class="sh-l">着席チェック<span id="shSum"></span></div>
+      <div class="qs" id="shSeats"></div>
+      <div class="row"><input class="grow" type="text" id="shAdd" placeholder="名前を追加（、で複数）" autocomplete="off" enterkeyhint="done"><button class="btn sm gold" id="shAddBtn">追加</button></div>
+    </div>
+    <div class="sh-sec">
+      <div class="setrow"><div class="t"><b>毎時の自動抽選</b><span class="help" id="shNext"></span></div><button class="tg" role="switch" id="shAuto" aria-label="毎時の自動抽選"></button></div>
+      <div class="setrow"><div class="t"><b>演出を短めにする</b></div><button class="tg" role="switch" id="shShort" aria-label="演出を短めにする"></button></div>
+      <div class="setrow"><div class="t"><b>並の景品を使う</b><span class="help" id="shNamiN"></span></div><button class="tg" role="switch" id="shNami" data-mhset="並" aria-label="並の景品を使う"></button></div>
+      <div class="setrow"><div class="t"><b>極の景品を使う</b><span class="help" id="shKiwamiN"></span></div><button class="tg" role="switch" id="shKiwami" data-mhset="極" aria-label="極の景品を使う"></button></div>
+    </div>
+    <div class="row"><button class="btn sm" id="tvMute">音: ON</button><button class="btn sm" id="tvFull">全画面</button><button class="btn sm" id="tvToAdmin">くわしい設定へ</button></div>
+    <p class="help sh-warn" id="shWarn" hidden>このスマホでは画面のスリープを止められませんでした。自動ロックを「なし」にしてください。画面が消えると自動抽選が止まります。</p>
+    <p class="help">iPhone 1台で使うときは、自動ロック「なし」、集中モードをオン（通知がテレビに映るのを防ぐ）、充電しながら、ほかのアプリに切り替えない、の4つを守ってください。</p>
+    <p class="help">景品・確率・履歴は「くわしい設定」で変えられます。開いている間はこのスマホの自動抽選が止まるので、終わったら「テレビ画面」に戻ってください。メニューは25秒さわらないと自動で閉じます。</p>
+  </div>
+  <div class="rotate" id="tvRotate" hidden>
+    <div><div class="ph" aria-hidden="true"></div><b>スマホを横向きにしてください</b>
+    <p>テレビにミラーリング（AirPlay など）で映すときは、横向きにすると画面いっぱいに映ります。</p>
+    <button class="btn sm" id="tvRotateOk">このまま使う</button></div>
+  </div>
+  <div id="cd" hidden>
+    <div class="cd-l foil">ラッキーアワー抽選まで</div>
+    <div class="cd-ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="bg" cx="50" cy="50" r="46"></circle><circle class="fg" id="cdRing" cx="50" cy="50" r="46"></circle></svg><div id="cdNum">10</div></div>
+  </div>
+  <div id="stage"></div>
+  <canvas id="fx"></canvas>
+  <div class="bulbs" aria-hidden="true"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i></div>
+  <div id="tvGate">
+    <div style="text-align:center">
+      <button id="tvStart">タップしてテレビモード開始</button>
+      <p>音と全画面を有効にするため、最初に1回だけタップしてください。<br>スマホ1台で使うときは、横向きにしてテレビへミラーリングし、右下の「STAFF」から操作します。</p>
+      <p class="gate-tips">スマホ1台で使う前に：設定 →「画面表示と明るさ」→ 自動ロックを「なし」に ／ 集中モードをオン（通知がテレビに映らないように） ／ 充電しながら使う ／ ほかのアプリに切り替えない（自動抽選が止まります）</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ADMIN ============ -->
+<section id="admin" class="view" hidden>
+  <div class="adm-top">
+    <div class="adm-top-in">
+      <div class="adm-head">
+        <h1><small>STAFF CONSOLE</small>ラッキーアワー管理</h1>
+        <div class="row">
+          <span class="pill" id="connPill">接続中…</span>
+          <button class="btn sm" id="admToTv">テレビ画面</button>
+        </div>
+      </div>
+      <button class="back-tv" id="admBack" hidden>テレビ画面に戻る ・ このスマホでテレビを映しているなら、戻らないと自動抽選が止まったままです</button>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="draw" aria-selected="true">いま</button>
+        <button class="tab" role="tab" data-tab="players" aria-selected="false">参加者<span class="cnt" id="cntPlayers">0</span></button>
+        <button class="tab" role="tab" data-tab="prizes" aria-selected="false">景品・確率</button>
+        <button class="tab" role="tab" data-tab="settings" aria-selected="false">設定</button>
+        <button class="tab" role="tab" data-tab="history" aria-selected="false">履歴</button>
+      </div>
+    </div>
+  </div>
+  <div class="adm">
+
+    <!-- draw -->
+    <div class="sec" data-pane="draw">
+      <div class="hero velvet" id="admStatus"></div>
+      <div class="box" id="pickBox" hidden>
+        <h2>カードを開く<span class="hint">当選者が指さしたカードを押す</span></h2>
+        <div class="pick-btns">
+          <button class="btn gold" data-pick="0">左</button>
+          <button class="btn gold" data-pick="1">真ん中</button>
+          <button class="btn gold" data-pick="2">右</button>
+        </div>
+        <p class="help">テレビのカードを直接タップしても開きます。20秒たつと自動で1枚開きます。</p>
+      </div>
+      <div class="box">
+        <h2><span>着席チェック</span><span class="hint" id="qsSum"></span></h2>
+        <div class="qs" id="qsList"></div>
+        <p class="help">名前をタップすると「着席 ⇄ 離席」が切り替わります。緑の人だけが抽選対象です。</p>
+      </div>
+      <div class="box">
+        <h2>手動で抽選する</h2>
+        <button class="btn big gold" id="btnDrawNow">今すぐ抽選</button>
+        <button class="btn" id="btnDrawTest">テスト抽選（履歴に残さない）</button>
+        <p class="help">1回押すと確認表示に変わり、もう一度押すとテレビで抽選が始まります。手動抽選をしても、その時間の自動抽選はいつも通り行われます。</p>
+        <div class="lastw" id="lastWin"></div>
+      </div>
+    </div>
+
+    <!-- players -->
+    <div class="sec" data-pane="players" hidden>
+      <div class="box">
+        <h2>参加者を追加<span class="hint">「、」や改行で区切ると複数まとめて追加</span></h2>
+        <div class="row">
+          <input class="grow" type="text" id="pAdd" placeholder="例: たかし、ゆうこ" autocomplete="off" enterkeyhint="done">
+          <button class="btn gold" id="pAddBtn">追加</button>
+        </div>
+      </div>
+      <div class="box">
+        <h2><span>リング卓の参加者</span><span class="hint" id="pSummary"></span></h2>
+        <p class="help">行をタップすると着席と離席が切り替わります。抽選されるのは「着席」の人だけです。</p>
+        <div class="plist" id="pList"></div>
+        <div class="row">
+          <button class="btn sm" id="pAllOn">全員を着席に</button>
+          <button class="btn sm red" id="pAllOff">全員を離席に</button>
+          <button class="btn sm red" id="pClear">リストを空にする</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- prizes -->
+    <div class="sec" data-pane="prizes" hidden>
+      <div class="box">
+        <h2>当たる確率<span class="save-note" id="prSave"></span></h2>
+        <div class="odds" id="odds"></div>
+      </div>
+      <div class="box">
+        <h2>ミステリーハイハンドの景品<span class="hint">タップで「使う ⇄ 使わない」</span></h2>
+        <div class="mh" id="mhBox"></div>
+        <p class="help">並は N（9ハイカップのチケットだけ R）、極は SR として景品リストに入ります。重み（並はミステリーハイハンドと同じ確率の数字、極は各1）とレア度は下の景品リストで変えられます。</p>
+      </div>
+      <div class="box">
+        <h2>景品リスト</h2>
+        <p class="help">「重み」が大きいほど当たりやすくなります（例：重み50と10なら5倍出やすい）。レア度でテレビの色と盛り上がりが変わります。</p>
+        <div class="rar-legend">
+          <span><i style="background:var(--r-n)"></i>N 青・通常</span>
+          <span><i style="background:var(--r-r)"></i>R 紫・「チャンス！」</span>
+          <span><i style="background:var(--r-sr)"></i>SR 金・「激アツ！！」</span>
+          <span><i style="background:var(--r-ur)"></i>UR 虹・確定演出</span>
+        </div>
+        <div class="plist" id="prList"></div>
+        <div class="row">
+          <button class="btn gold" id="prAdd">景品を追加</button>
+          <button class="btn" id="prSample" hidden>例の景品を入れる</button>
+        </div>
+      </div>
+      <div class="box">
+        <h2>ハズレ枠</h2>
+        <div class="prize" id="missRow" style="--rc:var(--r-miss)"></div>
+        <p class="help">オンにすると、カードを開いてもハズレが出ることがあります。</p>
+      </div>
+    </div>
+
+    <!-- settings -->
+    <div class="sec" data-pane="settings" hidden>
+      <div class="box">
+        <h2>自動抽選<span class="save-note" id="stSave"></span></h2>
+        <div class="setrow"><div class="t"><b>毎時の自動抽選</b><span class="help">テレビ画面が開いている間、決まった時刻に自動で始まります</span></div><button class="tg" role="switch" id="stAuto" aria-label="毎時の自動抽選"></button></div>
+        <div class="field"><label for="stMinute">毎時 何分に抽選するか</label>
+          <div class="presets" id="minPresets"><button data-min="0">00分</button><button data-min="15">15分</button><button data-min="30">30分</button><button data-min="45">45分</button><input type="number" id="stMinute" min="0" max="59" inputmode="numeric" aria-label="分を直接入力"><span class="unit">分</span></div>
+          <p class="help">時刻を変えるのは抽選のない時間帯がおすすめです。10分以内に過ぎた時刻にすると、その場で抽選が始まります。</p>
+        </div>
+        <div class="field"><label for="stCd">直前カウントダウン</label>
+          <div class="presets" id="cdPresets"><button data-cd="5">5秒</button><button data-cd="10">10秒</button><button data-cd="15">15秒</button><button data-cd="30">30秒</button><input type="number" id="stCd" min="3" max="60" inputmode="numeric" aria-label="秒を直接入力"><span class="unit">秒</span></div>
+        </div>
+      </div>
+      <div class="box">
+        <h2>演出</h2>
+        <div class="setrow"><div class="t"><b>演出を短めにする</b><span class="help">オープニングのカーテンを省き、待ち時間を約4割短くします。忙しい時間帯向け</span></div><button class="tg" role="switch" id="stShort" aria-label="演出を短めにする"></button></div>
+      </div>
+      <div class="box">
+        <h2>公平ルール</h2>
+        <div class="setrow"><div class="t"><b>直前の当選者を外す</b><span class="help">前回当たった人を次の抽選から外します（着席が2人以上のとき）</span></div><button class="tg" role="switch" id="stExcl" aria-label="直前の当選者を外す"></button></div>
+      </div>
+      <div class="box">
+        <h2>テレビの見出し</h2>
+        <div class="field"><label for="stTitle">待機画面に出すタイトル</label><input type="text" id="stTitle" maxlength="24"></div>
+      </div>
+    </div>
+
+    <!-- history -->
+    <div class="sec" data-pane="history" hidden>
+      <div class="hsum" id="hSum"></div>
+      <div class="box">
+        <h2>当選履歴<span class="hint">新しい順・最大100件</span></h2>
+        <div class="hist" id="hList"></div>
+        <div class="row"><button class="btn sm red" id="hClear">履歴を消す</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="pin-dlg" id="pinDlg" role="dialog" aria-modal="true" aria-labelledby="pinTitle" hidden>
+  <div class="pin-box">
+    <b id="pinTitle">スタッフPIN</b>
+    <p id="pinMsg">操作するにはスタッフPIN（数字4〜8桁）を入れてください。この端末に記憶します。</p>
+    <input type="password" id="pinIn" inputmode="numeric" autocomplete="off" maxlength="8" aria-label="スタッフPIN">
+    <p class="pin-err" id="pinErr" role="alert"></p>
+    <div class="row"><button class="btn gold" id="pinOk">OK</button><button class="btn" id="pinLater">見るだけにする</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const rndf = () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
+const rnd = n => Math.floor(rndf() * n);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const TAB_ID = uid();
+const pad2 = n => String(n).padStart(2, '0');
+function weightedPick(items) {
+  const total = items.reduce((s, i) => s + i.weight, 0);
+  let r = rndf() * total;
+  for (const i of items) { r -= i.weight; if (r < 0) return i; }
+  return items[items.length - 1];
+}
+const RAR = {
+  MISS: {label:'ハズレ', hex:'#9b8b98', lv:0},
+  N:    {label:'N',  hex:'#62b6ff', lv:1},
+  R:    {label:'R',  hex:'#b98aff', lv:2},
+  SR:   {label:'SR', hex:'#f2cd78', lv:3},
+  UR:   {label:'UR', hex:'#ff6fc8', lv:4},
+};
+/* prize sets copied from the Mystery High Hand app (並 = everyday, 極 = premium) */
+const MH = {
+  '並': [['リング50ドルアドオン', 'N', 18], ['チップ100ドルアドオン', 'N', 18], ['チップ200ドルアドオン', 'N', 18], ['リングチップ購入もしくは引き出し1.5倍券', 'N', 18], ['200マイル', 'N', 18], ['9ハイカップのチケット', 'R', 10]],
+  '極': [['翌月リング引き出し無料券(1ヶ月)', 'SR', 1], ['翌月引き出し半額(1ヶ月)', 'SR', 1], ['5000マイル', 'SR', 1], ['3000マイル', 'SR', 1], ['9ハイカップのチケット2枚', 'SR', 1], ['チップ1000ドルプレゼント', 'SR', 1], ['リングチップ500ドルプレゼント', 'SR', 1]],
+};
+const SAMPLE_PRIZES = [
+  {name:'ドリンク1杯', rarity:'N', weight:50},
+  {name:'チップ +5,000', rarity:'R', weight:25},
+  {name:'次回トーナメント参加費 半額', rarity:'SR', weight:8},
+  {name:'次回トーナメント参加費 無料', rarity:'UR', weight:2},
+];
+
+/* ================= STORE ================= */
+const DEF = {
+  config: {title:'毎時ラッキーアワー', auto:true, minute:0, countdown:10, excludeLast:false, short:false, prizes:[], miss:{enabled:false, weight:20, label:'ハズレ'}},
+  players: {list:[]}, draw: {}, history: {items:[]}, tv: {},
+};
+const store = { mode:'connecting', kind:'', db:null, data:{}, subs:new Set(), q:{}, bc:null, api:{v:-1, pinSet:true}, pend:{}, wAt:{} };
+function getCfg() { const c = store.data.config || {}; return {...DEF.config, ...c, miss:{...DEF.config.miss, ...(c.miss || {})}, prizes: Array.isArray(c.prizes) ? c.prizes : []}; }
+function getPlayers() { const p = store.data.players; return Array.isArray(p?.list) ? p.list : []; }
+function getDraw() { return store.data.draw || {}; }
+function getHistory() { const h = store.data.history; return Array.isArray(h?.items) ? h.items : []; }
+function emit(k) { store.subs.forEach(fn => { try { fn(k); } catch (e) { console.error(e); } }); }
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function save(k, val, quiet = false) {
+  store.data[k] = val; emit(k);
+  if (store.db) {
+    store.q[k] = (store.q[k] || Promise.resolve()).then(() => store.db.doc('hourly/' + k).set(val))
+      .catch(e => { console.error(e); if (!quiet) toast(e?.code === 'not_granted' || e?.code === 'permission_denied' ? '保存する権限がありません。オーナーに編集権限をもらってください。' : '保存できませんでした。通信を確認してもう一度お試しください。'); });
+    return store.q[k];
+  }
+  if (store.kind === 'api') {
+    store.pend[k] = (store.pend[k] || 0) + 1;
+    store.q[k] = (store.q[k] || Promise.resolve()).then(() => apiPost({action:'set', key:k, value:val}))
+      .catch(e => { console.error(e); if (!quiet) toast(e.needPin ? 'スタッフPINを入れると保存できます' : (e.message || '保存できませんでした。通信を確認してもう一度お試しください。')); })
+      .finally(() => { store.pend[k]--; store.wAt[k] = Date.now(); });
+    return store.q[k];
+  }
+  try { localStorage.setItem('lh9_' + k, JSON.stringify(val)); } catch {}
+  try { store.bc?.postMessage({k, val}); } catch {}
+  return Promise.resolve();
+}
+/* ---- server mode: the page is served from the shop app (/lucky-hour), data lives in its database ---- */
+const API = '/api/lucky-hour';
+const getPin = () => { try { return localStorage.getItem('lh9_pin') || ''; } catch { return ''; } };
+async function apiPost(body) {
+  const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin:getPin(), ...body})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || '保存できませんでした'); e.needPin = !!j.needPin; if (e.needPin && body.action !== 'check' && body.action !== 'setPin') openPin(); throw e; }
+  return j;
+}
+function applyApi(j, startedAt) {
+  store.api.v = j.version; store.api.pinSet = !!j.pinSet;
+  if (!j.docs) return;
+  for (const k of Object.keys(DEF)) {
+    // a local write that is in flight (or finished after this poll left) is newer than what came back
+    if (store.pend[k] || (store.wAt[k] || 0) > startedAt) continue;
+    const nv = j.docs[k] ?? null, ns = JSON.stringify(nv);
+    if (ns === JSON.stringify(store.data[k] ?? null)) continue;
+    store.data[k] = nv == null ? undefined : nv; emit(k);
+  }
+}
+async function apiFetch() { const t = Date.now(); const r = await fetch(`${API}?v=${store.api.v}`, {cache:'no-store'}); if (!r.ok) throw new Error('fetch'); applyApi(await r.json(), t); }
+const pollMs = () => { const d = getDraw(); return (d.at && Date.now() - d.at < 180000) || tv.counting || tv.busy ? 1000 : isTv() ? 3000 : 4000; };
+async function startApi(first, t0) {
+  store.kind = 'api'; store.mode = 'api'; applyApi(first, t0); emit('*');
+  if (!getPin()) openPin();
+  while (true) {
+    await sleep(pollMs());
+    try { await apiFetch(); if (store.mode !== 'api') { store.mode = 'api'; emit('*'); } }
+    catch { if (store.mode !== 'slow') { store.mode = 'slow'; emit('*'); } }
+  }
+}
+async function tryApi() {
+  if (!/^https?:$/.test(location.protocol)) return false;
+  try {
+    const t0 = Date.now(), r = await fetch(API, {cache:'no-store'});
+    if (!r.ok) return false;
+    const j = await r.json(); if (typeof j.version !== 'number') return false;
+    startApi(j, t0); return true;
+  } catch { return false; }
+}
+function startLocal() {
+  store.mode = 'local';
+  for (const k of Object.keys(DEF)) { try { const v = localStorage.getItem('lh9_' + k); if (v) store.data[k] = JSON.parse(v); } catch {} }
+  try { store.bc = new BroadcastChannel('lh9'); store.bc.onmessage = e => { if (e.data?.k) { store.data[e.data.k] = e.data.val; emit(e.data.k); } }; } catch {}
+  window.addEventListener('storage', e => { if (e.key?.startsWith('lh9_')) { try { store.data[e.key.slice(4)] = JSON.parse(e.newValue); emit(e.key.slice(4)); } catch {} } });
+  emit('*');
+}
+async function initStore() {
+  let db = null;
+  try { if (window.claude?.use) db = await window.claude.use('db'); } catch {}
+  if (!db) { if (!(await tryApi())) startLocal(); return; }
+  // someone opening a shared link without edit rights can't save shared data: run on this device instead
+  try { const user = await window.claude.use('user'); if (user && await user.can('data.write') === false) { store.readonly = true; startLocal(); return; } } catch {}
+  store.mode = 'db'; store.db = db; emit('*');
+  let firstOk = false;
+  const timer = setTimeout(() => { if (!firstOk) { store.mode = 'slow'; emit('*'); } }, 10000);
+  for (const k of Object.keys(DEF)) {
+    db.doc('hourly/' + k).onSnapshot(s => {
+      store.data[k] = s.exists ? clone(s.data()) : undefined;
+      if (!s.metadata.fromCache && !firstOk) { firstOk = true; clearTimeout(timer); if (store.mode === 'slow') store.mode = 'db'; }
+      emit(k);
+    }, e => { console.error(e); store.mode = 'error'; emit('*'); });
+  }
+}
+function connText() {
+  return ({connecting:['接続中…',''], db:['共有中：どの端末からでも操作できます','ok'], api:[getPin() ? '共有中：どの端末からでも操作できます' : '共有中（見るだけ）：スタッフPINを入れると操作できます', getPin() ? 'ok' : 'warn'], local:[store.readonly ? 'この端末だけで動作中（共有データの編集権限がないため。設定や履歴はこのスマホの中だけに保存されます）' : 'この端末だけで動作中（同じブラウザの別タブと連動）','warn'], slow:['サーバーにつながりません。表示が古い可能性があります','warn'], error:['接続が切れました。ページを開き直してください','warn']})[store.mode];
+}
+
+/* ================= DRAW LOGIC ================= */
+function prizePool(cfg) {
+  const pool = cfg.prizes.filter(p => p.enabled !== false && +p.weight > 0 && String(p.name || '').trim())
+    .map(p => ({name:p.name.trim(), rarity:RAR[p.rarity] ? p.rarity : 'N', weight:+p.weight, miss:false}));
+  if (cfg.miss.enabled && +cfg.miss.weight > 0) pool.push({name:cfg.miss.label || 'ハズレ', rarity:'MISS', weight:+cfg.miss.weight, miss:true});
+  return pool;
+}
+function eligible(cfg) {
+  let c = getPlayers().filter(p => p.active);
+  if (cfg.excludeLast && c.length > 1) {
+    const last = getHistory().find(h => !h.test);
+    if (last) c = c.filter(p => p.id !== last.playerId);
+  }
+  return c;
+}
+function makeDecoys(pool, pick) {
+  const rest = pool.filter(p => p.name !== pick.name);
+  if (!rest.length) return [pick, pick];
+  const a = weightedPick(rest), rest2 = rest.filter(p => p.name !== a.name);
+  return [a, rest2.length ? weightedPick(rest2) : weightedPick(rest)];
+}
+async function createDraw(source, hourKey) {
+  const cfg = getCfg();
+  const cands = eligible(cfg);
+  if (!cands.length) return {error:'着席中の参加者がいません'};
+  const pool = prizePool(cfg);
+  if (!pool.length) return {error:'景品が1つも登録されていません'};
+  const wi = rnd(cands.length);
+  const pick = weightedPick(pool);
+  const strip = ({name, rarity, miss}) => ({name, rarity, miss});
+  const draw = {id:uid(), at:Date.now(), hourKey:hourKey || null, source, test:source === 'test',
+    candidates:cands.map(p => ({id:p.id, name:p.name})), winnerIndex:wi,
+    prize:strip(pick), decoys:makeDecoys(pool, pick).map(strip), picked:null};
+  await save('draw', draw);
+  if (!draw.test) {
+    const items = [{id:draw.id, at:draw.at, playerId:cands[wi].id, name:cands[wi].name, prize:pick.name, rarity:pick.rarity, miss:pick.miss, source, hourKey:draw.hourKey}, ...getHistory()].slice(0, 100);
+    await save('history', {items});
+  }
+  return {draw};
+}
+function nextSlot(cfg, now = new Date()) {
+  const t = new Date(now); t.setSeconds(0, 0); t.setMinutes(cfg.minute);
+  if (t <= now) t.setHours(t.getHours() + 1);
+  return t;
+}
+const hourKeyOf = d => `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}${pad2(d.getHours())}`;
+const hhmm = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+
+/* ================= SOUND ================= */
+const SFX = {
+  ctx:null, out:null, on:true,
+  init() {
+    if (this.ctx) { this.ctx.resume?.(); return; }
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+    const c = this.ctx = new C();
+    this.out = c.createGain(); this.out.gain.value = .5; this.out.connect(c.destination);
+    // small hall: feedback delay through a lowpass, mixed in quietly
+    const dl = c.createDelay(1), fb = c.createGain(), lp = c.createBiquadFilter(), wet = c.createGain();
+    dl.delayTime.value = .16; fb.gain.value = .32; lp.type = 'lowpass'; lp.frequency.value = 2600; wet.gain.value = .22;
+    this.out.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(wet); wet.connect(c.destination);
+  },
+  ok() { return this.on && this.ctx && this.ctx.state !== 'closed'; },
+  tone(f, d, {type='square', vol=.15, at=0, to=null, attack=.005, lp=0} = {}) {
+    if (!this.ok()) return; const c = this.ctx, t = c.currentTime + at;
+    const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t + d);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    let n = o; if (lp) { const fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = lp; o.connect(fl); n = fl; }
+    n.connect(g); g.connect(this.out); o.start(t); o.stop(t + d + .05);
+  },
+  noise(d, {vol=.2, at=0, freq=1200, q=.7, type='bandpass'} = {}) {
+    if (!this.ok()) return; const c = this.ctx, t = c.currentTime + at;
+    const b = c.createBuffer(1, Math.max(1, c.sampleRate * d), c.sampleRate), ch = b.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = b; f.type = type; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    s.connect(f); f.connect(g); g.connect(this.out); s.start(t);
+  },
+  tick(p = 0) { this.tone(1300 + p * 500, .06, {type:'triangle', vol:.2}); this.noise(.02, {vol:.05, freq:5000}); },
+  pop(p = 0) { this.tone(500 + p * 500, .13, {type:'sine', vol:.24, to:900 + p * 700}); },
+  beep(hi) { this.tone(hi ? 1568 : 1046, .18, {type:'triangle', vol:.3}); this.tone(hi ? 3136 : 2093, .1, {type:'sine', vol:.05}); },
+  heart(v = 1) { this.tone(72, .18, {type:'sine', vol:.6 * v, to:45}); this.tone(72, .18, {type:'sine', vol:.42 * v, to:45, at:.22}); },
+  crash(d = 1.6) { this.noise(d, {vol:.2, freq:6500, type:'highpass'}); },
+  impact() { this.tone(120, .7, {type:'sine', vol:.7, to:35}); this.noise(.5, {vol:.35, freq:300, type:'lowpass'}); this.crash(1.1); },
+  whoosh() { this.noise(.6, {vol:.18, freq:900, q:.4}); this.tone(200, .5, {type:'sawtooth', vol:.035, to:1200, lp:2000}); },
+  curtain() { this.noise(1.4, {vol:.2, freq:420, q:.3}); },
+  riser(d = 1.6) { this.tone(180, d, {type:'sawtooth', vol:.06, to:1400, attack:d * .8, lp:3000}); this.noise(d, {vol:.05, freq:3000}); },
+  roll(d = 1.5) { if (!this.ok()) return; const n = d / .042; for (let i = 0; i < n; i++) this.noise(.05, {vol:.07 + i / n * .12, freq:2600, q:.6, at:i * .042}); },
+  chime(f = 1568, at = 0, v = 1) { this.tone(f, 1.3, {type:'sine', vol:.16 * v, at}); this.tone(f * 2.76, .6, {type:'sine', vol:.045 * v, at}); this.tone(f * 5.4, .3, {type:'sine', vol:.02 * v, at}); },
+  fanfare(big) {
+    [392, 523, 659, 784].forEach((f, i) => { this.tone(f, .16, {type:'sawtooth', vol:.11, at:i * .11, lp:2600}); this.tone(f, .16, {type:'triangle', vol:.08, at:i * .11}); });
+    const ch = big ? [523, 659, 784, 1047, 1319] : [523, 659, 784];
+    ch.forEach(f => { this.tone(f, big ? 2.2 : 1.4, {type:'sawtooth', vol:.045, at:.48, attack:.03, lp:1900}); this.tone(f, big ? 2.2 : 1.4, {type:'triangle', vol:.06, at:.48, attack:.03}); });
+    this.crash(big ? 2.2 : 1.4);
+    this.noise(.4, {vol:.2, freq:6000, type:'highpass', at:.48});
+    if (big) [2093, 2637, 3136, 4186].forEach((f, i) => this.chime(f, .7 + i * .12, .6));
+  },
+  sparkle() { for (let i = 0; i < 12; i++) this.chime(1800 + rnd(2400), i * .06, .45); },
+  sad() { [523, 494, 466, 392].forEach((f, i) => this.tone(f, i === 3 ? 1 : .32, {type:'triangle', vol:.22, at:i * .36, to:i === 3 ? 300 : null})); },
+  flip() { this.noise(.1, {vol:.3, freq:3000}); this.tone(320, .1, {type:'sine', vol:.12, to:140}); },
+  stamp() { this.impact(); this.chime(1046, .05, .9); this.chime(1568, .12, .7); },
+  boom() { this.noise(.4, {vol:.32, freq:500, type:'lowpass'}); this.tone(90, .35, {type:'sine', vol:.35, to:40}); for (let i = 0; i < 7; i++) this.noise(.03, {vol:.08, freq:6000, type:'highpass', at:.25 + rndf() * .5}); },
+};
+
+/* ================= FX (confetti / stars / fireworks) ================= */
+const FX = {
+  cv:null, cx:null, parts:[], raf:0, dpr:1,
+  init() { this.cv = $('#fx'); this.cx = this.cv.getContext('2d'); const rs = () => { this.dpr = Math.min(2, devicePixelRatio || 1); this.cv.width = innerWidth * this.dpr; this.cv.height = innerHeight * this.dpr; }; rs(); addEventListener('resize', rs); },
+  room() { return this.parts.length < 1500; },
+  burst(colors, n = 160, x = .5, y = .45) {
+    const W = this.cv.width, H = this.cv.height, k = this.dpr;
+    for (let i = 0; i < n && this.room(); i++) {
+      const a = rndf() * Math.PI * 2, s = (4 + rndf() * 14) * k;
+      this.parts.push({kind:rndf() < .25 ? 'star' : 'conf', x:W * x, y:H * y, vx:Math.cos(a) * s, vy:Math.sin(a) * s - 6 * k, r:rndf() * 6.28, vr:(rndf() - .5) * .4,
+        w:(7 + rndf() * 8) * k, h:(4 + rndf() * 5) * k, c:colors[rnd(colors.length)], life:160 + rnd(80)});
+    }
+    this.go();
+  },
+  rain(colors, n = 120) {
+    const W = this.cv.width, k = this.dpr;
+    for (let i = 0; i < n && this.room(); i++) this.parts.push({kind:rndf() < .2 ? 'star' : 'conf', x:rndf() * W, y:-rndf() * 300 * k, vx:(rndf() - .5) * 2, vy:2 + rndf() * 4, r:rndf() * 6, vr:(rndf() - .5) * .3,
+      w:(7 + rndf() * 8) * k, h:(4 + rndf() * 5) * k, c:colors[rnd(colors.length)], life:280});
+    this.go();
+  },
+  firework(colors, x = rndf() * .7 + .15, y = rndf() * .35 + .12, n = 90) {
+    const W = this.cv.width, H = this.cv.height, k = this.dpr, c = colors[rnd(colors.length)];
+    for (let i = 0; i < n && this.room(); i++) {
+      const a = (i / n) * Math.PI * 2 + rndf() * .1, s = (3 + rndf() * 6.5) * k;
+      this.parts.push({kind:'glow', x:W * x, y:H * y, vx:Math.cos(a) * s, vy:Math.sin(a) * s, c:rndf() < .7 ? c : colors[rnd(colors.length)], sz:(1.6 + rndf() * 2.2) * k, life:60 + rnd(45), max:105});
+    }
+    this.go();
+  },
+  go() { if (!this.raf) this.raf = requestAnimationFrame(() => this.loop()); },
+  star(c, r) { c.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .45 : r; c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } c.closePath(); c.fill(); },
+  loop() {
+    const c = this.cx, W = this.cv.width, H = this.cv.height, k = this.dpr; c.clearRect(0, 0, W, H);
+    this.parts = this.parts.filter(p => p.life-- > 0 && p.y < H + 60);
+    for (const p of this.parts) {
+      if (p.kind === 'glow') {
+        p.vy += .055 * k; p.vx *= .955; p.vy *= .955; const ox = p.x, oy = p.y; p.x += p.vx; p.y += p.vy;
+        c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, p.life / 35);
+        c.strokeStyle = p.c; c.lineWidth = p.sz; c.beginPath(); c.moveTo(ox - p.vx * 2, oy - p.vy * 2); c.lineTo(p.x, p.y); c.stroke();
+        c.fillStyle = '#fff'; c.beginPath(); c.arc(p.x, p.y, p.sz * .6, 0, 6.29); c.fill();
+        c.globalCompositeOperation = 'source-over';
+        continue;
+      }
+      p.vy += .25 * k; p.vx *= .985; p.vy *= .985; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      c.save(); c.translate(p.x, p.y); c.rotate(p.r); c.fillStyle = p.c; c.globalAlpha = Math.min(1, p.life / 40);
+      if (p.kind === 'star') this.star(c, p.w * .75); else c.fillRect(-p.w / 2, -p.h / 2, p.w, Math.abs(Math.cos(p.r * 2)) * p.h + 1);
+      c.restore();
+    }
+    c.globalAlpha = 1;
+    this.raf = this.parts.length ? requestAnimationFrame(() => this.loop()) : (c.clearRect(0, 0, W, H), 0);
+  },
+};
+const GOLDS = ['#f2cd78', '#fff0c8', '#b9862f', '#fff5e8', '#ff8db5'];
+const RAINBOW = ['#ff6fc8', '#ffd35f', '#5fffd2', '#62b6ff', '#ff8db5', '#ffffff'];
+async function fireworks(colors, n = 4, gap = 420) { for (let i = 0; i < n; i++) { FX.firework(colors); SFX.boom(); await sleep(gap + rnd(gap * .6)); } }
+
+/* ================= ROUTER ================= */
+function route() {
+  const h = location.hash.replace('#', '');
+  let v = h === 'tv' || h === 'admin' ? h : null;
+  if (!v) { try { v = localStorage.getItem('lh9_view'); } catch {} }
+  if (h === 'launch' || !v) v = 'launch';
+  $$('.view').forEach(s => s.hidden = s.id !== v);
+  if (v !== 'launch') { try { localStorage.setItem('lh9_view', v); } catch {} }
+  if (v === 'admin') renderAdmin();
+  if (v === 'tv') { renderTvIdle(); onDrawChange(); tvBeat(true); checkRotate(); } else closeSheet();
+}
+const go = v => { if (location.hash === '#' + v) route(); else location.hash = v; };
+$('#goTv').onclick = () => go('tv');
+$('#goAdmin').onclick = () => go('admin');
+$('#admToTv').onclick = () => go('tv');
+$('#admBack').onclick = () => go('tv');
+$('#tvToAdmin').onclick = () => go('admin');
+addEventListener('hashchange', route);
+const isTv = () => !$('#tv').hidden;
+
+let toastT;
+function toast(msg, action) {
+  let t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.innerHTML = `<span>${esc(msg)}</span>`;
+  if (action) { const b = document.createElement('button'); b.textContent = action.label; b.onclick = () => { t.hidden = true; action.fn(); }; t.appendChild(b); }
+  t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, action ? 6000 : 3200);
+}
+/* two-tap confirm buttons */
+function armed(btn, label, fn) {
+  btn.addEventListener('click', async () => {
+    if (btn.classList.contains('armed')) { btn.classList.remove('armed'); btn.textContent = btn.dataset.orig; clearTimeout(btn._t); await fn(); return; }
+    btn.dataset.orig = btn.textContent; btn.classList.add('armed'); btn.textContent = label;
+    btn._t = setTimeout(() => { btn.classList.remove('armed'); btn.textContent = btn.dataset.orig; }, 3500);
+  });
+}
+
+/* ================= TV ================= */
+const tv = { busy:false, lastPlayed:null, initialized:false, countdownFor:null, skipHour:null, creating:false, wake:null, pending:null, speed:1, lastBeat:0 };
+const W = ms => sleep(ms * tv.speed);
+
+(function sparks() {
+  const box = $('#tvSparks'); let h = '';
+  for (let i = 0; i < 16; i++) h += `<i class="spark" style="left:${4 + rndf() * 92}%;top:${6 + rndf() * 86}%;--s:${1.2 + rndf() * 2.2}vh;--d:${3 + rndf() * 4}s;--dl:${-rndf() * 6}s"></i>`;
+  box.innerHTML = h;
+})();
+
+/* lets the staff console see that a TV screen is open */
+function tvBeat(force) {
+  if (!isTv() || !['db', 'local', 'api'].includes(store.mode) || (store.kind === 'api' && !getPin())) return;
+  if (!force && Date.now() - tv.lastBeat < 55000) return;
+  tv.lastBeat = Date.now();
+  save('tv', {at:Date.now(), id:TAB_ID}, true);
+}
+setInterval(() => tvBeat(false), 5000);
+
+$('#tvStart').onclick = async () => {
+  SFX.init(); $('#tvGate').hidden = true; SFX.chime(1568); SFX.chime(2093, .12, .7);
+  try { await document.documentElement.requestFullscreen?.(); } catch {}
+  try { tv.wake = await navigator.wakeLock?.request('screen'); } catch {}
+  tv.wakeFail = !tv.wake; renderSheet();
+};
+document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && isTv() && tv.wake) { try { tv.wake = await navigator.wakeLock.request('screen'); } catch {} } });
+$('#tvMute').onclick = () => { SFX.on = !SFX.on; $('#tvMute').textContent = '音: ' + (SFX.on ? 'ON' : 'OFF'); };
+/* staff sheet */
+const sheet = $('#tvSheet'); let shT;
+function sheetIdle() { clearTimeout(shT); shT = setTimeout(closeSheet, 25000); }
+function openSheet() { sheet.hidden = false; renderSheet(); sheetIdle(); }
+function closeSheet() { if (!sheet) return; sheet.hidden = true; clearTimeout(shT); }
+function renderSheet() {
+  if (!sheet || sheet.hidden) return;
+  const cfg = getCfg(), ps = getPlayers();
+  $('#shSum').textContent = ps.length ? `着席 ${ps.filter(p => p.active).length} ／ 登録 ${ps.length}` : '';
+  $('#shSeats').innerHTML = ps.length ? ps.map(p => `<button class="qchip" data-id="${esc(p.id)}" aria-pressed="${!!p.active}"><span>${esc(p.name)}</span></button>`).join('')
+    : '<span class="help">まだ参加者がいません。下の欄に名前を入れて追加してください。</span>';
+  $('#shAuto').setAttribute('aria-checked', !!cfg.auto); $('#shShort').setAttribute('aria-checked', !!cfg.short);
+  [['並', '#shNami', '#shNamiN'], ['極', '#shKiwami', '#shKiwamiN']].forEach(([g, tg, lb]) => { const n = mhCount(g, cfg.prizes); $(tg).setAttribute('aria-checked', n > 0); $(lb).textContent = `${n} / ${MH[g].length} 種を使用中`; });
+  $('#shNext').textContent = cfg.auto ? `次回 ${hhmm(nextSlot(cfg))}（毎時${pad2(cfg.minute)}分）` : 'オフ：手動のときだけ抽選します';
+  const ready = eligible(cfg).length > 0 && prizePool(cfg).length > 0;
+  const showing = tv.busy || tv.counting || tv.creating;
+  $('#shDraw').disabled = !ready || showing; $('#shTest').disabled = !ready || showing;
+  $('#shWarn').hidden = !tv.wakeFail;
+  if (!ready) $('#shNext').textContent += eligible(cfg).length ? ' ／ 景品が未登録です' : ' ／ 着席の人がいません';
+}
+$('#tvStaff').onclick = () => sheet.hidden ? openSheet() : closeSheet();
+$('#shClose').onclick = closeSheet;
+['pointerdown', 'input', 'keydown'].forEach(ev => sheet.addEventListener(ev, sheetIdle));
+$('#shSeats').addEventListener('click', e => { const q = e.target.closest('.qchip'); if (!q) return; const list = clone(getPlayers()); const p = list.find(x => x.id === q.dataset.id); if (p) { p.active = !p.active; setPlayers(list); } });
+$('#shAddBtn').onclick = () => addPlayers($('#shAdd'));
+$('#shAdd').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) addPlayers($('#shAdd')); });
+$('#shAuto').onclick = () => setCfg({auto:!getCfg().auto});
+$('#shShort').onclick = () => setCfg({short:!getCfg().short});
+['#shNami', '#shKiwami'].forEach(id => $(id).onclick = e => { const g = e.currentTarget.dataset.mhset; mhSet(g, MH[g].map(x => x[0]), mhCount(g) === 0); });
+const showBusy = () => tv.busy || tv.counting || tv.creating;
+armed($('#shDraw'), 'もう一度押すとスタート', async () => { if (showBusy()) { toast('いま抽選中です。終わってからもう一度どうぞ'); return; } const r = await createDraw('manual'); if (r.error) toast(r.error); else closeSheet(); });
+armed($('#shTest'), 'もう一度押すとテスト開始', async () => { if (showBusy()) { toast('いま抽選中です。終わってからもう一度どうぞ'); return; } const r = await createDraw('test'); if (r.error) toast(r.error); else closeSheet(); });
+/* portrait phone hint */
+function checkRotate() { $('#tvRotate').hidden = !(isTv() && innerHeight > innerWidth * 1.05 && !tv.rotateOk); }
+addEventListener('resize', checkRotate);
+$('#tvRotateOk').onclick = () => { tv.rotateOk = true; checkRotate(); };
+$('#tvFull').onclick = async () => { try { document.fullscreenElement ? await document.exitFullscreen() : await document.documentElement.requestFullscreen(); } catch { toast('この端末では全画面にできません（iPhone は非対応です）'); } };
+
+function renderTvIdle() {
+  const cfg = getCfg();
+  $('#tvTitle').textContent = cfg.title || '毎時ラッキーアワー';
+  const act = eligible(cfg);
+  const all = getPlayers().filter(p => p.active);
+  $('#tvPlayersLabel').textContent = all.length ? `抽選対象 ${act.length}名` : '';
+  $('#tvPlayers').innerHTML = all.length ? all.map(p => `<span class="chip ${act.some(a => a.id === p.id) ? '' : 'out'}">${esc(p.name)}</span>`).join('')
+    : '<span class="chip note">参加者は右下の「STAFF」か管理画面から登録します</span>';
+  const h = getHistory().slice(0, 8);
+  $('#tvTicker').innerHTML = h.length ? h.map(x => `<span><span class="rar" style="color:${RAR[x.rarity]?.hex || '#fff'}">${esc(RAR[x.rarity]?.label || '')}</span>${hhmm(new Date(x.at))}　${esc(x.name)} さん → ${esc(x.prize)}</span>`).join('')
+    : '<span>最初の当選者はあなたかも。席についてお待ちください。</span>';
+  tvTick();
+}
+function tvTick() {
+  if (!isTv()) return;
+  const now = new Date(), cfg = getCfg(), tvEl = $('#tv');
+  $('#tvClock').textContent = hhmm(now) + ':' + pad2(now.getSeconds());
+  const nx = $('#tvNext');
+  if (!cfg.auto) { nx.textContent = '手動抽選モード'; nx.classList.add('off'); tvEl.classList.remove('soon'); $('#tvNextLabel').textContent = 'スタッフの合図で抽選します'; $('#tvNextAt').textContent = ''; return; }
+  nx.classList.remove('off');
+  const slot = nextSlot(cfg, now), ms = slot - now;
+  const soon = ms < 300000;
+  tvEl.classList.toggle('soon', soon);
+  $('#tvNextLabel').textContent = soon ? 'まもなく抽選！' : '次の抽選まで';
+  const m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60;
+  nx.textContent = `${pad2(m)}:${pad2(s)}`;
+  $('#tvNextAt').textContent = `毎時 ${pad2(cfg.minute)}分に抽選 ・ 次回 ${hhmm(slot)}`;
+  // countdown & auto draw
+  if (tv.busy || tv.creating) return;
+  const hk = hourKeyOf(slot);
+  // catch-up: the last slot passed while a show was running (or the TV was just opened) — run it now, within 10 min
+  const prev = new Date(slot.getTime() - 3600000), phk = hourKeyOf(prev);
+  if (now - prev < 600000 && !hourDone(phk) && tv.skipHour !== phk && tv.countdownFor !== phk) { runCountdown(new Date(Date.now() + cfg.countdown * 1000), phk); return; }
+  if (hourDone(hk) || tv.skipHour === hk) return;
+  if (ms <= cfg.countdown * 1000 && tv.countdownFor !== hk) runCountdown(slot, hk);
+}
+setInterval(tvTick, 250);
+
+function hourDone(hk) { return getDraw().hourKey === hk || getHistory().some(h => h.hourKey === hk); }
+async function runCountdown(slot, hk) {
+  tv.countdownFor = hk; tv.counting = true; closeSheet(); $('#tvGate').hidden = true;
+  const cd = $('#cd'), num = $('#cdNum'), ring = $('#cdRing'); cd.hidden = false; cd.classList.remove('hot'); $('#tv').classList.add('live');
+  const total = Math.max(1000, slot - Date.now()); let last = null;
+  while (true) {
+    const ms = slot - Date.now();
+    if (hourDone(hk)) break; // another screen already started
+    if (ms <= 0) break;
+    ring.style.strokeDashoffset = 289 * (1 - ms / total);
+    const n = Math.ceil(ms / 1000);
+    if (n !== last) {
+      last = n; num.textContent = n; num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop');
+      if (n <= 3) { cd.classList.add('hot'); SFX.beep(true); SFX.heart(); } else SFX.beep(false);
+    }
+    await sleep(60);
+  }
+  cd.hidden = true; cd.classList.remove('hot'); tv.counting = false;
+  if (hourDone(hk)) { if (!tv.busy) $('#tv').classList.remove('live'); return; }
+  await autoCreate(hk);
+  if (!tv.busy) $('#tv').classList.remove('live');
+}
+async function autoCreate(hk) {
+  tv.creating = true;
+  try {
+    if (store.mode === 'db') {
+      await sleep(rnd(900));
+      let got = {acquired:true};
+      try { got = await store.db.doc('hourly/lock').acquire({holder:TAB_ID, ttlMs:8000}); } catch {}
+      if (!got.acquired) { await sleep(4000); return; }
+      try { const s = await store.db.doc('hourly/draw').get(); if (s.exists && s.data().hourKey === hk) return; } catch {}
+    } else if (store.kind === 'api') {
+      await sleep(rnd(900));
+      let got = {acquired:false};
+      try { got = await apiPost({action:'lock', holder:TAB_ID, ttlMs:8000}); } catch (e) { if (e.needPin) { tv.skipHour = hk; tvToast('スタッフPINが入っていないため、この画面では自動抽選ができません'); } else await sleep(4000); return; }
+      if (!got.acquired) { await sleep(4000); return; }
+      try { await apiFetch(); } catch {}
+      if (getDraw().hourKey === hk) return;
+    }
+    if (hourDone(hk)) return;
+    const r = await createDraw('auto', hk);
+    if (r.error) { tv.skipHour = hk; tvToast(`${r.error}。今回の抽選はお休みです。`); }
+  } finally { tv.creating = false; renderSheet(); }
+}
+function tvToast(msg) { const t = document.createElement('div'); t.className = 'toast-tv'; t.textContent = msg; $('#tv').appendChild(t); setTimeout(() => t.remove(), 6000); }
+
+store.subs.add(k => {
+  if (k === 'draw' || k === '*') onDrawChange();
+  if (k === '*') tvBeat(true);
+  if (isTv() && ['config', 'players', 'history', '*'].includes(k) && !tv.busy) renderTvIdle();
+  if (['config', 'players', 'history', 'draw', '*'].includes(k)) renderSheet();
+});
+function onDrawChange() {
+  const d = getDraw();
+  if (!d.id) { tv.initialized = true; return; }
+  if (!tv.initialized) { tv.initialized = true; if (Date.now() - d.at > 90000) { tv.lastPlayed = d.id; return; } }
+  if (d.id === tv.lastPlayed) { if (tv.busy && d.picked != null) tv.pickSignal?.(d.picked); return; }
+  if (Date.now() - d.at > 180000) { tv.lastPlayed = d.id; return; }
+  if (!isTv()) return;
+  if (tv.busy) { tv.pending = d; return; }
+  play(d);
+}
+
+/* ---------- show ---------- */
+const STAGE_BG = '<div class="st-bg"><div class="beam b1"></div><div class="beam b2"></div></div><div class="vig"></div>';
+async function play(d) {
+  closeSheet(); tv.busy = true; tv.lastPlayed = d.id; tv.speed = getCfg().short ? .62 : 1;
+  $('#cd').hidden = true; $('#tvGate').hidden = true; $('#tv').classList.add('live');
+  const st = $('#stage'); st.innerHTML = STAGE_BG; st.className = 'on velvet';
+  if (d.test) st.insertAdjacentHTML('beforeend', '<div class="badge-test">TEST</div>');
+  try {
+    if (!getCfg().short) await opening(st);
+    await stageOne(st, d);
+    await stageTwo(st, d);
+    await ending(st);
+  } catch (e) { console.error(e); }
+  st.className = ''; st.innerHTML = ''; st.style.opacity = ''; st.style.transition = '';
+  tv.busy = false; tv.pickSignal = null; $('#tv').classList.remove('live'); renderSheet();
+  renderTvIdle();
+  if (tv.pending) { const p = tv.pending; tv.pending = null; if (p.id !== tv.lastPlayed) play(p); }
+}
+function flash(st) { st.classList.remove('flash'); void st.offsetWidth; st.classList.add('flash'); }
+function shake(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+function beat(st) { const v = $('.vig', st); if (!v) return; v.classList.add('beat'); setTimeout(() => v.classList.remove('beat'), 180); }
+function head(st, step, q, extra = '') {
+  let h = $('.st-head', st); if (!h) { h = document.createElement('div'); h.className = 'st-head'; st.appendChild(h); }
+  h.innerHTML = `<div class="st-step">${step}</div><div class="st-q in">${q}</div>${extra}`;
+}
+function stamp(st, text, color) {
+  const s = document.createElement('div'); s.className = 'stamp'; s.textContent = text; s.style.setProperty('--sc', color);
+  st.appendChild(s); SFX.stamp(); setTimeout(() => s.remove(), 1300);
+}
+
+/* OPENING: curtain */
+async function opening(st) {
+  st.insertAdjacentHTML('beforeend', `<div class="curtain l"></div><div class="curtain r"></div>
+    <div class="open-title"><div class="ribbon">IT'S LUCKY HOUR</div><div class="ot-main foil">ラッキーアワー<br>はじまるよ！</div><div class="ot-sub">着席中のみなさん、テレビにご注目ください</div></div>`);
+  SFX.chime(1046); SFX.chime(1568, .15); SFX.chime(2093, .3);
+  FX.burst(GOLDS, 90, .5, .35);
+  await W(2600);
+  SFX.curtain(); SFX.whoosh(); st.classList.add('opened');
+  await W(1300);
+  $$('.curtain,.open-title', st).forEach(e => e.remove()); st.classList.remove('opened');
+}
+
+/* STAGE 1: who */
+async function stageOne(st, d) {
+  const n = d.candidates.length, win = d.winnerIndex;
+  head(st, 'ROUND 1 ── WHO', '今回の当選者は…？');
+  SFX.whoosh();
+  await W(1200);
+  if (n > 14) return reelOne(st, d);
+  st.insertAdjacentHTML('beforeend', `<div class="table-wrap"><div class="felt"><div class="felt-logo">9HIGH<small>LUCKY HOUR</small></div></div></div><div class="spot"></div>`);
+  const wrap = $('.table-wrap', st), logo = $('.felt-logo', wrap);
+  const say = t => { logo.className = 'felt-logo say'; logo.textContent = t; void logo.offsetWidth; };
+  const seats = d.candidates.map((c, i) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    const x = 50 + 44 * Math.cos(a), y = 50 + 44 * Math.sin(a);
+    const el = document.createElement('div'); el.className = 'seat'; el.style.left = x + '%'; el.style.top = y + '%';
+    el.dataset.x = x; el.dataset.y = y;
+    el.innerHTML = `<span class="no">SEAT ${i + 1}</span>${esc(c.name)}`;
+    el.style.opacity = 0; el.style.transform = 'translate(-50%,-50%) scale(.4)';
+    wrap.appendChild(el); return el;
+  });
+  for (let i = 0; i < n; i++) { await W(90); seats[i].style.opacity = ''; seats[i].style.transform = ''; SFX.pop(i / n); }
+  await W(600);
+  say('だれかな…？'); SFX.roll(1.0); await W(1000);
+
+  const hot = i => { seats.forEach(s => s.classList.remove('hot')); if (i != null) seats[i].classList.add('hot'); };
+  // hop around the table with a slowdown; p = 0..1 progress, beats get louder near the end
+  const hopRun = async (from, dist, {minW = 40, maxW = 560, exp = 3.1, beats = true} = {}) => {
+    let pos = from;
+    for (let i = 1; i <= dist; i++) {
+      const p = i / dist; pos = (pos + 1) % n;
+      await W(minW + maxW * Math.pow(p, exp)); hot(pos); SFX.tick(p);
+      if (beats && p > .8) { SFX.heart(.55); beat(st); }
+      if (beats && i === Math.floor(dist * .72)) say('ドキドキ…');
+    }
+    return pos;
+  };
+  if (n === 1) {
+    for (let k = 0; k < 7; k++) { hot(k % 2 ? null : 0); SFX.tick(.5); await W(260); }
+    hot(0);
+  } else {
+    const start = rnd(n), laps = n <= 3 ? 6 : n <= 6 ? 4 : 3;
+    const styles = ['straight', 'tease', 'tease', 'overshoot', 'overshoot', 'fakeout', 'fakeout'];
+    const style = styles[rnd(styles.length)];
+    hot(start);
+    if (style === 'fakeout') {
+      // stop on someone else first… then start moving again
+      const fake = (win - 1 - rnd(Math.min(3, n - 1)) + n) % n;
+      const d1 = laps * n + ((fake - start + n) % n || n);
+      await hopRun(start, d1);
+      const fs = seats[fake]; fs.classList.add('win');
+      say('きまり…？'); SFX.heart(); beat(st); await W(1300); SFX.heart(); beat(st); await W(500);
+      fs.classList.remove('win');
+      say('…と思いきや！？'); SFX.riser(1); shake(st); flash(st); await W(900);
+      await hopRun(fake, ((win - fake + n) % n) + n, {minW:60, maxW:520, exp:2.6});
+    } else {
+      const dist = laps * n + ((win - start + n) % n || n);
+      if (style === 'tease') {
+        await hopRun(start, dist - 1);
+        say('あとひとつ…？'); SFX.heart(); beat(st); await W(1300); SFX.heart(); beat(st); await W(700);
+        await W(220); hot(win); SFX.tick(1);
+      } else if (style === 'overshoot') {
+        await hopRun(start, dist);
+        await W(650); const ov = (win + 1) % n; hot(ov); SFX.tick(1);
+        say('いきすぎ…？'); SFX.heart(); beat(st); await W(1200);
+        await W(250); hot(win); SFX.tick(1); SFX.whoosh(); shake(st);
+      } else {
+        await hopRun(start, dist);
+      }
+    }
+  }
+  // lock in
+  hot(win);
+  const ws = seats[win];
+  const spot = $('.spot', st), sr = st.getBoundingClientRect(), wr = ws.getBoundingClientRect();
+  spot.style.setProperty('--sx', ((wr.left + wr.width / 2 - sr.left) / sr.width * 100) + '%'); spot.style.setProperty('--sy', ((wr.top + wr.height / 2 - sr.top) / sr.height * 100) + '%'); spot.classList.add('on');
+  say('……'); SFX.heart(); beat(st); await W(900);
+  seats.forEach((s, i) => { if (i !== win) s.classList.add('dim'); });
+  ws.classList.add('win'); ws.insertAdjacentHTML('beforeend', '<span class="crown suit">♛&#xFE0E;</span>');
+  SFX.impact(); flash(st); shake(st); say('おめでとう！');
+  await W(1200);
+  logo.style.opacity = 0;
+  await winnerSplash(st, d.candidates[win].name);
+  wrap.remove(); spot.remove();
+}
+async function reelOne(st, d) {
+  const names = d.candidates.map(c => c.name), win = d.winnerIndex;
+  const list = []; for (let k = 0; k < 6; k++) { const sh = [...names.keys()].sort(() => rndf() - .5); sh.forEach(i => list.push(i)); }
+  const base = 4 * names.length; const tIdx = base + list.slice(base, base + names.length).indexOf(win);
+  st.insertAdjacentHTML('beforeend', `<div class="reel"><div class="reel-strip">${list.map(i => `<div class="reel-item">${esc(names[i])}</div>`).join('')}</div><div class="reel-line"></div></div>`);
+  const reel = $('.reel', st), strip = $('.reel-strip', st);
+  const ih = reel.querySelector('.reel-item').offsetHeight, rh = reel.offsetHeight;
+  const yAt = idx => -(idx * ih - (rh / 2 - ih / 2));
+  const tease = rnd(2) === 0;
+  const y = yAt(tease ? tIdx - 1 : tIdx);
+  await W(300);
+  const dur = 6200 * tv.speed;
+  strip.style.transition = `transform ${dur}ms cubic-bezier(.08,.62,.08,1)`;
+  strip.style.transform = `translateY(${y}px)`;
+  const t0 = performance.now(); let lastI = -1;
+  while (performance.now() - t0 < dur) {
+    let i = lastI; try { const tf = getComputedStyle(strip).transform; i = tf === 'none' ? 0 : Math.round(-new DOMMatrix(tf).m42 / ih); } catch {}
+    if (i !== lastI) { lastI = i; const p = (performance.now() - t0) / dur; SFX.tick(p); if (p > .8) beat(st); }
+    await sleep(16);
+  }
+  SFX.heart(); beat(st); await W(900);
+  if (tease) { SFX.heart(); beat(st); await W(900); strip.style.transition = 'transform 420ms cubic-bezier(.5,1.8,.5,1)'; strip.style.transform = `translateY(${yAt(tIdx)}px)`; SFX.tick(1); SFX.whoosh(); await sleep(500); }
+  SFX.impact(); flash(st); shake(st);
+  await W(800);
+  await winnerSplash(st, names[win]);
+  reel.remove();
+}
+async function winnerSplash(st, name) {
+  const rays = document.createElement('div'); rays.className = 'rays'; st.appendChild(rays);
+  requestAnimationFrame(() => rays.classList.add('on'));
+  const chars = [...name];
+  const sp = document.createElement('div'); sp.className = 'splash';
+  sp.innerHTML = `<div class="sp-crown suit">♛&#xFE0E;</div><div class="ribbon">CONGRATULATIONS</div>
+    <div class="nm">${chars.map((c, i) => `<span class="foil" style="animation-delay:${(.3 + i * .08).toFixed(2)}s">${c === ' ' ? '&nbsp;' : esc(c)}</span>`).join('')}</div>
+    <div class="san" style="--sd:${(.5 + chars.length * .08).toFixed(2)}s">さん、おめでとうございます！</div>`;
+  const h = $('.st-head', st); if (h) h.style.opacity = 0;
+  st.appendChild(sp); SFX.fanfare(false); FX.burst(GOLDS, 220);
+  chars.slice(0, 10).forEach((_, i) => setTimeout(() => SFX.pop(.4 + i * .06), 300 + i * 80));
+  await W(900);
+  fireworks(GOLDS, 4, 380);
+  await W(500); FX.rain(GOLDS, 110);
+  await W(3000);
+  sp.style.transition = 'opacity .5s'; sp.style.opacity = 0; rays.style.transition = 'opacity .5s'; rays.style.opacity = 0;
+  await sleep(550); sp.remove(); rays.remove(); if (h) h.style.opacity = '';
+}
+
+/* STAGE 2: what */
+const AURA = {
+  N: 'radial-gradient(ellipse at 50% 60%,rgba(98,182,255,.5),transparent 65%)',
+  R: 'radial-gradient(ellipse at 50% 60%,rgba(185,138,255,.6),transparent 65%)',
+  SR:'radial-gradient(ellipse at 50% 60%,rgba(242,205,120,.7),transparent 65%)',
+  UR:'conic-gradient(from 0deg at 50% 60%,rgba(255,111,200,.55),rgba(255,211,95,.55),rgba(95,255,210,.55),rgba(98,182,255,.55),rgba(255,111,200,.55))',
+};
+const STAMP = { R:['チャンス！', '#b98aff'], SR:['激アツ！！', '#f2a93b'], UR:['超激アツ！！！', '#ff4fb8'] };
+async function stageTwo(st, d) {
+  const name = d.candidates[d.winnerIndex].name;
+  const prize = d.prize, rk = prize.rarity;
+  head(st, 'ROUND 2 ── WHAT', '何が当たるかな…？', `<div class="for-who"><b>${esc(name)}</b> さんへのプレゼント</div>`);
+  SFX.whoosh();
+  const aura = document.createElement('div'); aura.className = 'aura'; st.appendChild(aura);
+  const box = document.createElement('div'); box.className = 'cards'; st.appendChild(box);
+  const slots = [5, 37, 69];
+  const cards = [0, 1, 2].map(i => {
+    const b = document.createElement('button'); b.className = 'card'; b.setAttribute('aria-label', ['左', '真ん中', '右'][i] + 'のカード');
+    b.innerHTML = '<div class="ci"><div class="face back"></div><div class="face front"></div></div>';
+    b.style.left = '37%'; b.style.transform = 'translateY(-70vh) rotate(' + (rnd(40) - 20) + 'deg)'; b.style.opacity = 0;
+    box.appendChild(b); return b;
+  });
+  await W(700);
+  // deal
+  for (let i = 0; i < 3; i++) { cards[i].style.opacity = 1; cards[i].style.transform = ''; SFX.flip(); await W(280); }
+  await W(300);
+  for (let i = 0; i < 3; i++) { cards[i].style.left = slots[i] + '%'; }
+  SFX.whoosh(); await W(550);
+  // shuffle
+  let order = [0, 1, 2];
+  for (let k = 0; k < 8; k++) {
+    const a = rnd(3); let b = rnd(3); if (b === a) b = (a + 1) % 3;
+    [order[a], order[b]] = [order[b], order[a]];
+    order.forEach((c, pos) => cards[c].style.left = slots[pos] + '%');
+    SFX.tick(.3 + k * .08); await W(310 - k * 18);
+  }
+  const visual = order.map(c => cards[c]);
+  // aura escalation (premonition)
+  await W(500);
+  const steps = ['N', 'R', 'SR', 'UR'];
+  const target = rk === 'MISS' ? 'N' : rk;
+  aura.style.background = AURA.N; aura.classList.add('on'); SFX.riser(1.2);
+  visual.forEach(c => { c.style.setProperty('--rc', RAR.N.hex); c.classList.add('glow'); });
+  await W(1300);
+  for (const s of steps.slice(1, steps.indexOf(target) + 1)) {
+    SFX.roll(.9); await W(950);
+    aura.style.background = AURA[s]; flash(st); shake(st);
+    visual.forEach(c => c.style.setProperty('--rc', RAR[s].hex));
+    stamp(st, STAMP[s][0], STAMP[s][1]);
+    if (s === 'UR') aura.animate([{filter:'hue-rotate(0)'}, {filter:'hue-rotate(360deg)'}], {duration:2500, iterations:Infinity});
+    await W(1250);
+  }
+  // pick
+  head(st, 'ROUND 2 ── WHAT', 'カードを1枚えらんでね', `<div class="for-who"><b>${esc(name)}</b> さん</div>`);
+  const bar = document.createElement('div'); bar.className = 'pick-bar';
+  bar.innerHTML = '<p>スタッフに指さしで教えてね</p><div class="pick-track"><div class="pick-fill"></div></div>'; st.appendChild(bar);
+  visual.forEach((c, i) => { c.classList.add('pickable', 'bob'); c.style.setProperty('--bd', (i * -.5) + 's'); });
+  const LIMIT = 20000;
+  const fill = $('.pick-fill', bar); fill.animate([{transform:'scaleX(1)'}, {transform:'scaleX(0)'}], {duration:LIMIT, fill:'forwards'});
+  const pickedIdx = await new Promise(res => {
+    let done = false, to = null; const fin = i => { if (done) return; done = true; clearTimeout(to); res(i); };
+    const cur = getDraw(); if (cur.id === d.id && cur.picked != null) return fin(cur.picked);
+    tv.pickSignal = fin;
+    visual.forEach((c, i) => c.onclick = () => { fin(i); writePick(d.id, i); });
+    to = setTimeout(() => { const i = [...d.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 3; fin(i); writePick(d.id, i); }, LIMIT);
+  });
+  tv.pickSignal = null; visual.forEach(c => { c.onclick = null; c.classList.remove('pickable', 'bob'); }); bar.remove();
+  const chosen = visual[pickedIdx];
+  const others = visual.filter(c => c !== chosen);
+  // chosen card to the middle, the other two step aside
+  chosen.style.left = '37%'; others[0].style.left = '5%'; others[1].style.left = '69%';
+  others.forEach(c => c.classList.add('fade'));
+  chosen.classList.add('lift'); SFX.whoosh();
+  head(st, 'ROUND 2 ── WHAT', 'このカードに決定！', `<div class="for-who"><b>${esc(name)}</b> さん</div>`);
+  const fillFace = (c, p) => {
+    const r = RAR[p.rarity] || RAR.N;
+    c.style.setProperty('--rc', r.hex); c.classList.toggle('ur', p.rarity === 'UR'); c.classList.toggle('miss', !!p.miss);
+    $('.front', c).innerHTML = `<div class="rk">${esc(r.label)}</div><div class="pz">${esc(p.name)}</div>`;
+  };
+  others.forEach((c, i) => fillFace(c, d.decoys?.[i] || prize));
+  await W(900);
+  // squeeze: the card peels up a little, then falls back
+  const ci = $('.ci', chosen);
+  const squeezes = RAR[rk].lv >= 3 ? 2 : 1;
+  for (let s = 0; s < squeezes; s++) {
+    head(st, 'ROUND 2 ── WHAT', s ? 'もう一回…！' : 'めくるよ…', `<div class="for-who"><b>${esc(name)}</b> さん</div>`);
+    ci.style.transition = 'transform 1.1s cubic-bezier(.3,.1,.3,1)'; ci.style.transform = 'rotateY(62deg) rotateZ(-3deg)';
+    SFX.roll(1.3); for (let b = 0; b < 3; b++) setTimeout(() => { SFX.heart(.6); beat(st); }, b * 420 * tv.speed);
+    await W(1400);
+    ci.style.transition = 'transform .35s cubic-bezier(.3,1.6,.5,1)'; ci.style.transform = '';
+    SFX.tick(.8); shake(st); await W(650);
+  }
+  ci.style.transition = ''; ci.style.transform = '';
+  fillFace(chosen, prize);
+  if (rk === 'UR') {
+    const k = document.createElement('div'); k.className = 'kakutei on'; k.innerHTML = '<span>確定</span>'; st.appendChild(k);
+    SFX.impact(); SFX.riser(1.6); await W(1900); k.remove(); flash(st);
+  }
+  head(st, 'ROUND 2 ── WHAT', 'オープン！', `<div class="for-who"><b>${esc(name)}</b> さん</div>`);
+  chosen.classList.add('flip'); SFX.flip();
+  await W(450);
+  if (prize.miss) {
+    SFX.sad(); $('.st-q', st).textContent = '…ざんねん！';
+    aura.getAnimations().forEach(a => a.cancel());
+    aura.style.background = 'radial-gradient(ellipse at 50% 60%,rgba(155,139,152,.35),transparent 65%)';
+  } else {
+    const lv = RAR[rk].lv;
+    SFX.impact(); SFX.fanfare(lv >= 3); flash(st);
+    const col = rk === 'UR' ? RAINBOW : rk === 'SR' ? GOLDS : [RAR[rk].hex, '#fff', '#f2cd78', '#ff8db5'];
+    FX.burst(col, lv >= 3 ? 320 : 180, .5, .55);
+    if (lv >= 2) fireworks(col, lv >= 4 ? 8 : lv >= 3 ? 5 : 2, lv >= 4 ? 300 : 400);
+    if (lv >= 3) { SFX.sparkle(); setTimeout(() => FX.rain(col, 170), 700); }
+  }
+  const res = document.createElement('div'); res.className = 'result' + (prize.miss ? ' miss' : '');
+  res.innerHTML = prize.miss
+    ? `<div class="l1">${esc(name)} さん</div><div class="l2">${esc(prize.name)}…！ また次の1時間で</div>`
+    : `<div class="l1">${esc(name)} さん　ゲット！</div><div class="l2"><em>${esc(RAR[rk].label)}</em>${esc(prize.name)}</div>`;
+  st.appendChild(res);
+  await W(2800);
+  // tease the other cards
+  head(st, 'ROUND 2 ── WHAT', 'ちなみに、ほかのカードは…', `<div class="for-who"><b>${esc(name)}</b> さん</div>`);
+  for (const c of others) { c.classList.add('flip'); SFX.flip(); await W(600); }
+  await waitOrTap(st, 8000 * tv.speed);
+  [aura, box, res, $('.st-head', st)].forEach(e => e?.remove());
+}
+async function ending(st) {
+  const cfg = getCfg();
+  const e = document.createElement('div'); e.className = 'ending';
+  e.innerHTML = cfg.auto
+    ? `<div class="e1">次のラッキーアワーは</div><div class="e2 foil">${hhmm(nextSlot(cfg))}</div><div class="e3">そのまま席でお待ちください</div>`
+    : `<div class="e1">ご参加ありがとうございました</div><div class="e2 foil" style="font-size:12vh;font-family:var(--f-display)">またね！</div><div class="e3">次の抽選もお楽しみに</div>`;
+  st.appendChild(e); SFX.chime(1568); SFX.chime(2093, .14, .7);
+  await W(3000);
+  st.style.transition = 'opacity .6s'; st.style.opacity = 0; await sleep(650);
+}
+function writePick(id, i) { const cur = getDraw(); if (cur.id === id && cur.picked == null) save('draw', {...clone(cur), picked:i}); }
+function waitOrTap(el, ms) { return new Promise(res => { const t = setTimeout(done, ms); function done() { clearTimeout(t); el.removeEventListener('click', done); res(); } setTimeout(() => el.addEventListener('click', done), 1500); }); }
+
+/* ================= ADMIN ================= */
+let curTab = 'draw';
+$$('.tab').forEach(t => t.onclick = () => { curTab = t.dataset.tab; $$('.tab').forEach(x => x.setAttribute('aria-selected', x === t)); $$('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== curTab); renderAdmin(); scrollTo({top:0}); });
+function showTab(name) { $(`.tab[data-tab="${name}"]`)?.click(); }
+store.subs.add(k => {
+  const [txt, cls] = connText();
+  $('#connLaunch').textContent = txt; const p = $('#connPill'); p.textContent = txt.split('：')[0]; p.className = 'pill ' + cls; p.title = txt;
+  if (!$('#admin').hidden) renderAdmin(k);
+});
+
+function renderAdmin(k = '*') {
+  const players = getPlayers();
+  $('#cntPlayers').textContent = players.filter(p => p.active).length;
+  $('#admBack').hidden = !ownTvStopped();
+  if (curTab === 'draw') renderStatus();
+  if (curTab === 'players') renderPlayers();
+  if (curTab === 'prizes' && !document.activeElement?.closest('#prList,#missRow')) renderPrizes();
+  if (curTab === 'settings' && !document.activeElement?.closest('[data-pane=settings] input')) renderSettings();
+  if (curTab === 'history') renderHistory();
+}
+let statusKey = '';
+const leftText = ms => `あと ${Math.floor(ms / 60000)}分${pad2(Math.floor(ms / 1000) % 60)}秒`;
+function statusKeyNow() { const d = getDraw(), c = getCfg(); return [d.id && Date.now() - d.at < 120000, tvAlive(), c.auto, hhmm(nextSlot(c))].join('|'); }
+const ownTvStopped = () => store.data.tv?.id === TAB_ID && !isTv();
+const tvAlive = () => { const t = store.data.tv; return !!t?.at && !ownTvStopped() && Date.now() - t.at < 150000; };
+function renderStatus() {
+  const cfg = getCfg(), d = getDraw(), el = $('#admStatus');
+  const act = eligible(cfg).length, pool = prizePool(cfg).length;
+  const recent = d.id && Date.now() - d.at < 120000;
+  let html = '';
+  if (recent) {
+    const w = d.candidates?.[d.winnerIndex]?.name;
+    html = `<div class="eb">${d.test ? 'テスト抽選中' : '抽選中'} ・ ${hhmm(new Date(d.at))} 開始</div><div class="bigt txt">${esc(w)} さん</div><div class="sub">${d.picked == null ? 'カードを選んでもらっています' : 'カードが開かれました。結果はテレビで発表中'}</div>`;
+  } else if (cfg.auto) {
+    const nx = nextSlot(cfg), ms = nx - Date.now();
+    html = `<div class="eb">次の自動抽選</div><div class="bigt">${hhmm(nx)}</div><div class="sub"><span id="admLeft">${leftText(ms)}</span> ・ 毎時${pad2(cfg.minute)}分</div>`;
+  } else {
+    html = `<div class="eb">自動抽選はオフ</div><div class="bigt txt">手動で抽選します</div><div class="sub">下の「今すぐ抽選」で始まります</div>`;
+  }
+  const alive = tvAlive();
+  html += `<div class="checks">
+    <button class="ck ${act ? '' : 'ng'}" data-go="players">着席 ${act}名${act ? '' : '：登録してください'}</button>
+    <button class="ck ${pool ? '' : 'ng'}" data-go="prizes">景品 ${pool}種${pool ? '' : '：登録してください'}</button>
+    ${alive ? '<span class="ck">テレビ画面 映っています</span>' : ownTvStopped() ? '<button class="ck ng" data-tv>このスマホのテレビ画面は止まっています（タップで戻る）</button>' : '<button class="ck ng" data-tv>テレビ画面 開いていません（タップで開く）</button>'}
+    <button class="ck ${cfg.auto ? '' : 'off'}" data-go="settings">自動抽選 ${cfg.auto ? 'オン' : 'オフ'}</button></div>`;
+  el.innerHTML = html; el.classList.toggle('live', !!recent); statusKey = statusKeyNow();
+  $('#pickBox').hidden = !(recent && d.picked == null);
+  const ready = act > 0 && pool > 0;
+  $('#btnDrawNow').disabled = !ready || recent; $('#btnDrawTest').disabled = !ready || recent;
+  // quick seats
+  const ps = getPlayers();
+  $('#qsSum').textContent = ps.length ? `着席 ${ps.filter(p => p.active).length} ／ 登録 ${ps.length}` : '';
+  $('#qsList').innerHTML = ps.length ? ps.map(p => `<button class="qchip" data-id="${esc(p.id)}" aria-pressed="${!!p.active}"><span>${esc(p.name)}</span></button>`).join('')
+    : '<div class="empty" style="width:100%">まだ参加者がいません。<button class="btn sm gold" data-go="players" style="margin-left:6px">参加者を追加</button></div>';
+  const lw = getHistory()[0];
+  $('#lastWin').innerHTML = lw ? `<span>前回の当選</span><b>${hhmm(new Date(lw.at))} ${esc(lw.name)} さん → ${esc(lw.prize)}</b>` : '';
+}
+$('[data-pane=draw]').addEventListener('click', e => {
+  if (e.target.closest('[data-tv]')) { go('tv'); return; }
+  const g = e.target.closest('[data-go]'); if (g) { showTab(g.dataset.go); return; }
+  const q = e.target.closest('.qchip'); if (q) { const list = clone(getPlayers()); const p = list.find(x => x.id === q.dataset.id); if (p) { p.active = !p.active; setPlayers(list); } }
+});
+$$('[data-pick]').forEach(b => b.onclick = () => { const d = getDraw(); writePick(d.id, +b.dataset.pick); toast(['左', '真ん中', '右'][+b.dataset.pick] + 'のカードを開きます'); });
+armed($('#btnDrawNow'), 'もう一度押すと抽選スタート', async () => { const r = await createDraw('manual'); toast(r.error || 'テレビで抽選を始めました'); });
+armed($('#btnDrawTest'), 'もう一度押すとテスト開始', async () => { const r = await createDraw('test'); toast(r.error || 'テスト抽選を始めました（履歴には残りません）'); });
+
+/* every second only the countdown text changes; the chips are rebuilt only when their state changes, so taps are never lost */
+setInterval(() => {
+  if ($('#admin').hidden || curTab !== 'draw') return;
+  if (statusKeyNow() !== statusKey) { renderStatus(); return; }
+  const l = $('#admLeft'); if (l) l.textContent = leftText(nextSlot(getCfg()) - Date.now());
+}, 1000);
+
+/* players */
+function renderPlayers() {
+  const ps = getPlayers(), el = $('#pList');
+  $('#pSummary').textContent = `着席 ${ps.filter(p => p.active).length} ／ 登録 ${ps.length}`;
+  el.innerHTML = ps.length ? ps.map(p => `<div class="prow ${p.active ? '' : 'off'}" data-id="${esc(p.id)}">
+      <button class="tgl" data-act="toggle" aria-pressed="${!!p.active}"><span class="nm">${esc(p.name)}</span><span class="state">${p.active ? '着席' : '離席'}</span></button>
+      <button class="x" data-act="del" aria-label="${esc(p.name)}を削除">削除</button></div>`).join('')
+    : '<div class="empty">まだ誰もいません。上の欄に名前を入れて「追加」してください。</div>';
+}
+function setPlayers(list) { return save('players', {list}); }
+function addPlayers(inp = $('#pAdd')) {
+  const raw = inp.value; const names = raw.split(/[、,，\n]+/).map(s => s.trim()).filter(Boolean);
+  if (!names.length) return;
+  const list = clone(getPlayers()); let added = 0, back = 0;
+  for (const n of names) {
+    const ex = list.find(p => p.name === n.slice(0, 20));
+    if (ex) { if (!ex.active) back++; ex.active = true; } else { list.push({id:uid() + rnd(999), name:n.slice(0, 20), active:true}); added++; }
+  }
+  setPlayers(list); inp.value = ''; inp.focus();
+  toast([added && `${added}人を追加`, back && `${back}人を着席に戻しました`].filter(Boolean).join('・') || 'すでに着席しています');
+}
+$('#pAddBtn').onclick = () => addPlayers();
+$('#pAdd').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) addPlayers(); });
+$('#pList').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return; const id = b.closest('.prow').dataset.id;
+  const list = clone(getPlayers()); const p = list.find(x => x.id === id); if (!p) return;
+  if (b.dataset.act === 'toggle') { p.active = !p.active; setPlayers(list); }
+  if (b.dataset.act === 'del') {
+    const before = clone(getPlayers());
+    setPlayers(list.filter(x => x.id !== id));
+    toast(`${p.name} さんを削除しました`, {label:'元に戻す', fn:() => setPlayers(before)});
+  }
+});
+$('#pAllOn').onclick = () => setPlayers(getPlayers().map(p => ({...p, active:true})));
+armed($('#pAllOff'), 'もう一度押すと全員離席', () => setPlayers(getPlayers().map(p => ({...p, active:false}))));
+armed($('#pClear'), 'もう一度押すと全員削除', () => { const before = clone(getPlayers()); setPlayers([]); toast('リストを空にしました', {label:'元に戻す', fn:() => setPlayers(before)}); });
+
+/* prizes */
+let saveT = {};
+function debSave(key, fn, noteSel) { clearTimeout(saveT[key]); saveT[key] = setTimeout(async () => { await fn(); const n = $(noteSel); if (n) { n.textContent = '保存しました'; setTimeout(() => n.textContent = '', 1600); } }, 500); }
+function oddsOf(cfg) {
+  const pool = prizePool(cfg), total = pool.reduce((s, p) => s + p.weight, 0);
+  return {pool, total, pct:w => total ? (w / total * 100).toFixed(1) + '%' : '0%'};
+}
+function renderOdds() {
+  const cfg = getCfg(), {pool, total} = oddsOf(cfg);
+  $('#odds').innerHTML = pool.length
+    ? `<div class="pbar">${pool.map(p => `<i style="width:${p.weight / total * 100}%;--rc:${RAR[p.rarity].hex}" title="${esc(p.name)}"></i>`).join('')}</div>
+       <div class="olist">${pool.map(p => `<span style="--rc:${RAR[p.rarity].hex}"><i></i>${esc(p.name)} <b>${(p.weight / total * 100).toFixed(1)}%</b></span>`).join('')}</div>`
+    : '<div class="empty">有効な景品がまだありません。下で景品を登録すると、ここに当たる確率が出ます。</div>';
+  // per-row live percentages
+  const pct = oddsOf(cfg).pct;
+  $$('#prList .prize').forEach(row => {
+    const p = cfg.prizes[+row.dataset.i]; if (!p) return;
+    const valid = p.enabled !== false && +p.weight > 0 && String(p.name || '').trim();
+    const b = $('.pct b', row); if (b) b.textContent = valid ? pct(+p.weight) : '0%';
+  });
+  const mb = $('#missRow .pct b'); if (mb) mb.textContent = cfg.miss.enabled && +cfg.miss.weight > 0 ? pct(+cfg.miss.weight) : '0%';
+}
+function stepper(id, val, attrs) {
+  return `<div class="step"><label for="${id}">重み</label><button data-act="dec" aria-label="重みを1減らす">−</button><input type="number" id="${id}" ${attrs} value="${+val || 0}" min="0" max="9999" inputmode="numeric"><button data-act="inc" aria-label="重みを1増やす">+</button></div>`;
+}
+const mhUsed = (prizes, name) => prizes.some(p => p.name === name && p.enabled !== false);
+function mhCount(g, prizes = getCfg().prizes) { return MH[g].filter(([n]) => mhUsed(prizes, n)).length; }
+/* on=true adds missing ones / re-enables; on=false stops them (kept in the list so weights survive) */
+function mhSet(g, names, on) {
+  clearTimeout(saveT.pr);
+  const prizes = clone(getCfg().prizes);
+  for (const [n, r, w] of MH[g]) {
+    if (!names.includes(n)) continue;
+    const p = prizes.find(x => x.name === n);
+    if (p) p.enabled = on; else if (on) prizes.push({id:uid(), name:n, rarity:r, weight:w, enabled:true, src:g});
+  }
+  return setCfg({prizes});
+}
+function renderMh() {
+  const prizes = getCfg().prizes;
+  $('#mhBox').innerHTML = Object.keys(MH).map(g => `<div class="mh-g"><div class="mh-h"><b>${g}</b><span>${mhCount(g, prizes)} / ${MH[g].length} 使用中</span>
+      <button class="btn sm" data-mhall="${g}" data-on="1">ぜんぶ使う</button><button class="btn sm" data-mhall="${g}" data-on="0">使わない</button></div>
+    <div class="qs">${MH[g].map(([n]) => `<button class="qchip" data-mhg="${g}" data-mhn="${esc(n)}" aria-pressed="${mhUsed(prizes, n)}"><span>${esc(n)}</span></button>`).join('')}</div></div>`).join('');
+}
+$('#mhBox').addEventListener('click', e => {
+  const a = e.target.closest('[data-mhall]');
+  if (a) { const g = a.dataset.mhall; mhSet(g, MH[g].map(x => x[0]), a.dataset.on === '1'); renderPrizes(); return; }
+  const c = e.target.closest('[data-mhn]'); if (!c) return;
+  mhSet(c.dataset.mhg, [c.dataset.mhn], c.getAttribute('aria-pressed') !== 'true'); renderPrizes();
+});
+function renderPrizes() {
+  const cfg = getCfg(), el = $('#prList');
+  el.innerHTML = cfg.prizes.length ? cfg.prizes.map((p, i) => {
+    const on = p.enabled !== false, rar = RAR[p.rarity] ? p.rarity : 'N';
+    return `<div class="prize ${on ? '' : 'disabled'}" data-i="${i}" style="--rc:${RAR[rar].hex}">
+      <div class="pz-top"><input class="pz-name" type="text" id="pz-n-${i}" data-f="name" value="${esc(p.name)}" placeholder="景品名（例：ドリンク1杯）" maxlength="30" aria-label="景品名">
+        <button class="tg" role="switch" aria-checked="${on}" data-act="en" aria-label="この景品を使う"></button></div>
+      <div class="pz-mid"><div class="seg" role="group" aria-label="レア度">${['N', 'R', 'SR', 'UR'].map(r => `<button data-r="${r}" aria-pressed="${rar === r}" style="--rc:${RAR[r].hex}">${r}</button>`).join('')}</div>
+        ${stepper('pz-w-' + i, p.weight, 'data-f="weight" aria-label="重み"')}</div>
+      <div class="pz-bot"><span class="pct">${on ? '当たる確率' : '停止中'}<b>0%</b></span><button class="x" data-act="del">削除</button></div></div>`;
+  }).join('') : '<div class="empty">景品がまだありません。「景品を追加」から登録するか、例を入れて書き換えてください。</div>';
+  $('#prSample').hidden = cfg.prizes.length > 0;
+  renderMh();
+  const m = cfg.miss;
+  $('#missRow').innerHTML = `
+    <div class="pz-top"><input class="pz-name" type="text" id="miss-l" data-m="label" value="${esc(m.label)}" maxlength="30" aria-label="ハズレの表示名">
+      <button class="tg" role="switch" aria-checked="${!!m.enabled}" data-m="enabled" aria-label="ハズレ枠を使う"></button></div>
+    <div class="pz-mid"><span class="help">テレビでの表示名を変えられます</span>${stepper('miss-w', m.weight, 'data-m="weight" aria-label="ハズレの重み"')}</div>
+    <div class="pz-bot"><span class="pct">${m.enabled ? '出る確率' : 'オフ'}<b>0%</b></span></div>`;
+  $('#missRow').classList.toggle('disabled', !m.enabled);
+  renderOdds();
+}
+function setCfg(patch) { return save('config', {...clone(getCfg()), ...patch}); }
+const clampW = v => Math.max(0, Math.min(9999, Math.round(+v || 0)));
+$('#prList').addEventListener('input', e => {
+  const f = e.target.dataset.f; if (!f) return; const i = +e.target.closest('.prize').dataset.i;
+  const prizes = clone(getCfg().prizes); prizes[i][f] = f === 'weight' ? clampW(e.target.value) : e.target.value;
+  store.data.config = {...clone(getCfg()), prizes};
+  renderOdds();
+  debSave('pr', () => setCfg({prizes}), '#prSave');
+});
+$('#prList').addEventListener('focusout', () => setTimeout(() => { if (!document.activeElement?.closest('#prList')) renderPrizes(); }, 600));
+$('#prList').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return; const i = +b.closest('.prize').dataset.i;
+  const prizes = clone(getCfg().prizes); const p = prizes[i]; if (!p) return;
+  clearTimeout(saveT.pr);
+  if (b.dataset.r) { p.rarity = b.dataset.r; setCfg({prizes}); renderPrizes(); return; }
+  if (b.dataset.act === 'inc' || b.dataset.act === 'dec') { p.weight = clampW((+p.weight || 0) + (b.dataset.act === 'inc' ? 1 : -1)); setCfg({prizes}); const inp = $(`#pz-w-${i}`); if (inp) inp.value = p.weight; renderOdds(); return; }
+  if (b.dataset.act === 'en') { p.enabled = p.enabled === false; setCfg({prizes}); renderPrizes(); }
+  if (b.dataset.act === 'del') {
+    const before = clone(getCfg().prizes);
+    prizes.splice(i, 1); setCfg({prizes}); renderPrizes();
+    toast(`「${p.name || '名前なし'}」を削除しました`, {label:'元に戻す', fn:() => { setCfg({prizes:before}); renderPrizes(); }});
+  }
+});
+$('#prAdd').onclick = () => { clearTimeout(saveT.pr); const prizes = clone(getCfg().prizes); prizes.push({id:uid(), name:'', rarity:'N', weight:10, enabled:true}); setCfg({prizes}); renderPrizes(); setTimeout(() => $(`#pz-n-${prizes.length - 1}`)?.focus(), 50); };
+$('#prSample').onclick = () => { setCfg({prizes:SAMPLE_PRIZES.map(p => ({...p, id:uid(), enabled:true}))}); renderPrizes(); };
+$('#missRow').addEventListener('input', e => {
+  const k = e.target.dataset.m; if (!k || k === 'enabled') return;
+  const miss = {...getCfg().miss, [k]: k === 'weight' ? clampW(e.target.value) : e.target.value};
+  store.data.config = {...clone(getCfg()), miss};
+  renderOdds();
+  debSave('miss', () => setCfg({miss}), '#prSave');
+});
+$('#missRow').addEventListener('focusout', () => setTimeout(() => { if (!document.activeElement?.closest('#missRow')) renderPrizes(); }, 600));
+$('#missRow').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return; const miss = {...getCfg().miss}; clearTimeout(saveT.miss);
+  if (b.dataset.m === 'enabled') { miss.enabled = !miss.enabled; setCfg({miss}); renderPrizes(); }
+  if (b.dataset.act === 'inc' || b.dataset.act === 'dec') { miss.weight = clampW((+miss.weight || 0) + (b.dataset.act === 'inc' ? 1 : -1)); setCfg({miss}); $('#miss-w').value = miss.weight; renderOdds(); }
+});
+
+/* settings */
+function renderSettings() {
+  const c = getCfg();
+  $('#stAuto').setAttribute('aria-checked', !!c.auto);
+  $('#stExcl').setAttribute('aria-checked', !!c.excludeLast);
+  $('#stShort').setAttribute('aria-checked', !!c.short);
+  $('#stMinute').value = c.minute; $('#stCd').value = c.countdown; $('#stTitle').value = c.title;
+  $$('#minPresets [data-min]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.min === +c.minute));
+  $$('#cdPresets [data-cd]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.cd === +c.countdown));
+}
+const savedNote = () => { const n = $('#stSave'); n.textContent = '保存しました'; setTimeout(() => n.textContent = '', 1600); };
+$('#stAuto').onclick = () => { setCfg({auto:!getCfg().auto}); renderSettings(); savedNote(); };
+$('#stExcl').onclick = () => { setCfg({excludeLast:!getCfg().excludeLast}); renderSettings(); savedNote(); };
+$('#stShort').onclick = () => { setCfg({short:!getCfg().short}); renderSettings(); savedNote(); };
+$('#minPresets').addEventListener('click', e => { const b = e.target.closest('[data-min]'); if (!b) return; setCfg({minute:+b.dataset.min}); renderSettings(); savedNote(); });
+$('#cdPresets').addEventListener('click', e => { const b = e.target.closest('[data-cd]'); if (!b) return; setCfg({countdown:+b.dataset.cd}); renderSettings(); savedNote(); });
+$('#stMinute').addEventListener('input', e => { const v = Math.max(0, Math.min(59, Math.round(+e.target.value || 0))); debSave('min', () => setCfg({minute:v}), '#stSave'); });
+$('#stCd').addEventListener('input', e => { const v = Math.max(3, Math.min(60, Math.round(+e.target.value || 10))); debSave('cd', () => setCfg({countdown:v}), '#stSave'); });
+$('#stTitle').addEventListener('input', e => { const v = e.target.value.trim() || '毎時ラッキーアワー'; debSave('title', () => setCfg({title:v}), '#stSave'); });
+$$('[data-pane=settings] input').forEach(i => i.addEventListener('blur', () => setTimeout(renderSettings, 700)));
+
+/* history */
+function renderHistory() {
+  const h = getHistory(), now = new Date();
+  const today = h.filter(x => new Date(x.at).toDateString() === now.toDateString());
+  $('#hSum').innerHTML = `<div><span>今日の抽選</span><b>${today.length}</b></div><div><span>今日のSR以上</span><b>${today.filter(x => (RAR[x.rarity]?.lv || 0) >= 3).length}</b></div><div><span>記録の合計</span><b>${h.length}</b></div>`;
+  let lastDay = '';
+  $('#hList').innerHTML = h.length ? h.map(x => {
+    const d = new Date(x.at), r = RAR[x.rarity] || RAR.N, day = `${d.getMonth() + 1}月${d.getDate()}日`;
+    const hd = day !== lastDay ? `<div class="hday">${d.toDateString() === now.toDateString() ? '今日 ・ ' : ''}${day}</div>` : ''; lastDay = day;
+    return `${hd}<div class="hrow"><time>${hhmm(d)}</time><span class="who">${esc(x.name)}</span><span class="what"><span class="rtag" style="--rc:${r.hex}">${esc(r.label)}</span> ${esc(x.prize)}</span></div>`;
+  }).join('') : '<div class="empty">まだ当選者はいません。</div>';
+}
+armed($('#hClear'), 'もう一度押すと全部消えます', () => { const before = clone(getHistory()); save('history', {items:[]}); toast('履歴を消しました', {label:'元に戻す', fn:() => save('history', {items:before})}); });
+
+/* staff PIN (server mode only) */
+function openPin() {
+  if (store.kind !== 'api' || !$('#pinDlg').hidden) return;
+  const first = !store.api.pinSet;
+  $('#pinTitle').textContent = first ? 'スタッフPINを決める' : 'スタッフPIN';
+  $('#pinMsg').textContent = first ? 'はじめて使うので、スタッフ用のPIN（数字4〜8桁）を決めてください。テレビやほかのスマホでも同じPINを入れます。' : '操作するにはスタッフPIN（数字4〜8桁）を入れてください。この端末に記憶します。';
+  $('#pinOk').textContent = first ? 'このPINにする' : 'OK';
+  $('#pinErr').textContent = ''; $('#pinIn').value = ''; $('#pinDlg').hidden = false; setTimeout(() => $('#pinIn').focus(), 50);
+}
+async function submitPin() {
+  const pin = $('#pinIn').value.trim();
+  if (!/^\d{4,8}$/.test(pin)) { $('#pinErr').textContent = 'PINは数字4〜8桁です'; return; }
+  $('#pinOk').disabled = true;
+  try {
+    await apiPost({action: store.api.pinSet ? 'check' : 'setPin', pin});
+    try { localStorage.setItem('lh9_pin', pin); } catch {}
+    store.api.pinSet = true; $('#pinDlg').hidden = true; emit('*'); toast('スタッフPINを記憶しました');
+  } catch (e) { $('#pinErr').textContent = e.message || 'PINを確かめられませんでした'; }
+  finally { $('#pinOk').disabled = false; }
+}
+$('#pinOk').onclick = submitPin;
+$('#pinIn').addEventListener('keydown', e => { if (e.key === 'Enter') submitPin(); });
+$('#pinLater').onclick = () => { $('#pinDlg').hidden = true; emit('*'); };
+
+/* ================= BOOT ================= */
+FX.init();
+route();
+emit('*');
+initStore();
+})();
+</script>
+
+</body></html>

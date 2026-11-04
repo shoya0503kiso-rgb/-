@@ -471,3 +471,12 @@ model DrawBattlePlayer {
 
   @@unique([roomCode, seat])
 }
+
+// 「ラッキーアワー」(public/lucky-hour.html) の店内テレビとスタッフのスマホが共有するデータ。
+// 読み取りはログイン不要、書き込みはスタッフPINが必要。key は config / players / draw / history / tv と、内部用の _meta / _pin / _lock
+model LuckyHourDoc {
+  key       String   @id
+  value     String // JSON
+  version   Int      @default(0) // 変わったときだけ端末に送り直すための番号（_meta が全体の番号）
+  updatedAt DateTime @default(now()) @updatedAt
+}
