@@ -388,6 +388,11 @@ button.ck{cursor:pointer}
 .tg::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--mute);transition:transform .18s,background .18s}
 .tg[aria-checked="true"]{background:rgba(111,224,166,.22);border-color:var(--ok)}
 .tg[aria-checked="true"]::after{transform:translateX(22px);background:var(--ok)}
+.mh{display:grid;gap:14px}
+.mh-g{display:grid;gap:8px}
+.mh-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mh-h b{font-family:var(--f-display);font-weight:400;font-size:19px;color:var(--gold-pale)}
+.mh-h span{font-size:12px;font-weight:700;color:var(--mute);margin-right:auto}
 .setrow{display:flex;align-items:center;gap:12px;justify-content:space-between}
 .setrow .t{display:grid;gap:2px;min-width:0}
 .setrow .t b{font-size:15px;font-weight:900}
@@ -475,6 +480,8 @@ button.ck{cursor:pointer}
     <div class="sh-sec">
       <div class="setrow"><div class="t"><b>毎時の自動抽選</b><span class="help" id="shNext"></span></div><button class="tg" role="switch" id="shAuto" aria-label="毎時の自動抽選"></button></div>
       <div class="setrow"><div class="t"><b>演出を短めにする</b></div><button class="tg" role="switch" id="shShort" aria-label="演出を短めにする"></button></div>
+      <div class="setrow"><div class="t"><b>並の景品を使う</b><span class="help" id="shNamiN"></span></div><button class="tg" role="switch" id="shNami" data-mhset="並" aria-label="並の景品を使う"></button></div>
+      <div class="setrow"><div class="t"><b>極の景品を使う</b><span class="help" id="shKiwamiN"></span></div><button class="tg" role="switch" id="shKiwami" data-mhset="極" aria-label="極の景品を使う"></button></div>
     </div>
     <div class="row"><button class="btn sm" id="tvMute">音: ON</button><button class="btn sm" id="tvFull">全画面</button><button class="btn sm" id="tvToAdmin">くわしい設定へ</button></div>
     <p class="help sh-warn" id="shWarn" hidden>このスマホでは画面のスリープを止められませんでした。自動ロックを「なし」にしてください。画面が消えると自動抽選が止まります。</p>
@@ -579,6 +586,11 @@ button.ck{cursor:pointer}
         <div class="odds" id="odds"></div>
       </div>
       <div class="box">
+        <h2>ミステリーハイハンドの景品<span class="hint">タップで「使う ⇄ 使わない」</span></h2>
+        <div class="mh" id="mhBox"></div>
+        <p class="help">並は N（9ハイカップのチケットだけ R）、極は SR として景品リストに入ります。重み（並はミステリーハイハンドと同じ確率の数字、極は各1）とレア度は下の景品リストで変えられます。</p>
+      </div>
+      <div class="box">
         <h2>景品リスト</h2>
         <p class="help">「重み」が大きいほど当たりやすくなります（例：重み50と10なら5倍出やすい）。レア度でテレビの色と盛り上がりが変わります。</p>
         <div class="rar-legend">
@@ -663,6 +675,11 @@ const RAR = {
   R:    {label:'R',  hex:'#b98aff', lv:2},
   SR:   {label:'SR', hex:'#f2cd78', lv:3},
   UR:   {label:'UR', hex:'#ff6fc8', lv:4},
+};
+/* prize sets copied from the Mystery High Hand app (並 = everyday, 極 = premium) */
+const MH = {
+  '並': [['リング50ドルアドオン', 'N', 18], ['チップ100ドルアドオン', 'N', 18], ['チップ200ドルアドオン', 'N', 18], ['リングチップ購入もしくは引き出し1.5倍券', 'N', 18], ['200マイル', 'N', 18], ['9ハイカップのチケット', 'R', 10]],
+  '極': [['翌月リング引き出し無料券(1ヶ月)', 'SR', 1], ['翌月引き出し半額(1ヶ月)', 'SR', 1], ['5000マイル', 'SR', 1], ['3000マイル', 'SR', 1], ['9ハイカップのチケット2枚', 'SR', 1], ['チップ1000ドルプレゼント', 'SR', 1], ['リングチップ500ドルプレゼント', 'SR', 1]],
 };
 const SAMPLE_PRIZES = [
   {name:'ドリンク1杯', rarity:'N', weight:50},
@@ -957,6 +974,7 @@ function renderSheet() {
   $('#shSeats').innerHTML = ps.length ? ps.map(p => `<button class="qchip" data-id="${esc(p.id)}" aria-pressed="${!!p.active}"><span>${esc(p.name)}</span></button>`).join('')
     : '<span class="help">まだ参加者がいません。下の欄に名前を入れて追加してください。</span>';
   $('#shAuto').setAttribute('aria-checked', !!cfg.auto); $('#shShort').setAttribute('aria-checked', !!cfg.short);
+  [['並', '#shNami', '#shNamiN'], ['極', '#shKiwami', '#shKiwamiN']].forEach(([g, tg, lb]) => { const n = mhCount(g, cfg.prizes); $(tg).setAttribute('aria-checked', n > 0); $(lb).textContent = `${n} / ${MH[g].length} 種を使用中`; });
   $('#shNext').textContent = cfg.auto ? `次回 ${hhmm(nextSlot(cfg))}（毎時${pad2(cfg.minute)}分）` : 'オフ：手動のときだけ抽選します';
   const ready = eligible(cfg).length > 0 && prizePool(cfg).length > 0;
   const showing = tv.busy || tv.counting || tv.creating;
@@ -972,6 +990,7 @@ $('#shAddBtn').onclick = () => addPlayers($('#shAdd'));
 $('#shAdd').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) addPlayers($('#shAdd')); });
 $('#shAuto').onclick = () => setCfg({auto:!getCfg().auto});
 $('#shShort').onclick = () => setCfg({short:!getCfg().short});
+['#shNami', '#shKiwami'].forEach(id => $(id).onclick = e => { const g = e.currentTarget.dataset.mhset; mhSet(g, MH[g].map(x => x[0]), mhCount(g) === 0); });
 const showBusy = () => tv.busy || tv.counting || tv.creating;
 armed($('#shDraw'), 'もう一度押すとスタート', async () => { if (showBusy()) { toast('いま抽選中です。終わってからもう一度どうぞ'); return; } const r = await createDraw('manual'); if (r.error) toast(r.error); else closeSheet(); });
 armed($('#shTest'), 'もう一度押すとテスト開始', async () => { if (showBusy()) { toast('いま抽選中です。終わってからもう一度どうぞ'); return; } const r = await createDraw('test'); if (r.error) toast(r.error); else closeSheet(); });
@@ -1519,6 +1538,31 @@ function renderOdds() {
 function stepper(id, val, attrs) {
   return `<div class="step"><label for="${id}">重み</label><button data-act="dec" aria-label="重みを1減らす">−</button><input type="number" id="${id}" ${attrs} value="${+val || 0}" min="0" max="9999" inputmode="numeric"><button data-act="inc" aria-label="重みを1増やす">+</button></div>`;
 }
+const mhUsed = (prizes, name) => prizes.some(p => p.name === name && p.enabled !== false);
+function mhCount(g, prizes = getCfg().prizes) { return MH[g].filter(([n]) => mhUsed(prizes, n)).length; }
+/* on=true adds missing ones / re-enables; on=false stops them (kept in the list so weights survive) */
+function mhSet(g, names, on) {
+  clearTimeout(saveT.pr);
+  const prizes = clone(getCfg().prizes);
+  for (const [n, r, w] of MH[g]) {
+    if (!names.includes(n)) continue;
+    const p = prizes.find(x => x.name === n);
+    if (p) p.enabled = on; else if (on) prizes.push({id:uid(), name:n, rarity:r, weight:w, enabled:true, src:g});
+  }
+  return setCfg({prizes});
+}
+function renderMh() {
+  const prizes = getCfg().prizes;
+  $('#mhBox').innerHTML = Object.keys(MH).map(g => `<div class="mh-g"><div class="mh-h"><b>${g}</b><span>${mhCount(g, prizes)} / ${MH[g].length} 使用中</span>
+      <button class="btn sm" data-mhall="${g}" data-on="1">ぜんぶ使う</button><button class="btn sm" data-mhall="${g}" data-on="0">使わない</button></div>
+    <div class="qs">${MH[g].map(([n]) => `<button class="qchip" data-mhg="${g}" data-mhn="${esc(n)}" aria-pressed="${mhUsed(prizes, n)}"><span>${esc(n)}</span></button>`).join('')}</div></div>`).join('');
+}
+$('#mhBox').addEventListener('click', e => {
+  const a = e.target.closest('[data-mhall]');
+  if (a) { const g = a.dataset.mhall; mhSet(g, MH[g].map(x => x[0]), a.dataset.on === '1'); renderPrizes(); return; }
+  const c = e.target.closest('[data-mhn]'); if (!c) return;
+  mhSet(c.dataset.mhg, [c.dataset.mhn], c.getAttribute('aria-pressed') !== 'true'); renderPrizes();
+});
 function renderPrizes() {
   const cfg = getCfg(), el = $('#prList');
   el.innerHTML = cfg.prizes.length ? cfg.prizes.map((p, i) => {
@@ -1531,6 +1575,7 @@ function renderPrizes() {
       <div class="pz-bot"><span class="pct">${on ? '当たる確率' : '停止中'}<b>0%</b></span><button class="x" data-act="del">削除</button></div></div>`;
   }).join('') : '<div class="empty">景品がまだありません。「景品を追加」から登録するか、例を入れて書き換えてください。</div>';
   $('#prSample').hidden = cfg.prizes.length > 0;
+  renderMh();
   const m = cfg.miss;
   $('#missRow').innerHTML = `
     <div class="pz-top"><input class="pz-name" type="text" id="miss-l" data-m="label" value="${esc(m.label)}" maxlength="30" aria-label="ハズレの表示名">
