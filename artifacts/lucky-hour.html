@@ -126,6 +126,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 #tvGate{position:absolute;inset:0;z-index:90;display:grid;place-items:center;background:rgba(25,10,28,.82);backdrop-filter:blur(6px)}
 #tvGate button{padding:3vh 5vw;border-radius:99px;border:.4vh solid var(--gold);background:linear-gradient(180deg,#8c2457,#3a0d29);font-family:var(--f-display);font-size:4vh;color:var(--gold-pale);box-shadow:0 0 0 1vh rgba(242,205,120,.12),0 2vh 4vh rgba(0,0,0,.5)}
 #tvGate p{color:var(--mute);font-size:2vh;margin-top:2.4vh;text-align:center}
+#tvGate .gate-tips{max-width:76vw;margin-inline:auto;padding:1.2vh 2vw;border-radius:1.6vh;border:1px solid var(--line);color:var(--gold-pale);font-size:max(11px,1.9vh);line-height:1.6}
+.sh-warn{color:var(--warn);font-weight:700}
 
 /* countdown overlay */
 #cd{position:absolute;inset:0;z-index:40;display:grid;place-items:center;background:radial-gradient(circle,rgba(90,19,56,.55),rgba(25,10,28,.94) 70%);pointer-events:none}
@@ -294,6 +296,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
 .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--mute)}
 .pill.ok::before{background:var(--ok)}.pill.warn::before{background:var(--warn)}
+.back-tv{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:12px;border:1px solid var(--rose);background:rgba(226,72,127,.2);color:var(--cream);font-weight:900;font-size:13px;line-height:1.5}
 .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-inline:-6px}
 .tabs::-webkit-scrollbar{display:none}
 .tab{flex:0 0 auto;padding:9px 12px 11px;background:none;border:0;border-bottom:3px solid transparent;color:var(--mute);font-weight:900;font-size:14px}
@@ -461,19 +464,21 @@ button.ck{cursor:pointer}
   <div class="sheet" id="tvSheet" role="dialog" aria-label="スタッフメニュー" hidden>
     <div class="sh-head"><b>スタッフメニュー</b><button class="btn sm" id="shClose">閉じる</button></div>
     <div class="sh-sec">
+      <button class="btn gold big" id="shDraw">今すぐ抽選</button>
+      <button class="btn sm" id="shTest">テスト抽選（履歴に残さない）</button>
+    </div>
+    <div class="sh-sec">
       <div class="sh-l">着席チェック<span id="shSum"></span></div>
       <div class="qs" id="shSeats"></div>
       <div class="row"><input class="grow" type="text" id="shAdd" placeholder="名前を追加（、で複数）" autocomplete="off" enterkeyhint="done"><button class="btn sm gold" id="shAddBtn">追加</button></div>
-    </div>
-    <div class="sh-sec">
-      <button class="btn gold big" id="shDraw">今すぐ抽選</button>
-      <button class="btn sm" id="shTest">テスト抽選（履歴に残さない）</button>
     </div>
     <div class="sh-sec">
       <div class="setrow"><div class="t"><b>毎時の自動抽選</b><span class="help" id="shNext"></span></div><button class="tg" role="switch" id="shAuto" aria-label="毎時の自動抽選"></button></div>
       <div class="setrow"><div class="t"><b>演出を短めにする</b></div><button class="tg" role="switch" id="shShort" aria-label="演出を短めにする"></button></div>
     </div>
     <div class="row"><button class="btn sm" id="tvMute">音: ON</button><button class="btn sm" id="tvFull">全画面</button><button class="btn sm" id="tvToAdmin">くわしい設定へ</button></div>
+    <p class="help sh-warn" id="shWarn" hidden>このスマホでは画面のスリープを止められませんでした。自動ロックを「なし」にしてください。画面が消えると自動抽選が止まります。</p>
+    <p class="help">iPhone 1台で使うときは、自動ロック「なし」、集中モードをオン（通知がテレビに映るのを防ぐ）、充電しながら、ほかのアプリに切り替えない、の4つを守ってください。</p>
     <p class="help">景品・確率・履歴は「くわしい設定」で変えられます。開いている間はこのスマホの自動抽選が止まるので、終わったら「テレビ画面」に戻ってください。メニューは25秒さわらないと自動で閉じます。</p>
   </div>
   <div class="rotate" id="tvRotate" hidden>
@@ -492,6 +497,7 @@ button.ck{cursor:pointer}
     <div style="text-align:center">
       <button id="tvStart">タップしてテレビモード開始</button>
       <p>音と全画面を有効にするため、最初に1回だけタップしてください。<br>スマホ1台で使うときは、横向きにしてテレビへミラーリングし、右下の「STAFF」から操作します。</p>
+      <p class="gate-tips">スマホ1台で使う前に：設定 →「画面表示と明るさ」→ 自動ロックを「なし」に ／ 集中モードをオン（通知がテレビに映らないように） ／ 充電しながら使う ／ ほかのアプリに切り替えない（自動抽選が止まります）</p>
     </div>
   </div>
 </section>
@@ -507,6 +513,7 @@ button.ck{cursor:pointer}
           <button class="btn sm" id="admToTv">テレビ画面</button>
         </div>
       </div>
+      <button class="back-tv" id="admBack" hidden>テレビ画面に戻る ・ このスマホでテレビを映しているなら、戻らないと自動抽選が止まったままです</button>
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" data-tab="draw" aria-selected="true">いま</button>
         <button class="tab" role="tab" data-tab="players" aria-selected="false">参加者<span class="cnt" id="cntPlayers">0</span></button>
@@ -888,6 +895,7 @@ const go = v => { if (location.hash === '#' + v) route(); else location.hash = v
 $('#goTv').onclick = () => go('tv');
 $('#goAdmin').onclick = () => go('admin');
 $('#admToTv').onclick = () => go('tv');
+$('#admBack').onclick = () => go('tv');
 $('#tvToAdmin').onclick = () => go('admin');
 addEventListener('hashchange', route);
 const isTv = () => !$('#tv').hidden;
@@ -931,6 +939,7 @@ $('#tvStart').onclick = async () => {
   SFX.init(); $('#tvGate').hidden = true; SFX.chime(1568); SFX.chime(2093, .12, .7);
   try { await document.documentElement.requestFullscreen?.(); } catch {}
   try { tv.wake = await navigator.wakeLock?.request('screen'); } catch {}
+  tv.wakeFail = !tv.wake; renderSheet();
 };
 document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && isTv() && tv.wake) { try { tv.wake = await navigator.wakeLock.request('screen'); } catch {} } });
 $('#tvMute').onclick = () => { SFX.on = !SFX.on; $('#tvMute').textContent = '音: ' + (SFX.on ? 'ON' : 'OFF'); };
@@ -948,7 +957,9 @@ function renderSheet() {
   $('#shAuto').setAttribute('aria-checked', !!cfg.auto); $('#shShort').setAttribute('aria-checked', !!cfg.short);
   $('#shNext').textContent = cfg.auto ? `次回 ${hhmm(nextSlot(cfg))}（毎時${pad2(cfg.minute)}分）` : 'オフ：手動のときだけ抽選します';
   const ready = eligible(cfg).length > 0 && prizePool(cfg).length > 0;
-  $('#shDraw').disabled = !ready || tv.busy; $('#shTest').disabled = !ready || tv.busy;
+  const showing = tv.busy || tv.counting || tv.creating;
+  $('#shDraw').disabled = !ready || showing; $('#shTest').disabled = !ready || showing;
+  $('#shWarn').hidden = !tv.wakeFail;
   if (!ready) $('#shNext').textContent += eligible(cfg).length ? ' ／ 景品が未登録です' : ' ／ 着席の人がいません';
 }
 $('#tvStaff').onclick = () => sheet.hidden ? openSheet() : closeSheet();
@@ -959,8 +970,9 @@ $('#shAddBtn').onclick = () => addPlayers($('#shAdd'));
 $('#shAdd').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) addPlayers($('#shAdd')); });
 $('#shAuto').onclick = () => setCfg({auto:!getCfg().auto});
 $('#shShort').onclick = () => setCfg({short:!getCfg().short});
-armed($('#shDraw'), 'もう一度押すとスタート', async () => { const r = await createDraw('manual'); if (r.error) toast(r.error); else closeSheet(); });
-armed($('#shTest'), 'もう一度押すとテスト開始', async () => { const r = await createDraw('test'); if (r.error) toast(r.error); else closeSheet(); });
+const showBusy = () => tv.busy || tv.counting || tv.creating;
+armed($('#shDraw'), 'もう一度押すとスタート', async () => { if (showBusy()) { toast('いま抽選中です。終わってからもう一度どうぞ'); return; } const r = await createDraw('manual'); if (r.error) toast(r.error); else closeSheet(); });
+armed($('#shTest'), 'もう一度押すとテスト開始', async () => { if (showBusy()) { toast('いま抽選中です。終わってからもう一度どうぞ'); return; } const r = await createDraw('test'); if (r.error) toast(r.error); else closeSheet(); });
 /* portrait phone hint */
 function checkRotate() { $('#tvRotate').hidden = !(isTv() && innerHeight > innerWidth * 1.05 && !tv.rotateOk); }
 addEventListener('resize', checkRotate);
@@ -1007,7 +1019,7 @@ setInterval(tvTick, 250);
 
 function hourDone(hk) { return getDraw().hourKey === hk || getHistory().some(h => h.hourKey === hk); }
 async function runCountdown(slot, hk) {
-  tv.countdownFor = hk; $('#tvGate').hidden = true;
+  tv.countdownFor = hk; tv.counting = true; closeSheet(); $('#tvGate').hidden = true;
   const cd = $('#cd'), num = $('#cdNum'), ring = $('#cdRing'); cd.hidden = false; cd.classList.remove('hot'); $('#tv').classList.add('live');
   const total = Math.max(1000, slot - Date.now()); let last = null;
   while (true) {
@@ -1022,7 +1034,7 @@ async function runCountdown(slot, hk) {
     }
     await sleep(60);
   }
-  cd.hidden = true; cd.classList.remove('hot');
+  cd.hidden = true; cd.classList.remove('hot'); tv.counting = false;
   if (hourDone(hk)) { if (!tv.busy) $('#tv').classList.remove('live'); return; }
   await autoCreate(hk);
   if (!tv.busy) $('#tv').classList.remove('live');
@@ -1040,7 +1052,7 @@ async function autoCreate(hk) {
     if (hourDone(hk)) return;
     const r = await createDraw('auto', hk);
     if (r.error) { tv.skipHour = hk; tvToast(`${r.error}。今回の抽選はお休みです。`); }
-  } finally { tv.creating = false; }
+  } finally { tv.creating = false; renderSheet(); }
 }
 function tvToast(msg) { const t = document.createElement('div'); t.className = 'toast-tv'; t.textContent = msg; $('#tv').appendChild(t); setTimeout(() => t.remove(), 6000); }
 
@@ -1075,7 +1087,7 @@ async function play(d) {
     await ending(st);
   } catch (e) { console.error(e); }
   st.className = ''; st.innerHTML = ''; st.style.opacity = ''; st.style.transition = '';
-  tv.busy = false; tv.pickSignal = null; $('#tv').classList.remove('live');
+  tv.busy = false; tv.pickSignal = null; $('#tv').classList.remove('live'); renderSheet();
   renderTvIdle();
   if (tv.pending) { const p = tv.pending; tv.pending = null; if (p.id !== tv.lastPlayed) play(p); }
 }
@@ -1287,7 +1299,7 @@ async function stageTwo(st, d) {
   // pick
   head(st, 'ROUND 2 ── WHAT', 'カードを1枚えらんでね', `<div class="for-who"><b>${esc(name)}</b> さん</div>`);
   const bar = document.createElement('div'); bar.className = 'pick-bar';
-  bar.innerHTML = '<p>テレビをタップ、またはスタッフに指さしで</p><div class="pick-track"><div class="pick-fill"></div></div>'; st.appendChild(bar);
+  bar.innerHTML = '<p>スタッフに指さしで教えてね</p><div class="pick-track"><div class="pick-fill"></div></div>'; st.appendChild(bar);
   visual.forEach((c, i) => { c.classList.add('pickable', 'bob'); c.style.setProperty('--bd', (i * -.5) + 's'); });
   const LIMIT = 20000;
   const fill = $('.pick-fill', bar); fill.animate([{transform:'scaleX(1)'}, {transform:'scaleX(0)'}], {duration:LIMIT, fill:'forwards'});
@@ -1383,6 +1395,7 @@ store.subs.add(k => {
 function renderAdmin(k = '*') {
   const players = getPlayers();
   $('#cntPlayers').textContent = players.filter(p => p.active).length;
+  $('#admBack').hidden = !ownTvStopped();
   if (curTab === 'draw') renderStatus();
   if (curTab === 'players') renderPlayers();
   if (curTab === 'prizes' && !document.activeElement?.closest('#prList,#missRow')) renderPrizes();
@@ -1392,7 +1405,8 @@ function renderAdmin(k = '*') {
 let statusKey = '';
 const leftText = ms => `あと ${Math.floor(ms / 60000)}分${pad2(Math.floor(ms / 1000) % 60)}秒`;
 function statusKeyNow() { const d = getDraw(), c = getCfg(); return [d.id && Date.now() - d.at < 120000, tvAlive(), c.auto, hhmm(nextSlot(c))].join('|'); }
-const tvAlive = () => { const t = store.data.tv; return t?.at && Date.now() - t.at < 150000; };
+const ownTvStopped = () => store.data.tv?.id === TAB_ID && !isTv();
+const tvAlive = () => { const t = store.data.tv; return !!t?.at && !ownTvStopped() && Date.now() - t.at < 150000; };
 function renderStatus() {
   const cfg = getCfg(), d = getDraw(), el = $('#admStatus');
   const act = eligible(cfg).length, pool = prizePool(cfg).length;
@@ -1411,7 +1425,7 @@ function renderStatus() {
   html += `<div class="checks">
     <button class="ck ${act ? '' : 'ng'}" data-go="players">着席 ${act}名${act ? '' : '：登録してください'}</button>
     <button class="ck ${pool ? '' : 'ng'}" data-go="prizes">景品 ${pool}種${pool ? '' : '：登録してください'}</button>
-    ${alive ? '<span class="ck">テレビ画面 映っています</span>' : '<button class="ck ng" data-tv>テレビ画面 開いていません（タップで開く）</button>'}
+    ${alive ? '<span class="ck">テレビ画面 映っています</span>' : ownTvStopped() ? '<button class="ck ng" data-tv>このスマホのテレビ画面は止まっています（タップで戻る）</button>' : '<button class="ck ng" data-tv>テレビ画面 開いていません（タップで開く）</button>'}
     <button class="ck ${cfg.auto ? '' : 'off'}" data-go="settings">自動抽選 ${cfg.auto ? 'オン' : 'オフ'}</button></div>`;
   el.innerHTML = html; el.classList.toggle('live', !!recent); statusKey = statusKeyNow();
   $('#pickBox').hidden = !(recent && d.picked == null);
