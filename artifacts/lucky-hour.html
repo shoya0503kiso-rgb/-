@@ -705,6 +705,8 @@ async function initStore() {
   let db = null;
   try { if (window.claude?.use) db = await window.claude.use('db'); } catch {}
   if (!db) { startLocal(); return; }
+  // someone opening a shared link without edit rights can't save shared data: run on this device instead
+  try { const user = await window.claude.use('user'); if (user && await user.can('data.write') === false) { store.readonly = true; startLocal(); return; } } catch {}
   store.mode = 'db'; store.db = db; emit('*');
   let firstOk = false;
   const timer = setTimeout(() => { if (!firstOk) { store.mode = 'slow'; emit('*'); } }, 10000);
@@ -717,7 +719,7 @@ async function initStore() {
   }
 }
 function connText() {
-  return ({connecting:['接続中…',''], db:['共有中：どの端末からでも操作できます','ok'], local:['この端末だけで動作中（同じブラウザの別タブと連動）','warn'], slow:['サーバーにつながりません。表示が古い可能性があります','warn'], error:['接続が切れました。ページを開き直してください','warn']})[store.mode];
+  return ({connecting:['接続中…',''], db:['共有中：どの端末からでも操作できます','ok'], local:[store.readonly ? 'この端末だけで動作中（共有データの編集権限がないため。設定や履歴はこのスマホの中だけに保存されます）' : 'この端末だけで動作中（同じブラウザの別タブと連動）','warn'], slow:['サーバーにつながりません。表示が古い可能性があります','warn'], error:['接続が切れました。ページを開き直してください','warn']})[store.mode];
 }
 
 /* ================= DRAW LOGIC ================= */
