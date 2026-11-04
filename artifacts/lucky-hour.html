@@ -424,6 +424,12 @@ button.ck{cursor:pointer}
 .save-note{font-size:12px;font-weight:700;color:var(--ok);min-height:1em}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#2f1434;border:1px solid var(--gold);padding:10px 12px 10px 16px;border-radius:14px;z-index:99;font-size:14px;font-weight:700;max-width:calc(100% - 32px);box-shadow:0 10px 30px rgba(0,0,0,.45)}
 .toast button{flex:none;padding:6px 12px;border-radius:10px;border:0;background:var(--gold);color:var(--ink-on-gold);font-weight:900;font-size:13px}
+.pin-dlg{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px));background:rgba(25,10,28,.88);backdrop-filter:blur(6px)}
+.pin-box{width:min(380px,100%);display:grid;gap:12px;padding:22px;border-radius:20px;background:var(--panel);border:1px solid var(--gold-deep);font-size:15px}
+.pin-box b{font-family:var(--f-display);font-weight:400;font-size:22px}
+.pin-box p{margin:0;color:var(--mute);font-size:14px}
+.pin-box input{font-family:var(--f-num);font-size:28px;letter-spacing:.4em;text-align:center}
+.pin-err{color:var(--bad)!important;font-weight:700;min-height:1.2em}
 @media (prefers-reduced-motion:reduce){.shake,.kakutei span,.rays,.beam,.spark,.card.bob .ci,.card.ur .front,#tv.soon .tv-next{animation:none!important}.ticker-inner{animation-duration:90s}.bulbs i::before,.bulbs i::after{animation-duration:3s!important}}
 </style>
 
@@ -651,6 +657,16 @@ button.ck{cursor:pointer}
   </div>
 </section>
 
+<div class="pin-dlg" id="pinDlg" role="dialog" aria-modal="true" aria-labelledby="pinTitle" hidden>
+  <div class="pin-box">
+    <b id="pinTitle">スタッフPIN</b>
+    <p id="pinMsg">操作するにはスタッフPIN（数字4〜8桁）を入れてください。この端末に記憶します。</p>
+    <input type="password" id="pinIn" inputmode="numeric" autocomplete="off" maxlength="8" aria-label="スタッフPIN">
+    <p class="pin-err" id="pinErr" role="alert"></p>
+    <div class="row"><button class="btn gold" id="pinOk">OK</button><button class="btn" id="pinLater">見るだけにする</button></div>
+  </div>
+</div>
+
 <script>
 (() => {
 'use strict';
@@ -693,7 +709,7 @@ const DEF = {
   config: {title:'毎時ラッキーアワー', auto:true, minute:0, countdown:10, excludeLast:false, short:false, prizes:[], miss:{enabled:false, weight:20, label:'ハズレ'}},
   players: {list:[]}, draw: {}, history: {items:[]}, tv: {},
 };
-const store = { mode:'connecting', db:null, data:{}, subs:new Set(), q:{}, bc:null };
+const store = { mode:'connecting', kind:'', db:null, data:{}, subs:new Set(), q:{}, bc:null, api:{v:-1, pinSet:true}, pend:{}, wAt:{} };
 function getCfg() { const c = store.data.config || {}; return {...DEF.config, ...c, miss:{...DEF.config.miss, ...(c.miss || {})}, prizes: Array.isArray(c.prizes) ? c.prizes : []}; }
 function getPlayers() { const p = store.data.players; return Array.isArray(p?.list) ? p.list : []; }
 function getDraw() { return store.data.draw || {}; }
@@ -707,9 +723,56 @@ function save(k, val, quiet = false) {
       .catch(e => { console.error(e); if (!quiet) toast(e?.code === 'not_granted' || e?.code === 'permission_denied' ? '保存する権限がありません。オーナーに編集権限をもらってください。' : '保存できませんでした。通信を確認してもう一度お試しください。'); });
     return store.q[k];
   }
+  if (store.kind === 'api') {
+    store.pend[k] = (store.pend[k] || 0) + 1;
+    store.q[k] = (store.q[k] || Promise.resolve()).then(() => apiPost({action:'set', key:k, value:val}))
+      .catch(e => { console.error(e); if (!quiet) toast(e.needPin ? 'スタッフPINを入れると保存できます' : (e.message || '保存できませんでした。通信を確認してもう一度お試しください。')); })
+      .finally(() => { store.pend[k]--; store.wAt[k] = Date.now(); });
+    return store.q[k];
+  }
   try { localStorage.setItem('lh9_' + k, JSON.stringify(val)); } catch {}
   try { store.bc?.postMessage({k, val}); } catch {}
   return Promise.resolve();
+}
+/* ---- server mode: the page is served from the shop app (/lucky-hour), data lives in its database ---- */
+const API = '/api/lucky-hour';
+const getPin = () => { try { return localStorage.getItem('lh9_pin') || ''; } catch { return ''; } };
+async function apiPost(body) {
+  const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin:getPin(), ...body})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || '保存できませんでした'); e.needPin = !!j.needPin; if (e.needPin && body.action !== 'check' && body.action !== 'setPin') openPin(); throw e; }
+  return j;
+}
+function applyApi(j, startedAt) {
+  store.api.v = j.version; store.api.pinSet = !!j.pinSet;
+  if (!j.docs) return;
+  for (const k of Object.keys(DEF)) {
+    // a local write that is in flight (or finished after this poll left) is newer than what came back
+    if (store.pend[k] || (store.wAt[k] || 0) > startedAt) continue;
+    const nv = j.docs[k] ?? null, ns = JSON.stringify(nv);
+    if (ns === JSON.stringify(store.data[k] ?? null)) continue;
+    store.data[k] = nv == null ? undefined : nv; emit(k);
+  }
+}
+async function apiFetch() { const t = Date.now(); const r = await fetch(`${API}?v=${store.api.v}`, {cache:'no-store'}); if (!r.ok) throw new Error('fetch'); applyApi(await r.json(), t); }
+const pollMs = () => { const d = getDraw(); return (d.at && Date.now() - d.at < 180000) || tv.counting || tv.busy ? 1000 : isTv() ? 3000 : 4000; };
+async function startApi(first, t0) {
+  store.kind = 'api'; store.mode = 'api'; applyApi(first, t0); emit('*');
+  if (!getPin()) openPin();
+  while (true) {
+    await sleep(pollMs());
+    try { await apiFetch(); if (store.mode !== 'api') { store.mode = 'api'; emit('*'); } }
+    catch { if (store.mode !== 'slow') { store.mode = 'slow'; emit('*'); } }
+  }
+}
+async function tryApi() {
+  if (!/^https?:$/.test(location.protocol)) return false;
+  try {
+    const t0 = Date.now(), r = await fetch(API, {cache:'no-store'});
+    if (!r.ok) return false;
+    const j = await r.json(); if (typeof j.version !== 'number') return false;
+    startApi(j, t0); return true;
+  } catch { return false; }
 }
 function startLocal() {
   store.mode = 'local';
@@ -721,7 +784,7 @@ function startLocal() {
 async function initStore() {
   let db = null;
   try { if (window.claude?.use) db = await window.claude.use('db'); } catch {}
-  if (!db) { startLocal(); return; }
+  if (!db) { if (!(await tryApi())) startLocal(); return; }
   // someone opening a shared link without edit rights can't save shared data: run on this device instead
   try { const user = await window.claude.use('user'); if (user && await user.can('data.write') === false) { store.readonly = true; startLocal(); return; } } catch {}
   store.mode = 'db'; store.db = db; emit('*');
@@ -736,7 +799,7 @@ async function initStore() {
   }
 }
 function connText() {
-  return ({connecting:['接続中…',''], db:['共有中：どの端末からでも操作できます','ok'], local:[store.readonly ? 'この端末だけで動作中（共有データの編集権限がないため。設定や履歴はこのスマホの中だけに保存されます）' : 'この端末だけで動作中（同じブラウザの別タブと連動）','warn'], slow:['サーバーにつながりません。表示が古い可能性があります','warn'], error:['接続が切れました。ページを開き直してください','warn']})[store.mode];
+  return ({connecting:['接続中…',''], db:['共有中：どの端末からでも操作できます','ok'], api:[getPin() ? '共有中：どの端末からでも操作できます' : '共有中（見るだけ）：スタッフPINを入れると操作できます', getPin() ? 'ok' : 'warn'], local:[store.readonly ? 'この端末だけで動作中（共有データの編集権限がないため。設定や履歴はこのスマホの中だけに保存されます）' : 'この端末だけで動作中（同じブラウザの別タブと連動）','warn'], slow:['サーバーにつながりません。表示が古い可能性があります','warn'], error:['接続が切れました。ページを開き直してください','warn']})[store.mode];
 }
 
 /* ================= DRAW LOGIC ================= */
@@ -947,7 +1010,7 @@ const W = ms => sleep(ms * tv.speed);
 
 /* lets the staff console see that a TV screen is open */
 function tvBeat(force) {
-  if (!isTv() || !['db', 'local'].includes(store.mode)) return;
+  if (!isTv() || !['db', 'local', 'api'].includes(store.mode) || (store.kind === 'api' && !getPin())) return;
   if (!force && Date.now() - tv.lastBeat < 55000) return;
   tv.lastBeat = Date.now();
   save('tv', {at:Date.now(), id:TAB_ID}, true);
@@ -1069,6 +1132,13 @@ async function autoCreate(hk) {
       try { got = await store.db.doc('hourly/lock').acquire({holder:TAB_ID, ttlMs:8000}); } catch {}
       if (!got.acquired) { await sleep(4000); return; }
       try { const s = await store.db.doc('hourly/draw').get(); if (s.exists && s.data().hourKey === hk) return; } catch {}
+    } else if (store.kind === 'api') {
+      await sleep(rnd(900));
+      let got = {acquired:false};
+      try { got = await apiPost({action:'lock', holder:TAB_ID, ttlMs:8000}); } catch (e) { if (e.needPin) { tv.skipHour = hk; tvToast('スタッフPINが入っていないため、この画面では自動抽選ができません'); } else await sleep(4000); return; }
+      if (!got.acquired) { await sleep(4000); return; }
+      try { await apiFetch(); } catch {}
+      if (getDraw().hourKey === hk) return;
     }
     if (hourDone(hk)) return;
     const r = await createDraw('auto', hk);
@@ -1658,6 +1728,30 @@ function renderHistory() {
   }).join('') : '<div class="empty">まだ当選者はいません。</div>';
 }
 armed($('#hClear'), 'もう一度押すと全部消えます', () => { const before = clone(getHistory()); save('history', {items:[]}); toast('履歴を消しました', {label:'元に戻す', fn:() => save('history', {items:before})}); });
+
+/* staff PIN (server mode only) */
+function openPin() {
+  if (store.kind !== 'api' || !$('#pinDlg').hidden) return;
+  const first = !store.api.pinSet;
+  $('#pinTitle').textContent = first ? 'スタッフPINを決める' : 'スタッフPIN';
+  $('#pinMsg').textContent = first ? 'はじめて使うので、スタッフ用のPIN（数字4〜8桁）を決めてください。テレビやほかのスマホでも同じPINを入れます。' : '操作するにはスタッフPIN（数字4〜8桁）を入れてください。この端末に記憶します。';
+  $('#pinOk').textContent = first ? 'このPINにする' : 'OK';
+  $('#pinErr').textContent = ''; $('#pinIn').value = ''; $('#pinDlg').hidden = false; setTimeout(() => $('#pinIn').focus(), 50);
+}
+async function submitPin() {
+  const pin = $('#pinIn').value.trim();
+  if (!/^\d{4,8}$/.test(pin)) { $('#pinErr').textContent = 'PINは数字4〜8桁です'; return; }
+  $('#pinOk').disabled = true;
+  try {
+    await apiPost({action: store.api.pinSet ? 'check' : 'setPin', pin});
+    try { localStorage.setItem('lh9_pin', pin); } catch {}
+    store.api.pinSet = true; $('#pinDlg').hidden = true; emit('*'); toast('スタッフPINを記憶しました');
+  } catch (e) { $('#pinErr').textContent = e.message || 'PINを確かめられませんでした'; }
+  finally { $('#pinOk').disabled = false; }
+}
+$('#pinOk').onclick = submitPin;
+$('#pinIn').addEventListener('keydown', e => { if (e.key === 'Enter') submitPin(); });
+$('#pinLater').onclick = () => { $('#pinDlg').hidden = true; emit('*'); };
 
 /* ================= BOOT ================= */
 FX.init();
