@@ -1323,6 +1323,9 @@ function renderAdmin(k = '*') {
   if (curTab === 'settings' && !document.activeElement?.closest('[data-pane=settings] input')) renderSettings();
   if (curTab === 'history') renderHistory();
 }
+let statusKey = '';
+const leftText = ms => `あと ${Math.floor(ms / 60000)}分${pad2(Math.floor(ms / 1000) % 60)}秒`;
+function statusKeyNow() { const d = getDraw(), c = getCfg(); return [d.id && Date.now() - d.at < 120000, tvAlive(), c.auto, hhmm(nextSlot(c))].join('|'); }
 const tvAlive = () => { const t = store.data.tv; return t?.at && Date.now() - t.at < 150000; };
 function renderStatus() {
   const cfg = getCfg(), d = getDraw(), el = $('#admStatus');
@@ -1331,10 +1334,10 @@ function renderStatus() {
   let html = '';
   if (recent) {
     const w = d.candidates?.[d.winnerIndex]?.name;
-    html = `<div class="eb">${d.test ? 'テスト抽選中' : '抽選中'} ・ ${hhmm(new Date(d.at))} 開始</div><div class="bigt txt">${esc(w)} さん</div><div class="sub">${d.picked == null ? 'カードを選んでもらっています' : '景品：' + esc(d.prize?.name)}（テレビで発表中）</div>`;
+    html = `<div class="eb">${d.test ? 'テスト抽選中' : '抽選中'} ・ ${hhmm(new Date(d.at))} 開始</div><div class="bigt txt">${esc(w)} さん</div><div class="sub">${d.picked == null ? 'カードを選んでもらっています' : 'カードが開かれました。結果はテレビで発表中'}</div>`;
   } else if (cfg.auto) {
     const nx = nextSlot(cfg), ms = nx - Date.now();
-    html = `<div class="eb">次の自動抽選</div><div class="bigt">${hhmm(nx)}</div><div class="sub">あと ${Math.floor(ms / 60000)}分${pad2(Math.floor(ms / 1000) % 60)}秒 ・ 毎時${pad2(cfg.minute)}分</div>`;
+    html = `<div class="eb">次の自動抽選</div><div class="bigt">${hhmm(nx)}</div><div class="sub"><span id="admLeft">${leftText(ms)}</span> ・ 毎時${pad2(cfg.minute)}分</div>`;
   } else {
     html = `<div class="eb">自動抽選はオフ</div><div class="bigt txt">手動で抽選します</div><div class="sub">下の「今すぐ抽選」で始まります</div>`;
   }
@@ -1344,7 +1347,7 @@ function renderStatus() {
     <button class="ck ${pool ? '' : 'ng'}" data-go="prizes">景品 ${pool}種${pool ? '' : '：登録してください'}</button>
     <span class="ck ${alive ? '' : 'ng'}">テレビ画面 ${alive ? '映っています' : '開いていません'}</span>
     <button class="ck ${cfg.auto ? '' : 'off'}" data-go="settings">自動抽選 ${cfg.auto ? 'オン' : 'オフ'}</button></div>`;
-  el.innerHTML = html; el.classList.toggle('live', !!recent);
+  el.innerHTML = html; el.classList.toggle('live', !!recent); statusKey = statusKeyNow();
   $('#pickBox').hidden = !(recent && d.picked == null);
   const ready = act > 0 && pool > 0;
   $('#btnDrawNow').disabled = !ready || recent; $('#btnDrawTest').disabled = !ready || recent;
@@ -1364,7 +1367,12 @@ $$('[data-pick]').forEach(b => b.onclick = () => { const d = getDraw(); writePic
 armed($('#btnDrawNow'), 'もう一度押すと抽選スタート', async () => { const r = await createDraw('manual'); toast(r.error || 'テレビで抽選を始めました'); });
 armed($('#btnDrawTest'), 'もう一度押すとテスト開始', async () => { const r = await createDraw('test'); toast(r.error || 'テスト抽選を始めました（履歴には残りません）'); });
 
-setInterval(() => { if (!$('#admin').hidden && curTab === 'draw' && !document.activeElement?.closest('.armed')) renderStatus(); }, 1000);
+/* every second only the countdown text changes; the chips are rebuilt only when their state changes, so taps are never lost */
+setInterval(() => {
+  if ($('#admin').hidden || curTab !== 'draw') return;
+  if (statusKeyNow() !== statusKey) { renderStatus(); return; }
+  const l = $('#admLeft'); if (l) l.textContent = leftText(nextSlot(getCfg()) - Date.now());
+}, 1000);
 
 /* players */
 function renderPlayers() {
@@ -1456,12 +1464,13 @@ $('#prList').addEventListener('input', e => {
   const prizes = clone(getCfg().prizes); prizes[i][f] = f === 'weight' ? clampW(e.target.value) : e.target.value;
   store.data.config = {...clone(getCfg()), prizes};
   renderOdds();
-  debSave('pr', () => setCfg({prizes:clone(getCfg().prizes)}), '#prSave');
+  debSave('pr', () => setCfg({prizes}), '#prSave');
 });
 $('#prList').addEventListener('focusout', () => setTimeout(() => { if (!document.activeElement?.closest('#prList')) renderPrizes(); }, 600));
 $('#prList').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return; const i = +b.closest('.prize').dataset.i;
   const prizes = clone(getCfg().prizes); const p = prizes[i]; if (!p) return;
+  clearTimeout(saveT.pr);
   if (b.dataset.r) { p.rarity = b.dataset.r; setCfg({prizes}); renderPrizes(); return; }
   if (b.dataset.act === 'inc' || b.dataset.act === 'dec') { p.weight = clampW((+p.weight || 0) + (b.dataset.act === 'inc' ? 1 : -1)); setCfg({prizes}); const inp = $(`#pz-w-${i}`); if (inp) inp.value = p.weight; renderOdds(); return; }
   if (b.dataset.act === 'en') { p.enabled = p.enabled === false; setCfg({prizes}); renderPrizes(); }
@@ -1471,18 +1480,18 @@ $('#prList').addEventListener('click', e => {
     toast(`「${p.name || '名前なし'}」を削除しました`, {label:'元に戻す', fn:() => { setCfg({prizes:before}); renderPrizes(); }});
   }
 });
-$('#prAdd').onclick = () => { const prizes = clone(getCfg().prizes); prizes.push({id:uid(), name:'', rarity:'N', weight:10, enabled:true}); setCfg({prizes}); renderPrizes(); setTimeout(() => $(`#pz-n-${prizes.length - 1}`)?.focus(), 50); };
+$('#prAdd').onclick = () => { clearTimeout(saveT.pr); const prizes = clone(getCfg().prizes); prizes.push({id:uid(), name:'', rarity:'N', weight:10, enabled:true}); setCfg({prizes}); renderPrizes(); setTimeout(() => $(`#pz-n-${prizes.length - 1}`)?.focus(), 50); };
 $('#prSample').onclick = () => { setCfg({prizes:SAMPLE_PRIZES.map(p => ({...p, id:uid(), enabled:true}))}); renderPrizes(); };
 $('#missRow').addEventListener('input', e => {
   const k = e.target.dataset.m; if (!k || k === 'enabled') return;
   const miss = {...getCfg().miss, [k]: k === 'weight' ? clampW(e.target.value) : e.target.value};
   store.data.config = {...clone(getCfg()), miss};
   renderOdds();
-  debSave('miss', () => setCfg({miss:{...getCfg().miss}}), '#prSave');
+  debSave('miss', () => setCfg({miss}), '#prSave');
 });
 $('#missRow').addEventListener('focusout', () => setTimeout(() => { if (!document.activeElement?.closest('#missRow')) renderPrizes(); }, 600));
 $('#missRow').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return; const miss = {...getCfg().miss};
+  const b = e.target.closest('button'); if (!b) return; const miss = {...getCfg().miss}; clearTimeout(saveT.miss);
   if (b.dataset.m === 'enabled') { miss.enabled = !miss.enabled; setCfg({miss}); renderPrizes(); }
   if (b.dataset.act === 'inc' || b.dataset.act === 'dec') { miss.weight = clampW((+miss.weight || 0) + (b.dataset.act === 'inc' ? 1 : -1)); setCfg({miss}); $('#miss-w').value = miss.weight; renderOdds(); }
 });
