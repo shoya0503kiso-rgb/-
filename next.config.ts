@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/dealer-quest", destination: "/dealer-quest.html" },
       { source: "/drawing-battle", destination: "/drawing-battle.html" },
+      { source: "/lucky-hour", destination: "/lucky-hour.html" },
     ];
   },
 };
