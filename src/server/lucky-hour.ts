@@ -23,19 +23,33 @@ export const pinSchema = z.string().regex(/^\d{4,8}$/, "PINは数字4〜8桁で�
 export const holderSchema = z.string().regex(/^[A-Za-z0-9]{6,40}$/);
 
 /** 全体の番号。since と同じなら文書は送らない */
-export async function view(since?: number) {
+/**
+ * 画面（public/lucky-hour.html）の世代。画面の動きを変えたら上げる。
+ * これより古い画面は書き込めず、毎時の自動抽選を止めた設定を受け取る（開きっぱなしの古いテレビが勝手に抽選しないように）。
+ * 新しい画面は、サーバーの世代が自分より新しいと自分で読み込み直す
+ */
+export const CLIENT_REV = 3;
+export const STALE_TITLE = "画面を読み込み直してください";
+
+export async function view(since?: number, clientRev = 0) {
   const [meta, pin, sync] = await Promise.all([
     prisma.luckyHourDoc.findUnique({ where: { key: META_KEY } }),
     prisma.luckyHourDoc.findUnique({ where: { key: PIN_KEY }, select: { key: true } }),
     prisma.luckyHourDoc.findUnique({ where: { key: SYNC_KEY }, select: { updatedAt: true } }),
   ]);
   const version = meta?.version ?? 0;
-  const base = { version, pinSet: !!pin, syncKeyAt: sync?.updatedAt.getTime() ?? null, now: Date.now() };
-  if (since === version) return base;
+  const base = { version, rev: CLIENT_REV, pinSet: !!pin, syncKeyAt: sync?.updatedAt.getTime() ?? null, now: Date.now() };
+  const stale = clientRev < CLIENT_REV;
+  if (since === version && !stale) return base;
   const rows = await prisma.luckyHourDoc.findMany({ where: { key: { in: [...DOC_KEYS] } } });
   const docs: Partial<Record<DocKey, unknown>> = {};
   for (const r of rows) {
     try { docs[r.key as DocKey] = JSON.parse(r.value); } catch { /* 壊れた文書は送らない */ }
+  }
+  if (stale) {
+    // 古い画面には、毎時の自動抽選を止めて「読み込み直して」と見出しに出す設定を渡す
+    const cfg = docs.config && typeof docs.config === "object" ? (docs.config as Record<string, unknown>) : {};
+    docs.config = { ...cfg, auto: false, title: STALE_TITLE };
   }
   return { ...base, docs };
 }
