@@ -314,7 +314,7 @@ async function joinRoom(){
 }
 function roomDead(){
   room=null; S.connected=false; S.roomOK=false; S.partner=null;
-  if(S.screen==="wait") renderWait(); else if(S.screen==="play") renderPlay(); else renderBar();
+  if(S.screen==="wait") renderWait(); else if(S.screen==="play" && !S.timing) renderPlay(); else renderBar();
 }
 function onPeers(peers){
   const others = peers.filter(p=>!p.sameTab && p.presence && p.presence.app==="itosync");
