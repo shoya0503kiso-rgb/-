@@ -768,15 +768,19 @@ function save(k, val, quiet = false) {
 }
 /* ---- server mode: the page is served from the shop app (/lucky-hour), data lives in its database ---- */
 const API = '/api/lucky-hour';
+/* this page's generation; must match CLIENT_REV in src/server/lucky-hour.ts */
+const REV = 3;
 const getPin = () => { try { return localStorage.getItem('lh9_pin') || ''; } catch { return ''; } };
 async function apiPost(body) {
-  const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin:getPin(), ...body})});
+  const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin:getPin(), client:REV, ...body})});
   const j = await r.json().catch(() => ({}));
+  if (j.reload) reloadSoon();
   if (!r.ok) { const e = new Error(j.error || '保存できませんでした'); e.needPin = !!j.needPin; if (e.needPin && body.action !== 'check' && body.action !== 'setPin') openPin(); throw e; }
   return j;
 }
 function applyApi(j, startedAt) {
   store.api.v = j.version; store.api.pinSet = !!j.pinSet;
+  if ((j.rev || 0) > REV) reloadSoon();
   if (store.api.syncKeyAt !== (j.syncKeyAt ?? null)) { store.api.syncKeyAt = j.syncKeyAt ?? null; if (!$('#admin').hidden && curTab === 'settings') renderKarte(); }
   if (!j.docs) return;
   for (const k of Object.keys(DEF)) {
@@ -787,7 +791,19 @@ function applyApi(j, startedAt) {
     store.data[k] = nv == null ? undefined : nv; emit(k);
   }
 }
-async function apiFetch() { const t = Date.now(); const r = await fetch(`${API}?v=${store.api.v}`, {cache:'no-store'}); if (!r.ok) throw new Error('fetch'); applyApi(await r.json(), t); }
+/* a newer page was deployed: reload when no show is running (at most once a minute, so a cached old page can't loop) */
+let reloadT = 0;
+function reloadSoon() {
+  if (reloadT) return;
+  reloadT = setInterval(() => {
+    if (tv.busy || tv.counting || tv.creating) return;
+    let last = 0; try { last = +sessionStorage.getItem('lh9_reload') || 0; } catch {}
+    if (Date.now() - last < 60000) return;
+    try { sessionStorage.setItem('lh9_reload', String(Date.now())); } catch {}
+    location.reload();
+  }, 2000);
+}
+async function apiFetch() { const t = Date.now(); const r = await fetch(`${API}?v=${store.api.v}&c=${REV}`, {cache:'no-store'}); if (!r.ok) throw new Error('fetch'); applyApi(await r.json(), t); }
 const pollMs = () => { const d = getDraw(); return (d.at && Date.now() - d.at < 180000) || tv.counting || tv.busy ? 1000 : isTv() ? 3000 : 4000; };
 async function startApi(first, t0) {
   store.kind = 'api'; store.mode = 'api'; applyApi(first, t0); emit('*');
@@ -801,7 +817,7 @@ async function startApi(first, t0) {
 async function tryApi() {
   if (!/^https?:$/.test(location.protocol)) return false;
   try {
-    const t0 = Date.now(), r = await fetch(API, {cache:'no-store'});
+    const t0 = Date.now(), r = await fetch(`${API}?c=${REV}`, {cache:'no-store'});
     if (!r.ok) return false;
     const j = await r.json(); if (typeof j.version !== 'number') return false;
     startApi(j, t0); return true;

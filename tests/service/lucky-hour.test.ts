@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { acquireLock, checkPin, checkSyncKey, issueSyncKey, ringEvent, setPin, view, writeDoc } from "@/server/lucky-hour";
+import { acquireLock, checkPin, checkSyncKey, CLIENT_REV, issueSyncKey, ringEvent, setPin, STALE_TITLE, view, writeDoc } from "@/server/lucky-hour";
 import { resetDb } from "../helpers";
 
 type View = { version: number; pinSet: boolean; docs?: Record<string, unknown> };
@@ -26,14 +26,14 @@ describe("ラッキーアワーの共有データ", () => {
   });
 
   it("書いた文書が配られ、番号が同じなら送り直さない", async () => {
-    const first = (await view()) as View;
+    const first = (await view(undefined, CLIENT_REV)) as View;
     expect(first).toMatchObject({ version: 0, docs: {} });
     const { version } = await writeDoc("players", { list: [{ id: "a", name: "たかし", active: true }] });
     await writeDoc("config", { title: "毎時ラッキーアワー", prizes: [] });
-    const v2 = (await view(version)) as View;
+    const v2 = (await view(version, CLIENT_REV)) as View;
     expect(v2.version).toBe(version + 1);
     expect(v2.docs).toMatchObject({ players: { list: [{ name: "たかし" }] }, config: { title: "毎時ラッキーアワー" } });
-    expect(((await view(v2.version)) as View).docs).toBeUndefined();
+    expect(((await view(v2.version, CLIENT_REV)) as View).docs).toBeUndefined();
   });
 
   it("配列や大きすぎる内容は保存しない", async () => {
@@ -85,5 +85,16 @@ describe("箱カルテ連携（リングの入退店）", () => {
     const r = await ringEvent({ action: "sync", members: [{ id: "K2", name: "ゆうこ" }, { id: "K3", name: "えりか" }] });
     expect((await players()).map(p => p.name)).toEqual(["ゆうこ", "手入力さん", "えりか"]);
     expect(r).toMatchObject({ seated: 3, linked: 2 });
+  });
+});
+
+describe("古い画面を止める", () => {
+  it("古い画面には毎時の自動抽選を止めた設定を、番号が同じでも渡す。新しい画面には本当の設定", async () => {
+    const { version } = await writeDoc("config", { title: "しょーやんのハッピータイム", auto: true, minute: 0 });
+    const old = (await view(version)) as View;
+    expect(old.docs?.config).toMatchObject({ auto: false, title: STALE_TITLE, minute: 0 });
+    const cur = (await view(undefined, CLIENT_REV)) as View;
+    expect(cur.docs?.config).toMatchObject({ auto: true, title: "しょーやんのハッピータイム" });
+    expect(((await view(version, CLIENT_REV)) as View).docs).toBeUndefined();
   });
 });
