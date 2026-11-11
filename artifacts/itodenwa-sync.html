@@ -191,7 +191,7 @@ const READ = [
   ["部屋の状態は？",["いつもきれい","ふつう","ちょっと散らかってる","人に見せられない"]],
   ["お化け屋敷に入ったら？",["先頭で進む","まん中にかくれる","出口で待ってる","そもそも入らない"]],
   ["好きなタイプに近いのは？",["おもしろい人","やさしい人","頼れる人","見た目がタイプの人"]],
-  ["告白するならどうやって？",["直接言う","電話","LINE","相手から言われるのを待つ"]],
+  ["ケンカしたら先にあやまるのは？",["すぐ自分から","時間をおいて自分から","相手を待つ","ケンカにならない"]],
   ["疲れたときの回復方法は？",["寝る","食べる","しゃべる","お風呂"]],
   ["いちばん自信があるのは？",["料理","歌","運動","早寝"]],
   ["買い物のときは？",["即決","めっちゃ迷う","迷って買わない","色ちがいで2個買う"]],
@@ -237,13 +237,15 @@ const S = {
   r:0,             // current round index
   ans:{},          // my answers  r# -> value
   manual:{},       // partner answers typed in by hand (phone mode)
+  pans:{},         // partner answers received over the room, kept locally
+  pname:"",        // partner nickname (from room or typed in phone mode)
   revealed:{},     // r# -> true once I've seen reveal
   sound:true,
   partner:null,    // {name, role, set, ans, at, react}
   connected:false, roomOK:null,
   timer:null, lastReactSeen:null, myReactN:0, err:""
 };
-function save(){ if(S.code) store.set({name:S.name,role:S.role,code:S.code,set:S.set,r:S.r,ans:S.ans,manual:S.manual,revealed:S.revealed,sound:S.sound,screen:S.screen==="join"?"lobby":S.screen}); }
+function save(){ if(S.code) store.set({name:S.name,role:S.role,code:S.code,set:S.set,r:S.r,ans:S.ans,manual:S.manual,pans:S.pans,pname:S.pname,revealed:S.revealed,sound:S.sound,screen:S.screen==="join"?"lobby":S.screen}); }
 const saved = store.get();
 if(saved && saved.code){ Object.assign(S,saved); }
 else if(saved && saved.name){ S.name = saved.name; }
@@ -262,7 +264,7 @@ function buildPlan(){
   });
 }
 const myName = ()=>S.name||"あなた";
-const pName = ()=>clean(S.partner?.name)||"あいて";
+const pName = ()=>clean(S.partner?.name)||clean(S.pname)||"あいて";
 const nameOf = role => role===S.role ? myName() : pName();
 const otherRole = ()=>S.role===1?2:1;
 function partnerAns(i){
@@ -270,6 +272,7 @@ function partnerAns(i){
   if(p && p.set===S.set && p.ans && Object.prototype.hasOwnProperty.call(p.ans,key)){
     const v=p.ans[key]; if(typeof v==="number"&&isFinite(v)) return v;
   }
+  if(Object.prototype.hasOwnProperty.call(S.pans,key)) return S.pans[key];
   if(Object.prototype.hasOwnProperty.call(S.manual,key)) return S.manual[key];
   return undefined;
 }
@@ -303,11 +306,15 @@ async function joinRoom(){
     if(room && room.name!=="ito-"+S.code){try{await room.leave()}catch{} room=null}
     if(!room){
       room = await lobby.join("ito-"+S.code);
-      room.onConnection(c=>{S.connected=c;renderBar()},()=>{S.connected=false;renderBar()});
-      room.onPeers(ch=>onPeers(ch.peers),()=>{});
+      room.onConnection(c=>{S.connected=c;renderBar()},roomDead);
+      room.onPeers(ch=>onPeers(ch.peers),roomDead);
     }
     pushPresence();
-  }catch{room=null;S.connected=false;renderBar()}
+  }catch{roomDead()}
+}
+function roomDead(){
+  room=null; S.connected=false; S.roomOK=false; S.partner=null;
+  if(S.screen==="wait") renderWait(); else if(S.screen==="play") renderPlay(); else renderBar();
 }
 function onPeers(peers){
   const others = peers.filter(p=>!p.sameTab && p.presence && p.presence.app==="itosync");
@@ -315,6 +322,15 @@ function onPeers(peers){
   const pick = others.find(p=>p.presence.role===otherRole()) || null;
   const prev = S.partner;
   S.partner = pick ? {...pick.presence, peer:pick.peer} : null;
+  if(S.partner){
+    let changed=false;
+    const nm=clean(S.partner.name); if(nm && nm!==S.pname){S.pname=nm;changed=true}
+    if(S.partner.set===S.set && S.partner.ans && typeof S.partner.ans==="object"){
+      for(let i=0;i<ROUNDS.length;i++){const k="r"+i, v=S.partner.ans[k];
+        if(typeof v==="number"&&isFinite(v)&&S.pans[k]!==v){S.pans[k]=v;changed=true}}
+    }
+    if(changed) save();
+  }
   // reactions
   const rc = S.partner?.react;
   if(rc && typeof rc.n==="number" && rc.n!==S.lastReactSeen && REACTS.includes(rc.e)){
@@ -380,7 +396,7 @@ function barHTML(){
   const on = S.connected && !!S.partner;
   const label = S.screen==="lobby"||S.screen==="join" ? "" :
     `<span class="chip" title="通信状態"><span class="dot ${on?"on":""}"></span>${on?"つながってる":S.roomOK===false?"電話モード":"相手まち"}</span>`;
-  return `<div class="bar" id="bar"><div class="logo">糸電話シンクロ${S.code?`<small>あいことば ${esc(S.code)}</small>`:""}</div>${label}
+  return `<div class="bar" id="bar"><div class="logo">糸電話シンクロ${S.code?`<small>#${esc(S.code)}</small>`:""}</div>${label}
     <button class="iconbtn" id="snd" aria-label="${S.sound?"音をけす":"音をだす"}">${S.sound?"🔔":"🔕"}</button></div>`;
 }
 function renderBar(){const b=$("#bar"); if(b){b.outerHTML=barHTML(); bindBar();}}
@@ -425,6 +441,7 @@ function renderLobby(){
   </div>
   <div class="card">
     <ol class="how">
+      <li>まずこのページのリンクを相手にも送って、ふたりとも開く</li>
       <li>ひとりが「部屋をつくる」→ 出てきた4ケタのあいことばを電話で伝える</li>
       <li>もうひとりは「あいことばで入る」に同じ数字を入れる</li>
       <li>同じ質問が出るので、せーので答える。そろったらポイント！</li>
@@ -457,11 +474,12 @@ function renderJoin(){
   $("#back").onclick=()=>{S.screen="lobby";render()};
 }
 function begin(){
-  S.set=0;S.r=0;S.ans={};S.manual={};S.revealed={};S.partner=null;
+  S.set=0;S.r=0;S.ans={};S.manual={};S.pans={};S.pname="";S.revealed={};S.partner=null;
   buildPlan(); S.screen="wait"; save(); render(); joinRoom();
   setTimeout(()=>{ if(S.screen==="wait") renderWait(); },4000);
 }
 function renderWait(){
+  if(document.activeElement?.id==="pn" && $("#pn")){ renderBar(); return; }
   const offline = S.roomOK===false;
   app.innerHTML = barHTML()+`
   <div class="card stack" style="text-align:center">
@@ -469,14 +487,18 @@ function renderWait(){
     ${S.role===1?`<p class="sub">このあいことばを電話で伝えてね</p><div class="bigcode">${esc(S.code)}</div>`:`<div class="bigcode">${esc(S.code)}</div>`}
     ${duoHTML(-1)}
     <p class="sub">${offline?"このページでは通信がつながらないみたい。電話で答えを言い合う「電話モード」で遊べるよ。":"相手が同じあいことばで入ると、自動ではじまるよ。"}</p>
+    <label class="f" for="pn" style="text-align:left">相手のニックネーム（電話モード用・空でもOK）
+      <input class="t" id="pn" maxlength="10" autocomplete="off" placeholder="例：あかり" value="${esc(S.pname)}">
+    </label>
     <button class="btn ${offline?"":"ghost"}" id="solo">${offline?"電話モードではじめる":"待たずに電話モードではじめる"}</button>
     <button class="link" id="quit">やめてトップへ</button>
   </div>`;
-  $("#solo").onclick=()=>{sfx("tap");startGame()};
+  const pn=$("#pn"); pn.oninput=()=>{S.pname=clean(pn.value,10)};
+  $("#solo").onclick=()=>{S.pname=clean(pn.value,10);sfx("tap");startGame()};
   $("#quit").onclick=quit;
 }
 function quit(){
-  S.screen="lobby";S.code="";S.partner=null;S.ans={};S.manual={};S.revealed={};S.r=0;S.set=0;
+  S.screen="lobby";S.code="";S.partner=null;S.ans={};S.manual={};S.pans={};S.pname="";S.revealed={};S.r=0;S.set=0;
   store.set({name:S.name}); if(room){room.leave().catch(()=>{});room=null;S.connected=false} render();
 }
 function startGame(){
@@ -529,7 +551,7 @@ function choiceHTML(i){
 }
 function manualHTML(i){
   const P=PLAN[i];
-  if(S.partner && S.partner.set===S.set) return `<div class="manual"><p class="sub">${esc(pName())} の答えを待ってるよ…「せーの」で言い合ってもOK</p></div>`;
+  if(S.partner) return `<div class="manual"><p class="sub">${esc(pName())} の答えを待ってるよ…${S.partner.set!==S.set?"（まだ前のゲームの画面にいるみたい）":"「せーの」で言い合ってもOK"}</p></div>`;
   if(P.k==="T") return `<div class="manual"><h3>${esc(pName())} のタイムを電話で聞いて入力</h3>
     <div class="row" style="align-items:center"><input class="t" id="mt" inputmode="decimal" placeholder="例 5.12" aria-label="相手のタイム（秒）" style="flex:2 1 120px"><button class="btn" id="mtgo" style="flex:1 1 80px;min-height:52px">決定</button></div>
     <p class="err" id="merr"></p></div>`;
@@ -637,7 +659,7 @@ function renderResult(){
   </div>
   ${reactsHTML()}`;
   if(!renderResult._shown || renderResult._shown!==S.code+S.set){ renderResult._shown=S.code+S.set; if(rate>=50){confetti(160);sfx("ok")} }
-  $("#again").onclick=()=>{ sfx("tap"); S.set++; S.r=0; S.ans={}; S.manual={}; S.revealed={}; buildPlan(); S.screen="play"; save(); pushPresence(); render(); window.scrollTo(0,0); };
+  $("#again").onclick=()=>{ sfx("tap"); S.set++; S.r=0; S.ans={}; S.manual={}; S.pans={}; S.revealed={}; buildPlan(); S.screen="play"; if(room && typeof room.peers==="function") onPeers(room.peers()); save(); pushPresence(); render(); window.scrollTo(0,0); };
   $("#quit").onclick=quit;
   bindBar();
   document.querySelectorAll("[data-react]").forEach(b=>b.onclick=()=>react(b.dataset.react));
