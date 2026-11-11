@@ -1,5 +1,6 @@
 // ミニゲーム「ラッキーアワー」の共有データ。ログイン不要の公開API から使う。
 // 抽選の計算と演出は端末側（public/lucky-hour.html）で行い、サーバーは文書を保存して配るだけ
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -14,19 +15,22 @@ export const MAX_DOC_CHARS = 200_000;
 const LOCK_KEY = "_lock";
 const PIN_KEY = "_pin";
 const META_KEY = "_meta";
+const SYNC_KEY = "_sync";
 const FAIL_KEY = "lucky-hour-pin";
+const SYNC_FAIL_KEY = "lucky-hour-sync";
 
 export const pinSchema = z.string().regex(/^\d{4,8}$/, "PINは数字4〜8桁です");
 export const holderSchema = z.string().regex(/^[A-Za-z0-9]{6,40}$/);
 
 /** 全体の番号。since と同じなら文書は送らない */
 export async function view(since?: number) {
-  const [meta, pin] = await Promise.all([
+  const [meta, pin, sync] = await Promise.all([
     prisma.luckyHourDoc.findUnique({ where: { key: META_KEY } }),
     prisma.luckyHourDoc.findUnique({ where: { key: PIN_KEY }, select: { key: true } }),
+    prisma.luckyHourDoc.findUnique({ where: { key: SYNC_KEY }, select: { updatedAt: true } }),
   ]);
   const version = meta?.version ?? 0;
-  const base = { version, pinSet: !!pin, now: Date.now() };
+  const base = { version, pinSet: !!pin, syncKeyAt: sync?.updatedAt.getTime() ?? null, now: Date.now() };
   if (since === version) return base;
   const rows = await prisma.luckyHourDoc.findMany({ where: { key: { in: [...DOC_KEYS] } } });
   const docs: Partial<Record<DocKey, unknown>> = {};
@@ -104,4 +108,64 @@ export async function acquireLock(holder: string, ttlMs: number, now = new Date(
   if (cur.holder !== holder && cur.until > now.getTime()) return { acquired: false };
   const { count } = await prisma.luckyHourDoc.updateMany({ where: { key: LOCK_KEY, version: row.version }, data: { value, version: row.version + 1 } });
   return { acquired: count === 1 };
+}
+
+/* ---------- 箱カルテ連携：リングの入退店を受け取って参加者リストに反映する ---------- */
+
+const sha = (s: string) => createHash("sha256").update(s).digest();
+
+/** 連携キーを発行（作り直すと古いキーは使えなくなる）。キーそのものは保存せず、ハッシュだけ持つ */
+export async function issueSyncKey() {
+  const key = randomBytes(24).toString("base64url");
+  const value = JSON.stringify({ hash: sha(key).toString("hex") });
+  await prisma.luckyHourDoc.upsert({ where: { key: SYNC_KEY }, update: { value }, create: { key: SYNC_KEY, value } });
+  return { key };
+}
+
+export async function checkSyncKey(key: string, ip: string, now = new Date()) {
+  const row = await prisma.luckyHourDoc.findUnique({ where: { key: SYNC_KEY } });
+  if (!row) throw new UserError("連携キーがまだ発行されていません");
+  await assertNotLocked(SYNC_FAIL_KEY, ip, now);
+  const want = Buffer.from((JSON.parse(row.value) as { hash: string }).hash, "hex");
+  const got = sha(key);
+  if (want.length !== got.length || !timingSafeEqual(want, got)) {
+    await recordFailure(SYNC_FAIL_KEY, ip, now);
+    throw new UserError("連携キーがちがいます");
+  }
+}
+
+const memberSchema = z.object({ id: z.string().trim().min(1).max(64), name: z.string().trim().min(1).max(40) });
+export const ringInput = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("enter"), ...memberSchema.shape }),
+  z.object({ action: z.literal("leave"), id: z.string().trim().min(1).max(64) }),
+  z.object({ action: z.literal("sync"), members: z.array(memberSchema).max(60) }),
+]);
+export type RingInput = z.infer<typeof ringInput>;
+
+type Player = { id: string; name: string; active: boolean; karteId?: string };
+const cleanName = (raw: string) => Array.from(raw.replace(/[\u0000-\u001f\u007f-\u009f]/g, "").replace(/\s+/g, " ").trim()).slice(0, 20).join("");
+const newId = () => Date.now().toString(36) + randomBytes(4).toString("hex");
+
+/** リングに入った人を着席にする。カルテIDで探し、なければ同じ名前の手入力の人に紐付け、それもなければ追加 */
+function enter(list: Player[], id: string, name: string) {
+  const n = cleanName(name) || "お客さま";
+  const p = list.find(x => x.karteId === id) ?? list.find(x => !x.karteId && x.name === n);
+  if (p) { p.karteId = id; p.name = n; p.active = true; }
+  else list.push({ id: newId(), name: n, active: true, karteId: id });
+}
+
+export async function ringEvent(input: RingInput) {
+  const row = await prisma.luckyHourDoc.findUnique({ where: { key: "players" } });
+  let list: Player[] = [];
+  try { const v = row ? (JSON.parse(row.value) as { list?: unknown }) : null; if (Array.isArray(v?.list)) list = v.list as Player[]; } catch { /* 壊れていたら空から */ }
+  if (input.action === "enter") enter(list, input.id, input.name);
+  // 退店した人はリストから外す（手入力で足した人はそのまま）
+  if (input.action === "leave") list = list.filter(p => p.karteId !== input.id);
+  if (input.action === "sync") {
+    const ids = new Set(input.members.map(m => m.id));
+    list = list.filter(p => !p.karteId || ids.has(p.karteId));
+    for (const m of input.members) enter(list, m.id, m.name);
+  }
+  await writeDoc("players", { list });
+  return { ok: true, seated: list.filter(p => p.active).length, linked: list.filter(p => p.karteId).length };
 }

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { acquireLock, checkPin, DOC_KEYS, holderSchema, pinSchema, setPin, view, writeDoc } from "@/server/lucky-hour";
+import { acquireLock, checkPin, DOC_KEYS, holderSchema, issueSyncKey, pinSchema, setPin, view, writeDoc } from "@/server/lucky-hour";
 import { UserError } from "@/server/errors";
 
 // ログイン不要の公開API（ミニゲーム「ラッキーアワー」の共有データ）。読み取りは誰でも、書き込みはスタッフPIN
@@ -13,6 +13,7 @@ const actionInput = z.discriminatedUnion("action", [
   z.object({ action: z.literal("check"), pin: pinSchema }),
   z.object({ action: z.literal("set"), pin: pinSchema, key: z.enum(DOC_KEYS), value: z.unknown() }),
   z.object({ action: z.literal("lock"), pin: pinSchema, holder: holderSchema, ttlMs: z.number().int().positive() }),
+  z.object({ action: z.literal("issueSyncKey"), pin: pinSchema }),
 ]);
 
 function clientIp(req: NextRequest) {
@@ -50,5 +51,6 @@ export async function POST(req: NextRequest) {
     case "check": return handle(() => checkPin(a.pin, ip));
     case "set": return handle(async () => { await checkPin(a.pin, ip); return writeDoc(a.key, a.value); });
     case "lock": return handle(async () => { await checkPin(a.pin, ip); return acquireLock(a.holder, a.ttlMs); });
+    case "issueSyncKey": return handle(async () => { await checkPin(a.pin, ip); return issueSyncKey(); });
   }
 }
