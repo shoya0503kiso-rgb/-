@@ -1,0 +1,659 @@
+<title>糸電話シンクロ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Fredoka:wght@500;600;700&display=swap">
+<style>
+/* Layout: one phone-sized column on graph-paper "notebook" ground. Two paper cups (1P tangerine / 2P teal) joined by a string that glows when answers match. Single light look by design. */
+:root{
+  --paper:#eef5fb; --grid:rgba(40,80,140,.08); --card:#ffffff; --ink:#1c2a48; --ink-2:#55627e; --line:#c9d6e6;
+  --p1:#ff8a3d; --p1-soft:#ffe3cf; --p2:#13a891; --p2-soft:#cdf1ea;
+  --hi:#ffd23f; --hi-soft:#fff3c2; --miss:#9aa6ba; --bad:#e2486a;
+  --f-display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+  --f-num:"Fredoka","Arial Rounded MT Bold","Hiragino Maru Gothic ProN",sans-serif;
+  --r:18px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:22px 22px;-webkit-tap-highlight-color:transparent;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.app{max-width:460px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:14px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 28px}
+
+/* top bar */
+.bar{display:flex;align-items:center;gap:10px;min-height:40px}
+.logo{font-family:var(--f-display);font-size:18px;letter-spacing:.02em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo small{font-family:var(--f-body);font-weight:700;font-size:12px;color:var(--ink-2);margin-left:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--ink);border-radius:999px;padding:3px 10px;font-weight:800;font-size:13px;background:var(--card);white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--miss)}
+.dot.on{background:var(--p2);box-shadow:0 0 0 3px var(--p2-soft)}
+.iconbtn{width:40px;height:40px;border-radius:12px;border:2px solid var(--ink);background:var(--card);font-size:18px;display:grid;place-items:center;padding:0}
+
+/* score strip */
+.strip{display:flex;align-items:center;gap:10px;font-weight:800;font-size:14px}
+.prog{flex:1;height:12px;border:2px solid var(--ink);border-radius:999px;background:var(--card);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--hi);transition:width .4s ease}
+.score{font-family:var(--f-num);font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
+
+/* cups */
+.duo{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;margin-top:4px}
+.who{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.who .nm{font-weight:800;font-size:14px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who .st{font-size:12px;color:var(--ink-2);font-weight:700;min-height:18px;text-align:center}
+.cup{width:58px;height:58px}
+.string{width:96px;height:40px}
+.string path{fill:none;stroke:var(--ink-2);stroke-width:2.5;stroke-linecap:round;transition:stroke .3s}
+.duo.sync .string path{stroke:var(--hi);stroke-width:4;filter:drop-shadow(0 0 4px var(--hi))}
+.duo.sync .string{animation:buzz .12s linear 8}
+@keyframes buzz{50%{transform:translateY(-2px)}}
+
+/* cards */
+.card{background:var(--card);border:2.5px solid var(--ink);border-radius:var(--r);padding:18px;box-shadow:0 5px 0 var(--ink)}
+.kind{display:inline-block;font-weight:800;font-size:12px;letter-spacing:.08em;padding:3px 10px;border-radius:999px;background:var(--hi-soft);border:2px solid var(--ink)}
+.kind.p1{background:var(--p1-soft)} .kind.p2{background:var(--p2-soft)}
+.q{font-family:var(--f-display);font-size:23px;line-height:1.35;margin:10px 0 4px;text-wrap:balance}
+.sub{color:var(--ink-2);font-weight:700;font-size:14px;margin:0}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.choices.two{grid-template-columns:1fr}
+.ch{min-height:64px;border:2.5px solid var(--ink);border-radius:14px;background:var(--card);font-weight:800;font-size:16px;line-height:1.3;padding:10px 8px;box-shadow:0 4px 0 var(--ink);transition:transform .08s}
+.ch:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.ch.pick{background:var(--hi)}
+.ch:disabled{cursor:default}
+.ch .tag{display:block;font-size:11px;color:var(--ink-2);font-weight:700;margin-top:2px}
+
+.btn{display:block;width:100%;min-height:56px;border:2.5px solid var(--ink);border-radius:16px;background:var(--hi);font-weight:800;font-size:17px;box-shadow:0 5px 0 var(--ink);padding:10px 14px}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--ink)}
+.btn.p1{background:var(--p1)} .btn.p2{background:var(--p2);color:#fff}
+.btn.ghost{background:var(--card)}
+.btn:disabled{opacity:.45;cursor:default}
+.link{background:none;border:none;color:var(--ink-2);font-weight:800;text-decoration:underline;text-underline-offset:3px;padding:8px;font-size:14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+
+/* lobby */
+.hero{text-align:center;padding:6px 0 0}
+.hero h1{font-family:var(--f-display);font-weight:400;font-size:40px;line-height:1.1;margin:6px 0 6px;letter-spacing:.02em}
+.hero h1 span{color:var(--p1)} .hero h1 em{font-style:normal;color:var(--p2)}
+.hero p{margin:0;color:var(--ink-2);font-weight:700}
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:800;font-size:14px}
+input.t{font:inherit;font-weight:800;font-size:18px;border:2.5px solid var(--ink);border-radius:12px;padding:12px;background:var(--card);color:var(--ink);width:100%}
+input.code{font-family:var(--f-num);font-size:30px;letter-spacing:.3em;text-align:center}
+.bigcode{font-family:var(--f-num);font-weight:700;font-size:56px;letter-spacing:.18em;text-align:center;line-height:1;margin:10px 0 2px;font-variant-numeric:tabular-nums}
+.how{margin:0;padding-left:1.2em;color:var(--ink-2);font-weight:700;font-size:14px}
+.how li+li{margin-top:4px}
+.note{font-size:13px;color:var(--ink-2);font-weight:700;text-align:center;margin:0}
+.err{color:var(--bad);font-weight:800;font-size:14px;margin:0;min-height:1em}
+
+/* reveal */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.ans{border:2.5px solid var(--ink);border-radius:14px;padding:10px;text-align:center;min-width:0}
+.ans.a1{background:var(--p1-soft)} .ans.a2{background:var(--p2-soft)}
+.ans .l{font-size:12px;font-weight:800;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ans .v{font-weight:800;font-size:17px;line-height:1.3;word-break:break-word}
+.ans .v.num{font-family:var(--f-num);font-size:26px;font-variant-numeric:tabular-nums}
+.verdict{font-family:var(--f-display);font-size:34px;text-align:center;margin:14px 0 0;line-height:1.1}
+.verdict.ok{color:var(--ink);text-shadow:3px 3px 0 var(--hi)}
+.verdict.ng{color:var(--miss)}
+.pts{text-align:center;font-weight:800;color:var(--ink-2);margin:4px 0 0}
+.stamp{animation:stamp .45s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes stamp{from{transform:scale(2.2) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+
+/* timer */
+.clock{font-family:var(--f-num);font-weight:700;font-size:72px;text-align:center;line-height:1;margin:18px 0 6px;font-variant-numeric:tabular-nums;transition:filter .3s,opacity .3s}
+.clock.hide{filter:blur(10px);opacity:.5}
+.target{text-align:center;font-weight:800}
+.target b{font-family:var(--f-num);font-size:22px;color:var(--p1)}
+
+/* manual (phone) entry */
+.manual{border-top:2px dashed var(--line);margin-top:16px;padding-top:14px}
+.manual h3{margin:0 0 4px;font-size:15px}
+
+/* result */
+.rate{font-family:var(--f-num);font-weight:700;font-size:84px;text-align:center;line-height:1;margin:6px 0 0;font-variant-numeric:tabular-nums}
+.rate small{font-size:34px}
+.title{font-family:var(--f-display);font-size:26px;text-align:center;margin:8px 0 0;text-wrap:balance}
+.list{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.list li{display:flex;gap:8px;align-items:baseline;font-size:14px;font-weight:700;border-bottom:1.5px dashed var(--line);padding-bottom:6px}
+.list li b{flex:none;width:1.4em;text-align:center}
+.list li span{min-width:0}
+.talk{background:var(--hi-soft)}
+.talk .q{font-size:20px}
+
+/* reactions */
+.reacts{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.reacts button{width:46px;height:46px;border-radius:50%;border:2px solid var(--ink);background:var(--card);font-size:22px;padding:0;box-shadow:0 3px 0 var(--ink)}
+.reacts button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.floater{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom,0px));font-size:46px;pointer-events:none;z-index:30;animation:floatup 2.2s ease-out forwards}
+.floater .by{display:block;font-size:12px;font-weight:800;text-align:center;font-family:var(--f-body);background:var(--card);border:2px solid var(--ink);border-radius:999px;padding:0 6px;margin-top:-4px}
+@keyframes floatup{0%{transform:translateY(20px) scale(.6);opacity:0}15%{opacity:1;transform:translateY(0) scale(1.1)}100%{transform:translateY(-280px) scale(1);opacity:0}}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:25;width:100%;height:100%}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--ink);color:#fff;font-weight:800;font-size:14px;border-radius:999px;padding:8px 16px;z-index:40;max-width:calc(100% - 32px);text-align:center;animation:stamp .3s both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<canvas id="confetti" aria-hidden="true"></canvas>
+<div class="app" id="app"></div>
+
+<script>
+(() => {
+"use strict";
+/* ============ content ============ */
+const SYNC = [
+  ["目玉焼きにかけるのは？",["しょうゆ","ソース","塩こしょう","ケチャップ"]],
+  ["無人島にひとつ持っていくなら？",["ナイフ","圏外のスマホ","ギター","大量のおにぎり"]],
+  ["コンビニで最初に行くコーナーは？",["おにぎり","スイーツ","ドリンク","雑誌"]],
+  ["お寿司、最初の一皿は？",["サーモン","まぐろ","たまご","えんがわ"]],
+  ["生まれ変わるなら？",["ネコ","イヌ","鳥","お金持ちの家の金魚"]],
+  ["いちばん好きな季節は？",["春","夏","秋","冬"]],
+  ["遊園地で最初に乗るのは？",["ジェットコースター","観覧車","コーヒーカップ","お化け屋敷"]],
+  ["からあげにレモン、どうする？",["かける","かけない","まわりに聞く","レモンだけ食べる"]],
+  ["1億円当たったら最初にすることは？",["ぜんぶ貯金","旅行","家を買う","毎日ラーメン"]],
+  ["1日だけ使える超能力は？",["瞬間移動","透明人間","心が読める","時間を止める"]],
+  ["カラオケの1曲目は？",["盛り上げ曲","バラード","アニソン","まず聴く側"]],
+  ["ラーメンの味といえば？",["しょうゆ","みそ","とんこつ","塩"]],
+  ["旅行に行くなら？",["海","山","都会","温泉"]],
+  ["ゾンビが来たら逃げこむ場所は？",["ショッピングモール","学校","山奥","逃げずに戦う"]],
+  ["おにぎりの具でひとつ選ぶなら？",["ツナマヨ","鮭","梅","明太子"]],
+  ["いちばんこわいのは？",["おばけ","虫","高いところ","テストの結果"]],
+  ["夏祭りで真っ先に買うのは？",["たこ焼き","わたあめ","かき氷","金魚すくい"]],
+  ["タイムマシンで行くなら？",["10年前","10年後","100年後","昨日の夜ごはん前"]],
+  ["食パンの耳、どうする？",["ふつうに食べる","残す","最後にまとめて","揚げておやつ"]],
+  ["宇宙人に会ったら第一声は？",["こんにちは","ハロー","とりあえずピース","全力で逃げる"]],
+  ["映画を観るならどれ？",["アクション","恋愛","ホラー","アニメ"]],
+  ["寝るときのかっこうは？",["パジャマ","ジャージ","Tシャツ短パン","昼の服のまま"]],
+  ["スマホの充電、何%で焦る？",["50%","20%","5%","0%でも平気"]],
+  ["あんこはどっち派？",["つぶあん","こしあん"]],
+  ["自分はどっち？",["朝型","夜型"]],
+  ["お風呂で最初に洗うのは？",["頭","顔","体","とりあえず湯船"]],
+  ["雪が積もったら何する？",["雪だるま","雪合戦","家から出ない","かまくら"]],
+  ["好きな色の系統は？",["赤・ピンク","青・水色","緑","黄色・オレンジ"]],
+  ["パフェで最後に残すのは？",["いちご","アイス","コーンフレーク","残さない"]],
+  ["ドーナツの穴は？",["空気","おまけ","ドーナツの一部","気にしたことない"]],
+  ["もしペットを飼うなら？",["犬","ネコ","ハムスター","カメ"]],
+  ["朝ごはんは？",["ごはん","パン","食べない","前の日の残り"]]
+];
+const READ = [
+  ["休みの日、起きるのは何時ごろ？",["7時より前","9時ごろ","お昼すぎ","夕方"]],
+  ["実はちょっと苦手な食べ物は？",["ピーマン","なす","トマト","特になし"]],
+  ["怒ったらどうなる？",["だまる","すぐ言う","寝て忘れる","甘いもの食べる"]],
+  ["泣ける映画を観たら？",["号泣","泣かない","こっそり泣く","途中で寝てる"]],
+  ["1週間まるごと休みなら？",["旅行","ずっと寝る","ひたすら遊ぶ","家でゲーム"]],
+  ["自分を動物にたとえると？",["ネコ","イヌ","ナマケモノ","ウサギ"]],
+  ["LINEの返信の速さは？",["ほぼ秒","数時間","気づいたら次の日","既読のまま放置"]],
+  ["部屋の状態は？",["いつもきれい","ふつう","ちょっと散らかってる","人に見せられない"]],
+  ["お化け屋敷に入ったら？",["先頭で進む","まん中にかくれる","出口で待ってる","そもそも入らない"]],
+  ["好きなタイプに近いのは？",["おもしろい人","やさしい人","頼れる人","見た目がタイプの人"]],
+  ["告白するならどうやって？",["直接言う","電話","LINE","相手から言われるのを待つ"]],
+  ["疲れたときの回復方法は？",["寝る","食べる","しゃべる","お風呂"]],
+  ["いちばん自信があるのは？",["料理","歌","運動","早寝"]],
+  ["買い物のときは？",["即決","めっちゃ迷う","迷って買わない","色ちがいで2個買う"]],
+  ["自分の性格をひとことで？",["マイペース","せっかち","心配性","楽天家"]],
+  ["子どものころの夢に近いのは？",["スポーツ選手","お店屋さん","先生","宇宙飛行士"]],
+  ["朝起きて最初にすることは？",["スマホを見る","水を飲む","二度寝","顔を洗う"]],
+  ["ひとりカラオケ、行ける？",["よく行く","行ける","行ったことない","ムリ"]]
+];
+const TALK = [
+  "最近いちばん笑ったことを話す","今いちばん食べたいものを「せーの」で言う","相手の第一印象を発表する",
+  "次に会ったら一緒にしたいことを1個ずつ言う","子どものころのあだ名を教え合う","今日の自分に100点満点で点数をつける",
+  "相手のいいところを1個ずつ言う","最近ハマってるものを紹介する","10年後の自分を想像して言う","もし今すぐ会えたら何する？"
+];
+const ROUNDS = ["S","S","Y1","S","T","Y2","S","Y1","S","Y2","T","S"];
+const PTS = {S:10, Y:15, T:20};
+const MAX = ROUNDS.reduce((a,k)=>a+(k==="S"?PTS.S:k==="T"?PTS.T:PTS.Y),0);
+const TITLES = [
+  [90,"運命の糸レベル","もはや同じ人なのでは？"],
+  [70,"ほぼテレパシー","電話いらないかもしれない"],
+  [50,"いい感じの糸電話","ちゃんと声は届いてる"],
+  [30,"糸ちょっとからまり中","もう一回やればほどける…はず"],
+  [0,"糸、切れてない？","ここから仲良くなる伸びしろしかない"]
+];
+const REACTS = ["😂","👏","❤️","😳","🤔","🙏"];
+
+/* ============ helpers ============ */
+const $ = (s,el=document)=>el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clean = (s,n=12) => String(s ?? "").replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁤﻿]/g,"").trim().slice(0,n);
+function hash(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}return ()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return (h^=h>>>16)>>>0}}
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(arr,r){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const store = {
+  get(){try{return JSON.parse(localStorage.getItem("itosync")||"null")}catch{return null}},
+  set(v){try{localStorage.setItem("itosync",JSON.stringify(v))}catch{}},
+  clear(){try{localStorage.removeItem("itosync")}catch{}}
+};
+
+/* ============ state ============ */
+const S = {
+  screen:"lobby",  // lobby | join | wait | play | result
+  name:"", role:0, code:"", set:0,
+  r:0,             // current round index
+  ans:{},          // my answers  r# -> value
+  manual:{},       // partner answers typed in by hand (phone mode)
+  revealed:{},     // r# -> true once I've seen reveal
+  sound:true,
+  partner:null,    // {name, role, set, ans, at, react}
+  connected:false, roomOK:null,
+  timer:null, lastReactSeen:null, myReactN:0, err:""
+};
+function save(){ if(S.code) store.set({name:S.name,role:S.role,code:S.code,set:S.set,r:S.r,ans:S.ans,manual:S.manual,revealed:S.revealed,sound:S.sound,screen:S.screen==="join"?"lobby":S.screen}); }
+const saved = store.get();
+if(saved && saved.code){ Object.assign(S,saved); }
+else if(saved && saved.name){ S.name = saved.name; }
+
+/* game plan from code + set: identical on both phones */
+let PLAN = [];
+function buildPlan(){
+  const r = rng(hash(S.code+"#"+S.set)());
+  const sy = shuffle(SYNC,r), rd = shuffle(READ,r);
+  let si=0, yi=0, ti=0;
+  const targets = shuffle([5,7,10,6],r);
+  PLAN = ROUNDS.map(k=>{
+    if(k==="S"){const [q,c]=sy[si++];return {k:"S",q,c}}
+    if(k==="T"){return {k:"T",target:targets[ti++]}}
+    const [q,c]=rd[yi++]; return {k:"Y",subject:k==="Y1"?1:2,q,c};
+  });
+}
+const myName = ()=>S.name||"あなた";
+const pName = ()=>clean(S.partner?.name)||"あいて";
+const nameOf = role => role===S.role ? myName() : pName();
+const otherRole = ()=>S.role===1?2:1;
+function partnerAns(i){
+  const key="r"+i, p=S.partner;
+  if(p && p.set===S.set && p.ans && Object.prototype.hasOwnProperty.call(p.ans,key)){
+    const v=p.ans[key]; if(typeof v==="number"&&isFinite(v)) return v;
+  }
+  if(Object.prototype.hasOwnProperty.call(S.manual,key)) return S.manual[key];
+  return undefined;
+}
+function judge(i){
+  const P=PLAN[i], a=S.ans["r"+i], b=partnerAns(i);
+  if(a===undefined||b===undefined) return null;
+  if(P.k==="T"){
+    const t=P.target*1000, ea=Math.abs(a-t), eb=Math.abs(b-t), e=ea+eb;
+    const pts = e<=400?PTS.T : e<=1000?PTS.T/2 : 0;
+    return {ok:pts>0,pts,ea,eb,e};
+  }
+  const ok = a===b;
+  return {ok,pts:ok?(P.k==="S"?PTS.S:PTS.Y):0};
+}
+function total(){let s=0;for(let i=0;i<PLAN.length;i++){const j=judge(i);if(j&&S.revealed["r"+i])s+=j.pts}return s}
+
+/* ============ room ============ */
+let room=null, lobby=null, pushTimer=null;
+async function connect(){
+  try{
+    if(!window.claude?.use){S.roomOK=false;render();return}
+    lobby = await window.claude.use("room");
+    if(!lobby){S.roomOK=false;render();return}
+    S.roomOK=true;
+    if(S.code) await joinRoom();
+  }catch{S.roomOK=false;render()}
+}
+async function joinRoom(){
+  if(!lobby||!S.code) return;
+  try{
+    if(room && room.name!=="ito-"+S.code){try{await room.leave()}catch{} room=null}
+    if(!room){
+      room = await lobby.join("ito-"+S.code);
+      room.onConnection(c=>{S.connected=c;renderBar()},()=>{S.connected=false;renderBar()});
+      room.onPeers(ch=>onPeers(ch.peers),()=>{});
+    }
+    pushPresence();
+  }catch{room=null;S.connected=false;renderBar()}
+}
+function onPeers(peers){
+  const others = peers.filter(p=>!p.sameTab && p.presence && p.presence.app==="itosync");
+  // prefer the one in the opposite role
+  const pick = others.find(p=>p.presence.role===otherRole()) || null;
+  const prev = S.partner;
+  S.partner = pick ? {...pick.presence, peer:pick.peer} : null;
+  // reactions
+  const rc = S.partner?.react;
+  if(rc && typeof rc.n==="number" && rc.n!==S.lastReactSeen && REACTS.includes(rc.e)){
+    if(S.lastReactSeen!==null || (Date.now()-(+rc.t||0))<4000) floatEmoji(rc.e, pName(), "p2");
+    S.lastReactSeen=rc.n;
+  } else if(rc && S.lastReactSeen===null){ S.lastReactSeen = rc.n; }
+  if(!prev && S.partner && S.screen!=="lobby") { toast(pName()+" がつながったよ"); sfx("join"); }
+  if(prev && !S.partner && S.screen!=="lobby") { toast((clean(prev.name)||"あいて")+" の接続が切れたみたい"); }
+  if(S.screen==="wait" && S.partner) { startGame(); return; }
+  refreshPlay();
+}
+function pushPresence(){
+  if(!room) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(()=>{
+    const p = {app:"itosync",name:clean(S.name),role:S.role,set:S.set,at:S.r,ans:{...S.ans},
+      react:S.myReactN?{e:S._lastReact,n:S.myReactN,t:Date.now()}:null};
+    room.presence(p).catch(()=>{});
+  },60);
+}
+
+/* ============ sound / fx ============ */
+let ac=null;
+function sfx(kind){
+  if(!S.sound) return;
+  try{
+    ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+    const seq = {tap:[[660,.05]],pick:[[523,.06],[784,.08]],ok:[[523,.08],[659,.08],[784,.08],[1047,.18]],ng:[[392,.12],[330,.22]],join:[[880,.07],[1175,.1]],tick:[[1200,.03]],stop:[[300,.08]]}[kind]||[[600,.05]];
+    let t=ac.currentTime;
+    for(const [f,d] of seq){const o=ac.createOscillator(),g=ac.createGain();o.type="triangle";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.18,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d+.02);t+=d*.9}
+  }catch{}
+}
+function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch{}}
+function toast(msg){const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200)}
+function floatEmoji(e,by,side){
+  const f=document.createElement("div");f.className="floater";
+  f.style.left = (side==="p2"? 55+Math.random()*25 : 10+Math.random()*25)+"%";
+  f.textContent=e;const b=document.createElement("span");b.className="by";b.textContent=by;f.appendChild(b);
+  document.body.appendChild(f);setTimeout(()=>f.remove(),2300);
+}
+const cv=$("#confetti"), cx=cv.getContext("2d"); let bits=[], raf=0;
+function confetti(n=90){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  cv.width=innerWidth*devicePixelRatio;cv.height=innerHeight*devicePixelRatio;
+  const cols=["#ff8a3d","#13a891","#ffd23f","#1c2a48","#ff6fa0"];
+  for(let i=0;i<n;i++)bits.push({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*.4,vx:(Math.random()-.5)*4,vy:2+Math.random()*4,s:(5+Math.random()*7)*devicePixelRatio,r:Math.random()*6,c:cols[i%cols.length]});
+  if(!raf) loop();
+}
+function loop(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  bits=bits.filter(b=>b.y<cv.height+40);
+  for(const b of bits){b.x+=b.vx;b.y+=b.vy*devicePixelRatio;b.vy+=.05;b.r+=.1;cx.save();cx.translate(b.x,b.y);cx.rotate(b.r);cx.fillStyle=b.c;cx.fillRect(-b.s/2,-b.s/3,b.s,b.s*.66);cx.restore()}
+  raf = bits.length? requestAnimationFrame(loop):0;
+  if(!raf) cx.clearRect(0,0,cv.width,cv.height);
+}
+let wake=null; async function keepAwake(){try{wake = await navigator.wakeLock?.request("screen")}catch{}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S.screen==="play")keepAwake()});
+
+/* ============ rendering ============ */
+const app=$("#app");
+function cupSVG(color){return `<svg class="cup" viewBox="0 0 60 60" aria-hidden="true"><path d="M12 14h36l-5 38a4 4 0 0 1-4 3.5H21A4 4 0 0 1 17 52z" fill="${color}" stroke="#1c2a48" stroke-width="3" stroke-linejoin="round"/><ellipse cx="30" cy="14" rx="18" ry="5" fill="#fff" stroke="#1c2a48" stroke-width="3"/><path d="M20 30h20" stroke="#1c2a48" stroke-width="2.5" stroke-linecap="round" opacity=".35"/></svg>`}
+function barHTML(){
+  const on = S.connected && !!S.partner;
+  const label = S.screen==="lobby"||S.screen==="join" ? "" :
+    `<span class="chip" title="通信状態"><span class="dot ${on?"on":""}"></span>${on?"つながってる":S.roomOK===false?"電話モード":"相手まち"}</span>`;
+  return `<div class="bar" id="bar"><div class="logo">糸電話シンクロ${S.code?`<small>あいことば ${esc(S.code)}</small>`:""}</div>${label}
+    <button class="iconbtn" id="snd" aria-label="${S.sound?"音をけす":"音をだす"}">${S.sound?"🔔":"🔕"}</button></div>`;
+}
+function renderBar(){const b=$("#bar"); if(b){b.outerHTML=barHTML(); bindBar();}}
+function bindBar(){const b=$("#snd");if(b)b.onclick=()=>{S.sound=!S.sound;save();renderBar();sfx("tap")}}
+function duoHTML(i, cls=""){
+  const meDone = S.ans["r"+i]!==undefined, pDone = partnerAns(i)!==undefined, waiting = i<0, fin = S.screen==="result";
+  const p1 = S.role===1, mine = `<div class="who"><div class="nm">${esc(myName())}（${S.role}P）</div>${cupSVG(p1?"#ff8a3d":"#13a891")}<div class="st">${fin?"":waiting?"じゅんびOK":meDone?"✓ こたえた":"かんがえ中…"}</div></div>`;
+  const theirs = `<div class="who"><div class="nm">${esc(pName())}（${otherRole()}P）</div>${cupSVG(p1?"#13a891":"#ff8a3d")}<div class="st">${fin?"":waiting?(S.partner?"つながった！":"まだ来てないよ"):pDone?"✓ こたえた": (S.partner? "かんがえ中…" : "電話できいてね")}</div></div>`;
+  const string = `<svg class="string" viewBox="0 0 96 40" aria-hidden="true"><path d="M0 18 Q48 ${cls?"18":"36"} 96 18"/></svg>`;
+  return `<div class="duo ${cls}" id="duo">${mine}${string}${theirs}</div>`;
+}
+function stripHTML(){
+  const done = Object.keys(S.revealed).length;
+  return `<div class="strip"><span>${Math.min(S.r+1,PLAN.length)}/${PLAN.length}</span><div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="${PLAN.length}" aria-valuenow="${done}"><i style="width:${done/PLAN.length*100}%"></i></div><span class="score">${total()}<small style="font-size:12px"> pt</small></span></div>`;
+}
+function reactsHTML(){return `<div class="reacts" aria-label="スタンプ">${REACTS.map(e=>`<button data-react="${e}" aria-label="スタンプ ${e}">${e}</button>`).join("")}</div>`}
+
+function render(){
+  if(S.screen==="lobby") renderLobby();
+  else if(S.screen==="join") renderJoin();
+  else if(S.screen==="wait") renderWait();
+  else if(S.screen==="play") renderPlay();
+  else if(S.screen==="result") renderResult();
+  bindBar();
+  document.querySelectorAll("[data-react]").forEach(b=>b.onclick=()=>react(b.dataset.react));
+}
+
+function renderLobby(){
+  app.innerHTML = barHTML()+`
+  <div class="hero">
+    ${duoHTMLStatic()}
+    <h1><span>糸電話</span><em>シンクロ</em></h1>
+    <p>電話しながら、ふたりの答えをそろえるゲーム</p>
+  </div>
+  <div class="card stack">
+    <label class="f" for="nm">あなたのニックネーム
+      <input class="t" id="nm" maxlength="10" autocomplete="nickname" placeholder="例：しょうや" value="${esc(S.name)}">
+    </label>
+    <button class="btn p1" id="mk">部屋をつくる（1P）</button>
+    <button class="btn p2" id="jn">あいことばで入る（2P）</button>
+    <p class="err" id="err">${esc(S.err)}</p>
+  </div>
+  <div class="card">
+    <ol class="how">
+      <li>ひとりが「部屋をつくる」→ 出てきた4ケタのあいことばを電話で伝える</li>
+      <li>もうひとりは「あいことばで入る」に同じ数字を入れる</li>
+      <li>同じ質問が出るので、せーので答える。そろったらポイント！</li>
+      <li>「よみあい」は相手の答えを予想、「ピタッと」は目をつぶって秒数を当てる</li>
+    </ol>
+  </div>`;
+  const nm=$("#nm");
+  nm.oninput=()=>{S.name=clean(nm.value,10);store.set({...(store.get()||{}),name:S.name})};
+  const need=()=>{S.name=clean(nm.value,10); if(!S.name){S.err="ニックネームを入れてね";$("#err").textContent=S.err;nm.focus();return false} S.err="";return true};
+  $("#mk").onclick=()=>{ if(!need())return; sfx("tap"); S.role=1; S.code=String(1000+Math.floor(Math.random()*9000)); begin(); };
+  $("#jn").onclick=()=>{ if(!need())return; sfx("tap"); S.role=2; S.screen="join"; render(); };
+}
+function duoHTMLStatic(){return `<div class="duo sync" style="max-width:300px;margin:6px auto 0"><div class="who">${cupSVG("#ff8a3d")}</div><svg class="string" viewBox="0 0 96 40" aria-hidden="true"><path d="M0 18 Q48 18 96 18"/></svg><div class="who">${cupSVG("#13a891")}</div></div>`}
+
+function renderJoin(){
+  app.innerHTML = barHTML()+`
+  <div class="card stack">
+    <span class="kind p2">2Pで入る</span>
+    <label class="f" for="cd">相手から聞いた4ケタのあいことば
+      <input class="t code" id="cd" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="0000">
+    </label>
+    <button class="btn p2" id="go">入る</button>
+    <p class="err" id="err"></p>
+    <button class="link" id="back">もどる</button>
+  </div>`;
+  const cd=$("#cd"); cd.focus();
+  cd.oninput=()=>{cd.value=cd.value.replace(/\D/g,"").slice(0,4)};
+  const go=()=>{ if(!/^\d{4}$/.test(cd.value)){$("#err").textContent="4ケタの数字を入れてね";return} sfx("tap"); S.code=cd.value; begin(); };
+  $("#go").onclick=go; cd.onkeydown=e=>{if(e.key==="Enter")go()};
+  $("#back").onclick=()=>{S.screen="lobby";render()};
+}
+function begin(){
+  S.set=0;S.r=0;S.ans={};S.manual={};S.revealed={};S.partner=null;
+  buildPlan(); S.screen="wait"; save(); render(); joinRoom();
+  setTimeout(()=>{ if(S.screen==="wait") renderWait(); },4000);
+}
+function renderWait(){
+  const offline = S.roomOK===false;
+  app.innerHTML = barHTML()+`
+  <div class="card stack" style="text-align:center">
+    <span class="kind ${S.role===1?"p1":"p2"}" style="align-self:center">${S.role}Pで参加中</span>
+    ${S.role===1?`<p class="sub">このあいことばを電話で伝えてね</p><div class="bigcode">${esc(S.code)}</div>`:`<div class="bigcode">${esc(S.code)}</div>`}
+    ${duoHTML(-1)}
+    <p class="sub">${offline?"このページでは通信がつながらないみたい。電話で答えを言い合う「電話モード」で遊べるよ。":"相手が同じあいことばで入ると、自動ではじまるよ。"}</p>
+    <button class="btn ${offline?"":"ghost"}" id="solo">${offline?"電話モードではじめる":"待たずに電話モードではじめる"}</button>
+    <button class="link" id="quit">やめてトップへ</button>
+  </div>`;
+  $("#solo").onclick=()=>{sfx("tap");startGame()};
+  $("#quit").onclick=quit;
+}
+function quit(){
+  S.screen="lobby";S.code="";S.partner=null;S.ans={};S.manual={};S.revealed={};S.r=0;S.set=0;
+  store.set({name:S.name}); if(room){room.leave().catch(()=>{});room=null;S.connected=false} render();
+}
+function startGame(){
+  buildPlan(); S.screen="play"; save(); keepAwake(); sfx("join"); render(); pushPresence();
+}
+
+/* ---------- play ---------- */
+let lastPlayKey="";
+let lastResultKey="";
+function refreshPlay(){
+  if(S.screen==="result"){ const k=[!!S.partner,S.partner?.set,clean(S.partner?.name),S.connected].join("|"); if(k!==lastResultKey) renderResult(); else renderBar(); return; }
+  if(S.screen==="wait"){ renderWait(); return; }
+  if(S.screen!=="play"){ renderBar(); return; }
+  if(S.timing || document.activeElement?.id==="mt"){ renderBar(); return; }
+  // only re-render the round when something visible changed
+  const i=S.r, key=[i,S.ans["r"+i]!==undefined,partnerAns(i)!==undefined,!!S.partner,clean(S.partner?.name),S.connected,S.partner?.set].join("|");
+  if(key!==lastPlayKey) renderPlay(); else renderBar();
+}
+function renderPlay(){
+  const i=S.r, P=PLAN[i]; if(!P){S.screen="result";save();renderResult();return}
+  const mine=S.ans["r"+i], theirs=partnerAns(i), done = mine!==undefined && theirs!==undefined;
+  lastPlayKey=[i,mine!==undefined,theirs!==undefined,!!S.partner,clean(S.partner?.name),S.connected,S.partner?.set].join("|");
+  let body="";
+  if(done){ body = revealHTML(i); if(!S.revealed["r"+i]){ S.revealed["r"+i]=true; save(); const j=judge(i); setTimeout(()=>{ if(j.ok){sfx("ok");buzz([40,40,80]);confetti(j.pts>=15?120:70)}else{sfx("ng");buzz(120)} },120) } }
+  else if(P.k==="T") body = timerHTML(i);
+  else body = choiceHTML(i);
+  const setNote = S.partner && S.partner.set!==S.set ? `<p class="note">${esc(pName())} は${S.partner.set>S.set?"「もう一回」を押したよ。結果画面からもう一回を押してね":"まだ前のゲームの画面にいるよ"}</p>`:"";
+  app.innerHTML = barHTML()+stripHTML()+duoHTML(i, done&&judge(i).ok?"sync":"")+body+setNote+reactsHTML();
+  bindPlay(i);
+  bindBar();
+  document.querySelectorAll("[data-react]").forEach(b=>b.onclick=()=>react(b.dataset.react));
+}
+function kindLabel(P){
+  if(P.k==="S") return `<span class="kind">シンクロ ＋${PTS.S}</span>`;
+  if(P.k==="T") return `<span class="kind">ピタッと ＋${PTS.T}</span>`;
+  return `<span class="kind ${P.subject===1?"p1":"p2"}">よみあい ＋${PTS.Y}</span>`;
+}
+function promptSub(P){
+  if(P.k==="S") return "ふたりの答えがそろえばポイント。相手が選びそうなのを選ぼう！";
+  const subj = P.subject===S.role;
+  return subj ? `あなた自身の答えを選んでね。${esc(pName())} が予想するよ` : `${esc(nameOf(P.subject))} は何て答える？ 予想して選んでね`;
+}
+function choiceHTML(i){
+  const P=PLAN[i], mine=S.ans["r"+i];
+  const q = P.k==="Y" && P.subject!==S.role ? `${esc(nameOf(P.subject))}の場合：${esc(P.q)}` : esc(P.q);
+  let html = `<div class="card">${kindLabel(P)}<p class="q">${q}</p><p class="sub">${promptSub(P)}</p>
+    <div class="choices ${P.c.length===2?"two":""}">${P.c.map((c,k)=>`<button class="ch ${mine===k?"pick":""}" data-ch="${k}" ${mine!==undefined?"disabled":""}>${esc(c)}</button>`).join("")}</div>`;
+  if(mine!==undefined) html += manualHTML(i);
+  return html+`</div>`;
+}
+function manualHTML(i){
+  const P=PLAN[i];
+  if(S.partner && S.partner.set===S.set) return `<div class="manual"><p class="sub">${esc(pName())} の答えを待ってるよ…「せーの」で言い合ってもOK</p></div>`;
+  if(P.k==="T") return `<div class="manual"><h3>${esc(pName())} のタイムを電話で聞いて入力</h3>
+    <div class="row" style="align-items:center"><input class="t" id="mt" inputmode="decimal" placeholder="例 5.12" aria-label="相手のタイム（秒）" style="flex:2 1 120px"><button class="btn" id="mtgo" style="flex:1 1 80px;min-height:52px">決定</button></div>
+    <p class="err" id="merr"></p></div>`;
+  return `<div class="manual"><h3>「せーの」で言い合って、${esc(pName())} の答えをタップ</h3>
+    <div class="choices ${P.c.length===2?"two":""}">${P.c.map((c,k)=>`<button class="ch" data-man="${k}" style="min-height:48px;font-size:14px;box-shadow:0 3px 0 var(--ink)">${esc(c)}</button>`).join("")}</div></div>`;
+}
+function timerHTML(i){
+  const P=PLAN[i], mine=S.ans["r"+i];
+  let inner;
+  if(mine===undefined){
+    inner = `<div class="clock" id="clock">0.00</div>
+      <p class="target">目標 <b>${P.target}.00</b> 秒ぴったり</p>
+      <p class="sub" style="text-align:center">スタートして1.5秒たつと数字が見えなくなるよ。心の中で数えて、ちょうどでストップ！</p>
+      <button class="btn" id="tbtn" style="margin-top:12px">スタート</button>`;
+  } else {
+    inner = `<div class="clock">${(mine/1000).toFixed(2)}</div><p class="target">目標 <b>${P.target}.00</b> 秒 ／ ずれ ${(Math.abs(mine-P.target*1000)/1000).toFixed(2)}秒</p>`+manualHTML(i);
+  }
+  return `<div class="card">${kindLabel(P)}<p class="q">ピタッと${P.target}秒チャレンジ</p><p class="sub">ふたりのずれの合計が0.4秒以内で${PTS.T}pt、1秒以内で${PTS.T/2}pt</p>${inner}</div>`;
+}
+function revealHTML(i){
+  const P=PLAN[i], j=judge(i), a=S.ans["r"+i], b=partnerAns(i);
+  const me=`${esc(myName())}`, you=`${esc(pName())}`;
+  const myCls = S.role===1?"a1":"a2", thCls = S.role===1?"a2":"a1";
+  let labA=me, labB=you, va, vb, numCls="";
+  if(P.k==="T"){ va=(a/1000).toFixed(2); vb=(b/1000).toFixed(2); numCls="num"; }
+  else { va=esc(P.c[a]); vb=esc(P.c[b]); }
+  if(P.k==="Y"){
+    if(P.subject===S.role){labA=me+" の答え"; labB=you+" の予想"} else {labA=me+" の予想"; labB=you+" の答え"}
+  }
+  let verdict, extra="";
+  if(P.k==="T"){
+    const near = j.ea===j.eb ? "ふたりとも同じずれ！" : (j.ea<j.eb? `${me} のほうが近い！`:`${you} のほうが近い！`);
+    verdict = j.pts===PTS.T?"ピタッと！": j.pts>0?"おしい！":"ずれずれ…";
+    extra = `<p class="pts">ずれ合計 ${(j.e/1000).toFixed(2)}秒 ・ ${near}</p>`;
+  } else if(P.k==="Y"){
+    verdict = j.ok ? (P.subject===S.role?"見ぬかれた！":"大当たり！") : "はずれ…";
+  } else {
+    verdict = j.ok ? "シンクロ！" : "ズレた…";
+  }
+  const q = P.k==="T" ? `ピタッと${P.target}秒チャレンジ` : esc(P.q);
+  const last = i===PLAN.length-1;
+  return `<div class="card">${kindLabel(P)}<p class="q" style="font-size:19px">${q}</p>
+    <div class="vs"><div class="ans ${myCls}"><div class="l">${labA}</div><div class="v ${numCls}">${va}</div></div><div class="ans ${thCls}"><div class="l">${labB}</div><div class="v ${numCls}">${vb}</div></div></div>
+    <p class="verdict stamp ${j.ok?"ok":"ng"}">${verdict}</p><p class="pts">${j.pts>0?`＋${j.pts} pt`:"0 pt"}</p>${extra}
+    <button class="btn" id="next" style="margin-top:14px">${last?"結果を見る":"つぎの問題へ"}</button>
+    ${partnerAnsSource(i)}</div>`;
+}
+function partnerAnsSource(i){
+  const key="r"+i;
+  if(S.manual[key]!==undefined && !(S.partner&&S.partner.set===S.set&&S.partner.ans&&S.partner.ans[key]!==undefined))
+    return `<button class="link" id="fix" style="display:block;margin:6px auto 0">相手の答えを入れまちがえた</button>`;
+  return "";
+}
+function bindPlay(i){
+  const P=PLAN[i];
+  document.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{
+    if(S.ans["r"+i]!==undefined) return;
+    S.ans["r"+i]=+b.dataset.ch; sfx("pick"); buzz(20); save(); pushPresence(); renderPlay();
+  });
+  document.querySelectorAll("[data-man]").forEach(b=>b.onclick=()=>{
+    S.manual["r"+i]=+b.dataset.man; save(); renderPlay();
+  });
+  const mt=$("#mt");
+  if(mt){ const go=()=>{const v=parseFloat(String(mt.value).replace(",","."));if(!(v>0&&v<60)){$("#merr").textContent="0〜60の秒数を入れてね（例 5.12）";return} S.manual["r"+i]=Math.round(v*1000);save();renderPlay()};
+    $("#mtgo").onclick=go; mt.onkeydown=e=>{if(e.key==="Enter")go()}; }
+  const tb=$("#tbtn"); if(tb) bindTimer(i,tb);
+  const nx=$("#next"); if(nx) nx.onclick=()=>{ sfx("tap"); S.r++; save(); pushPresence(); if(S.r>=PLAN.length){S.screen="result";save();renderResult();window.scrollTo(0,0)} else {renderPlay();window.scrollTo(0,0)} };
+  const fx=$("#fix"); if(fx) fx.onclick=()=>{ delete S.manual["r"+i]; delete S.revealed["r"+i]; save(); renderPlay(); };
+}
+function bindTimer(i,tb){
+  const clock=$("#clock"); let t0=0, id=0, running=false;
+  const tick=()=>{const t=(performance.now()-t0)/1000; if(t<1.5){clock.textContent=t.toFixed(2)} else if(!clock.classList.contains("hide")){clock.classList.add("hide");clock.textContent="?.??";sfx("tick")} id=requestAnimationFrame(tick)};
+  tb.onclick=()=>{
+    if(!running){ running=true; S.timing=true; t0=performance.now(); tb.textContent="ストップ！"; tb.classList.add("p1"); sfx("tick"); id=requestAnimationFrame(tick); }
+    else { cancelAnimationFrame(id); S.timing=false; const ms=Math.round(performance.now()-t0); S.ans["r"+i]=ms; sfx("stop"); buzz(30); save(); pushPresence(); renderPlay(); }
+  };
+}
+
+/* ---------- result ---------- */
+function renderResult(){
+  lastResultKey=[!!S.partner,S.partner?.set,clean(S.partner?.name),S.connected].join("|");
+  const sc=total(), rate=Math.round(sc/MAX*100);
+  const [,title,line]=TITLES.find(t=>rate>=t[0]);
+  const r=rng(hash(S.code+"talk"+S.set)());
+  const talk=TALK[Math.floor(r()*TALK.length)];
+  const list = PLAN.map((P,i)=>{const j=judge(i);const q=P.k==="T"?`ピタッと${P.target}秒`:P.q;return `<li><b>${j&&j.ok?"⭕":"✖️"}</b><span>${esc(q)}</span></li>`}).join("");
+  const again = S.partner && S.partner.set>S.set ? `<p class="note" style="margin-top:8px">${esc(pName())} はもう次のゲームで待ってるよ</p>`:"";
+  app.innerHTML = barHTML()+`
+  <div class="card" style="text-align:center">
+    <span class="kind">ふたりのシンクロ率</span>
+    ${duoHTML(PLAN.length-1, rate>=50?"sync":"")}
+    <div class="rate">${rate}<small>%</small></div>
+    <p class="title">${esc(title)}</p>
+    <p class="sub">${esc(line)}（${sc} / ${MAX} pt）</p>
+  </div>
+  <div class="card talk">
+    <span class="kind">おまけトーク</span>
+    <p class="q">${esc(talk)}</p>
+    <p class="sub">電話でそのまま話してみてね</p>
+  </div>
+  <div class="card"><span class="kind">ふりかえり</span><ul class="list">${list}</ul></div>
+  <div class="stack">
+    <button class="btn" id="again">もう一回（問題が変わるよ）</button>${again}
+    <button class="link" id="quit">あいことばを変えてトップへ</button>
+  </div>
+  ${reactsHTML()}`;
+  if(!renderResult._shown || renderResult._shown!==S.code+S.set){ renderResult._shown=S.code+S.set; if(rate>=50){confetti(160);sfx("ok")} }
+  $("#again").onclick=()=>{ sfx("tap"); S.set++; S.r=0; S.ans={}; S.manual={}; S.revealed={}; buildPlan(); S.screen="play"; save(); pushPresence(); render(); window.scrollTo(0,0); };
+  $("#quit").onclick=quit;
+  bindBar();
+  document.querySelectorAll("[data-react]").forEach(b=>b.onclick=()=>react(b.dataset.react));
+}
+
+/* ---------- reactions ---------- */
+function react(e){
+  S.myReactN++; S._lastReact=e; floatEmoji(e,myName(),"p1"); sfx("tap");
+  if(!room||!S.partner) { if(!S._reactHint){S._reactHint=1;toast("スタンプはつながってる相手に届くよ")} }
+  pushPresence();
+}
+
+/* ============ boot ============ */
+if(S.code){ buildPlan(); if(S.screen==="lobby") S.screen="wait"; }
+render();
+connect();
+setTimeout(()=>{ if(S.roomOK===null){S.roomOK=false; if(S.screen==="wait")renderWait(); else renderBar()} },10000);
+})();
+</script>
