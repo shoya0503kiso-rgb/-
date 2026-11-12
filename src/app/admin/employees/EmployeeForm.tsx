@@ -11,8 +11,11 @@ export function EmployeeForm({ employee }: { employee?: Employee }) {
       {state?.error && <Alert kind="error">{state.error}</Alert>}
       {state?.message && <Alert kind="success">{state.message}</Alert>}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="名前（打刻画面に表示）">
+        <Field label="表示名" hint="打刻画面・LINE・管理画面に出る名前（あだ名でもOK）">
           <Input name="name" defaultValue={employee?.name} required maxLength={30} />
+        </Field>
+        <Field label="本名（社労士提出用）" hint="勤怠の出力（CSV・Excel・印刷）にはこの名前が出ます。空欄なら表示名">
+          <Input name="legalName" defaultValue={employee?.legalName} maxLength={60} />
         </Field>
         <Field label="ふりがな" hint="並び順に使用">
           <Input name="kana" defaultValue={employee?.kana} />

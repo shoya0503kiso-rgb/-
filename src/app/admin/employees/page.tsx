@@ -27,6 +27,7 @@ export default async function EmployeesPage() {
                   <tr key={e.id} className={e.active ? "" : "text-slate-400"}>
                     <td className={td}>
                       <Link href={`/admin/employees/${e.id}`} className="font-medium text-teal-800 underline">{e.name}</Link>
+                      {e.legalName && <span className="ml-2 text-xs text-slate-500">本名：{e.legalName}</span>}
                       {e.kana && <span className="ml-2 text-xs text-slate-500">{e.kana}</span>}
                     </td>
                     <td className={td}>{EMPLOYMENT_TYPES[e.employmentType as keyof typeof EMPLOYMENT_TYPES] ?? e.employmentType}</td>

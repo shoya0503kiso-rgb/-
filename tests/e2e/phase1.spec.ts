@@ -13,7 +13,8 @@ test("Phase 1: 従業員登録 → iPad打刻 → 勤怠確認 → 要確認 →
 
   // 従業員を追加
   await page.goto("/admin/employees/new");
-  await page.getByLabel("名前（打刻画面に表示）").fill("テスト 次郎");
+  await page.locator("input[name=name]").fill("テスト 次郎");
+  await page.locator("input[name=legalName]").fill("手巣斗 次郎");
   await page.getByRole("button", { name: "登録" }).click();
   await expect(page.getByText("登録しました")).toBeVisible();
 
@@ -77,7 +78,10 @@ test("Phase 1: 従業員登録 → iPad打刻 → 勤怠確認 → 要確認 →
   const ym = new URL(page.url()).searchParams.get("ym");
   const res = await page.request.get(`/api/admin/export?ym=${ym}&format=csv`);
   expect(res.status()).toBe(200);
-  expect(await res.text()).toContain("テスト 次郎");
+  const csv = await res.text();
+  // 社労士提出用の出力は本名
+  expect(csv).toContain("手巣斗 次郎");
+  expect(csv).not.toContain("テスト 次郎");
 });
 
 test("未ログインでは管理画面・出力APIに入れない", async ({ page }) => {
