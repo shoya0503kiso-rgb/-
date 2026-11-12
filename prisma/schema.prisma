@@ -82,7 +82,10 @@ model KioskDevice {
 
 model Employee {
   id             String   @id @default(cuid())
+  /// 表示名（打刻画面・LINE・管理画面）
   name           String
+  /// 本名（社労士提出用の出力に使う。空なら表示名）
+  legalName      String   @default("")
   kana           String   @default("")
   employmentType String   @default("PART") // PART / FULL / OTHER
   active         Boolean  @default(true)

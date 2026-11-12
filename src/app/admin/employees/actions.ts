@@ -10,6 +10,7 @@ export type FormState = { error?: string; message?: string } | null;
 function fromForm(form: FormData): EmployeeInput {
   return {
     name: String(form.get("name") ?? ""),
+    legalName: String(form.get("legalName") ?? ""),
     kana: String(form.get("kana") ?? ""),
     employmentType: String(form.get("employmentType") ?? "PART") as EmployeeInput["employmentType"],
     active: form.get("active") === "on",

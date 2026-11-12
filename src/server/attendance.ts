@@ -4,6 +4,7 @@ import { detectAnomalies, type Anomaly } from "@/lib/attendance/anomalies";
 import { summarize, totalsOf } from "@/lib/attendance/calc";
 import { businessDateOf, datesOfMonth, toJstLocal, truncateToMinute, type DateStr, type YearMonth } from "@/lib/time";
 import { prisma } from "./db";
+import { officialName } from "./employees";
 import { UserError } from "./errors";
 import { anomalyRulesOf, getSettings, loadCalendar } from "./settings";
 
@@ -348,5 +349,6 @@ export async function exportRows(ym: YearMonth, employeeId?: string) {
     include: { breaks: true, employee: true },
     orderBy: [{ employee: { sortOrder: "asc" } }, { employee: { name: "asc" } }, { businessDate: "asc" }, { clockIn: "asc" }],
   });
-  return sessions.map((s) => ({ employee: s.employee, session: s, summary: summarize(s) }));
+  // 社労士提出用なので、名前は本名（未入力なら表示名）にする
+  return sessions.map((s) => ({ employee: { ...s.employee, name: officialName(s.employee) }, session: s, summary: summarize(s) }));
 }

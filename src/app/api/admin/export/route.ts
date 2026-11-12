@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getAdmin } from "@/server/auth";
 import { buildCsv, buildXlsx } from "@/server/export";
-import { getEmployee } from "@/server/employees";
+import { getEmployee, officialName } from "@/server/employees";
 import { isValidYearMonth } from "@/lib/time";
 
 export async function GET(req: NextRequest) {
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const employee = employeeId ? await getEmployee(employeeId) : null;
   if (employeeId && !employee) return NextResponse.json({ error: "従業員が見つかりません" }, { status: 404 });
 
-  const base = `勤怠_${ym}${employee ? `_${employee.name}` : ""}`;
+  const base = `勤怠_${ym}${employee ? `_${officialName(employee)}` : ""}`;
   const headers = (type: string, ext: string) => ({
     "Content-Type": type,
     "Content-Disposition": `attachment; filename="attendance_${ym}.${ext}"; filename*=UTF-8''${encodeURIComponent(base)}.${ext}`,

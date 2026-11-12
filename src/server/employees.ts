@@ -11,6 +11,7 @@ const optionalInt = (max: number) =>
 
 export const employeeSchema = z.object({
   name: z.string().trim().min(1, "名前を入力してください").max(30),
+  legalName: z.string().trim().max(60).default(""),
   kana: z.string().trim().max(60).default(""),
   employmentType: z.enum(["PART", "FULL", "OTHER"]).default("PART"),
   active: z.boolean().default(true),
@@ -36,6 +37,11 @@ function parse(input: EmployeeInput) {
     throw new UserError("最低勤務日数が最大勤務日数を超えています");
   }
   return v;
+}
+
+/** 社労士提出用の名前（本名。未入力なら表示名） */
+export function officialName(e: { name: string; legalName: string }) {
+  return e.legalName.trim() || e.name;
 }
 
 export function listEmployees(opts: { includeInactive?: boolean } = {}) {
