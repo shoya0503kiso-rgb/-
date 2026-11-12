@@ -75,6 +75,10 @@ export function MochiTapper({
   const [win, setWin] = useState<number | null>(null);
   const [muted, setMuted] = useState(false);
   const [squish, setSquish] = useState(0);
+  // なでている間だけ、むにゃむにゃ顔になる
+  const [drowsy, setDrowsy] = useState(false);
+  const drowsyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const artRef = useRef<HTMLDivElement>(null);
   const pendingRef = useRef(0);
   const sending = useRef(false);
   const popId = useRef(0);
@@ -114,6 +118,14 @@ export function MochiTapper({
     pendingRef.current += 1;
     setPending(pendingRef.current);
     setSquish((n) => n + 1);
+    // ぷにっとさせる（画像を作り直さずに、動きだけやり直す）
+    artRef.current?.animate([{ transform: "scale(1, 1)" }, { transform: "scale(1.06, 0.92)" }, { transform: "scale(1, 1)" }], {
+      duration: 250,
+      easing: "ease-out",
+    });
+    setDrowsy(true);
+    if (drowsyTimer.current) clearTimeout(drowsyTimer.current);
+    drowsyTimer.current = setTimeout(() => setDrowsy(false), 600);
     if (!muted) play();
     const rect = el.getBoundingClientRect();
     const id = ++popId.current;
@@ -161,23 +173,29 @@ export function MochiTapper({
         onPointerUp={() => (dragFrom.current = null)}
         onPointerCancel={() => (dragFrom.current = null)}
         onContextMenu={(e) => e.preventDefault()}
-        className="no-select relative mx-auto aspect-square w-full max-w-sm cursor-pointer touch-none overflow-hidden rounded-full bg-[#f897b1] shadow-[0_10px_0_#f472b6] ring-4 ring-white"
+        className="no-select relative mx-auto aspect-square w-full max-w-sm cursor-pointer touch-none overflow-hidden rounded-full bg-[#f878a1] shadow-[0_10px_0_#ec4899] ring-4 ring-white"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          key={awake ? "awake" : `sleep-${squish}`}
-          src={awake ? IMG.trumpAwake : IMG.trumpSleep}
-          alt={name}
-          draggable={false}
-          className={`pointer-events-none h-full w-full ${awake ? "wake object-contain p-6" : squish ? "squish object-cover" : "breathe object-cover"}`}
-        />
-        {!awake && (
-          <>
-            <span className="zzz pointer-events-none absolute top-[12%] left-[58%] text-3xl font-black text-white drop-shadow">Z</span>
-            <span className="zzz pointer-events-none absolute top-[16%] left-[50%] text-2xl font-black text-white drop-shadow [animation-delay:1s]">z</span>
-            <span className="zzz pointer-events-none absolute top-[20%] left-[44%] text-xl font-black text-white drop-shadow [animation-delay:2s]">z</span>
-          </>
-        )}
+        {/* 3枚を重ねて置き、見せる1枚だけ切り替える（切り替えでちらつかない） */}
+        <div
+          ref={artRef}
+          key={awake ? "awake" : "sleep"}
+          className={`pointer-events-none absolute inset-0 ${awake ? "wake" : squish ? "" : "breathe"}`}
+        >
+          {[
+            { src: IMG.trumpSleep, show: !awake && !drowsy },
+            { src: IMG.trumpDrowsy, show: !awake && drowsy },
+            { src: IMG.trumpAwake, show: awake },
+          ].map((f) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={f.src}
+              src={f.src}
+              alt={f.show ? name : ""}
+              draggable={false}
+              className={`absolute inset-0 h-full w-full object-cover ${f.show ? "opacity-100" : "opacity-0"}`}
+            />
+          ))}
+        </div>
         {pops.map((p) => (
           <span
             key={p.id}
@@ -207,7 +225,7 @@ export function MochiTapper({
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 p-6" onClick={() => setWin(null)}>
           <div className="w-full max-w-xs rounded-3xl bg-white p-6 text-center shadow-xl">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={IMG.trumpAwake} alt="" className="wake mx-auto w-40" />
+            <img src={IMG.trumpAwake} alt="" className="wake mx-auto w-44 rounded-full ring-4 ring-rose-100" />
             <div className="mt-2 text-2xl font-black text-rose-600">{name}が起きた！</div>
             <div className="mt-2 text-lg font-bold">
               +{win} {pointName}
