@@ -15,7 +15,7 @@
 | `logo-full.webp` | 登録画面・店内タブレットのQR表示・スタッフログイン |
 | `tiger-chip.webp` | マイページのポイントカード・チェックイン完了・QR表示 |
 | `tiger-shake.webp` | 登録画面・なでた回数 |
-| `trump-sleep.webp` / `trump-awake.webp` | なでなで画面の寝ているトランプちゃん／起きたトランプちゃん（**寝顔のイラストが届いたら `trump-sleep.webp` を差し替え**） |
+| `trump-sleep.webp` / `trump-drowsy.webp` / `trump-awake.webp` | なでなで画面のトランプちゃん（寝ている／なでるとむにゃむにゃ／起きた）。3枚は同じ構図・同じ大きさ（720×720）にそろえる |
 | `tiger-pink.webp` | デイリーゲームの見出し |
 | `tiger-darts.webp` / `poker-table.webp` / `submarine.webp` | ランキング（ダーツ／ポーカー／サブマリン） |
 

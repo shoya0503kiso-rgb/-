@@ -16,8 +16,10 @@ export const IMG = {
   poker: "/brand/poker-table.webp",
   /** サブマリン（ビールにテキーラ）を飲ませるクイーン */
   submarine: "/brand/submarine.webp",
-  /** なでなで画面：寝ているトランプちゃん（寝顔のイラストが届いたら差し替え） */
+  /** なでなで画面：寝ているトランプちゃん（3枚とも同じ構図・同じ大きさ） */
   trumpSleep: "/brand/trump-sleep.webp",
+  /** なでなで画面：なでられてむにゃむにゃ */
+  trumpDrowsy: "/brand/trump-drowsy.webp",
   /** なでなで画面：起きたトランプちゃん */
   trumpAwake: "/brand/trump-awake.webp",
 } as const;
