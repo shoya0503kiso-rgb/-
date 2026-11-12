@@ -78,6 +78,7 @@ export function MochiTapper({
   // なでている間だけ、むにゃむにゃ顔になる
   const [drowsy, setDrowsy] = useState(false);
   const drowsyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const artRef = useRef<HTMLDivElement>(null);
   const pendingRef = useRef(0);
   const sending = useRef(false);
   const popId = useRef(0);
@@ -117,6 +118,11 @@ export function MochiTapper({
     pendingRef.current += 1;
     setPending(pendingRef.current);
     setSquish((n) => n + 1);
+    // ぷにっとさせる（画像を作り直さずに、動きだけやり直す）
+    artRef.current?.animate([{ transform: "scale(1, 1)" }, { transform: "scale(1.06, 0.92)" }, { transform: "scale(1, 1)" }], {
+      duration: 250,
+      easing: "ease-out",
+    });
     setDrowsy(true);
     if (drowsyTimer.current) clearTimeout(drowsyTimer.current);
     drowsyTimer.current = setTimeout(() => setDrowsy(false), 600);
@@ -170,7 +176,11 @@ export function MochiTapper({
         className="no-select relative mx-auto aspect-square w-full max-w-sm cursor-pointer touch-none overflow-hidden rounded-full bg-[#f878a1] shadow-[0_10px_0_#ec4899] ring-4 ring-white"
       >
         {/* 3枚を重ねて置き、見せる1枚だけ切り替える（切り替えでちらつかない） */}
-        <div key={awake ? "awake" : `pet-${squish}`} className={`pointer-events-none absolute inset-0 ${awake ? "wake" : squish ? "squish" : "breathe"}`}>
+        <div
+          ref={artRef}
+          key={awake ? "awake" : "sleep"}
+          className={`pointer-events-none absolute inset-0 ${awake ? "wake" : squish ? "" : "breathe"}`}
+        >
           {[
             { src: IMG.trumpSleep, show: !awake && !drowsy },
             { src: IMG.trumpDrowsy, show: !awake && drowsy },

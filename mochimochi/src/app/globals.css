@@ -48,15 +48,6 @@ body {
   animation: shake 0.15s linear infinite;
 }
 
-/* なでたときにぷにっとする */
-@keyframes squish {
-  0% { transform: scale(1, 1); }
-  40% { transform: scale(1.06, 0.92); }
-  100% { transform: scale(1, 1); }
-}
-.squish {
-  animation: squish 0.25s ease-out;
-}
 /* 寝ているあいだはゆっくり呼吸 */
 @keyframes breathe {
   0%, 100% { transform: scale(1); }
