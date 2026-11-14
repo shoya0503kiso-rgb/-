@@ -1,0 +1,467 @@
+<title>ショーヤンカップ Day1通過者</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+/* レイアウト：1カラム、上部にイベント名＋フライトのタブ、その下に追加フォームとリスト。スマホ片手操作前提 */
+:root{
+  --bg:#0f1512; --surface:#171f1a; --surface2:#1f2a23; --fg:#eef3ef; --muted:#93a399; --line:#2a362e;
+  --accent:#e3b04b; --accent-fg:#1b1402; --danger:#e26a5a; --danger-fg:#fff; --ok:#5cc489; --warn:#e3b04b;
+  --fA:#e05d5d; --fB:#4f8fe0; --fC:#4fbf7a; --fD:#b57ae0;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+  --display:"Oswald","Noto Sans JP",system-ui,sans-serif;
+  --body:"Noto Sans JP",system-ui,-apple-system,"Hiragino Sans",sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f3f5f2; --surface:#ffffff; --surface2:#e9eee9; --fg:#162019; --muted:#5f6d63; --line:#d3dbd4;
+    --accent:#b4802a; --accent-fg:#fff; --danger:#c94f3f; --ok:#2f9a5f; --warn:#b4802a;
+    --fA:#d14b4b; --fB:#3473c8; --fC:#2f9a5f; --fD:#8e55c2;
+    --shadow:0 8px 24px rgba(20,40,25,.10);
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f3f5f2; --surface:#ffffff; --surface2:#e9eee9; --fg:#162019; --muted:#5f6d63; --line:#d3dbd4;
+  --accent:#b4802a; --accent-fg:#fff; --danger:#c94f3f; --ok:#2f9a5f; --warn:#b4802a;
+  --fA:#d14b4b; --fB:#3473c8; --fC:#2f9a5f; --fD:#8e55c2;
+  --shadow:0 8px 24px rgba(20,40,25,.10);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;min-height:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 96px}
+
+/* ヘッダー */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.brand{min-width:0}
+.eyebrow{font-family:var(--display);letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--accent);font-weight:600}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(26px,6vw,34px);line-height:1.1;margin:2px 0 0;letter-spacing:.02em;text-wrap:balance;overflow-wrap:anywhere}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);white-space:nowrap}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status.ok .dot{background:var(--ok)} .status.warn .dot{background:var(--warn)} .status.bad .dot{background:var(--danger)}
+.notice{margin:0 0 10px;padding:10px 12px;border-radius:10px;background:var(--surface2);color:var(--muted);font-size:13px}
+.notice b{color:var(--fg)}
+
+/* タブ */
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:6px 10px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 4px;border-radius:12px;border:1px solid var(--line);background:var(--surface);min-height:58px;transition:transform .08s}
+.tab:active{transform:scale(.97)}
+.tab .l{font-family:var(--display);font-size:20px;font-weight:600;line-height:1}
+.tab .c{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tab[aria-selected="true"]{border-color:var(--tc,var(--accent));box-shadow:inset 0 0 0 1px var(--tc,var(--accent))}
+.tab[aria-selected="true"] .l{color:var(--tc,var(--accent))}
+.tab[data-f="A"]{--tc:var(--fA)} .tab[data-f="B"]{--tc:var(--fB)} .tab[data-f="C"]{--tc:var(--fC)} .tab[data-f="D"]{--tc:var(--fD)}
+
+/* サマリー */
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 10px 8px;min-width:0}
+.stat .k{font-size:11px;color:var(--muted);letter-spacing:.04em}
+.stat .v{font-family:var(--display);font-size:22px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stat .v small{font-size:12px;font-family:var(--body);color:var(--muted);margin-left:2px}
+@media (max-width:420px){.summary{grid-template-columns:repeat(2,1fr)}}
+
+/* 追加フォーム */
+.add{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:14px;box-shadow:var(--shadow)}
+.add .ttl{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.add .ttl h2{margin:0;font-size:14px;font-weight:700}
+.add .ttl .hint{font-size:12px;color:var(--muted)}
+.row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px}
+@media (max-width:460px){.row{grid-template-columns:1fr 1fr}.row .btn-add{grid-column:1/-1}}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:11px;color:var(--muted)}
+.inp{width:100%;height:46px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:17px;min-width:0}
+.inp.num{font-variant-numeric:tabular-nums;text-align:right;font-family:var(--display);font-size:20px;letter-spacing:.02em}
+.btn{height:46px;padding:0 18px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.btn-add{background:var(--accent);color:var(--accent-fg);align-self:end}
+.btn-add:disabled{opacity:.45;cursor:not-allowed}
+.btn-ghost{border:1px solid var(--line);background:var(--surface)}
+.btn-danger{background:var(--danger);color:var(--danger-fg)}
+.btn-sm{height:38px;padding:0 14px;font-size:14px}
+.dup{margin-top:8px;font-size:13px;color:var(--warn)}
+.err{margin-top:8px;font-size:13px;color:var(--danger)}
+
+/* リスト */
+.listhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.listhead h2{margin:0;font-size:15px;font-weight:700;white-space:nowrap;flex:1 1 auto}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.seg button{padding:6px 12px;font-size:12px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface2);color:var(--fg);font-weight:700}
+.list{display:flex;flex-direction:column;gap:6px}
+.p{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);text-align:left;width:100%;min-height:56px}
+.p:hover{border-color:var(--muted)}
+.p .rk{font-family:var(--display);font-size:18px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:center}
+.p .nm{min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.p .nm .n{font-weight:700;font-size:17px;overflow-wrap:anywhere}
+.p .st{font-family:var(--display);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.02em;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:600;font-size:12px;line-height:1;padding:4px 7px;border-radius:6px;color:#fff;background:var(--muted);letter-spacing:.06em}
+.chip[data-f="A"]{background:var(--fA)} .chip[data-f="B"]{background:var(--fB)} .chip[data-f="C"]{background:var(--fC)} .chip[data-f="D"]{background:var(--fD)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
+.empty b{display:block;color:var(--fg);font-size:16px;margin-bottom:4px}
+
+/* 編集パネル */
+.edit{background:var(--surface2);border:1px solid var(--accent);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.edit .row3{display:grid;grid-template-columns:1fr 1fr 96px;gap:8px}
+@media (max-width:460px){.edit .row3{grid-template-columns:1fr 1fr}}
+.edit select.inp{appearance:auto;padding-right:8px}
+.edit .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between}
+.edit .acts .r{display:flex;gap:8px}
+
+/* 設定 */
+details.set{margin-top:22px;border-top:1px solid var(--line);padding-top:10px;color:var(--muted);font-size:13px}
+details.set summary{cursor:pointer;font-weight:700;color:var(--fg)}
+details.set .inner{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+details.set .inner .row2{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+
+/* トースト */
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow);transition:transform .18s,opacity .18s;max-width:calc(100vw - 32px);z-index:20}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast button{font-weight:700;color:var(--accent);text-decoration:underline}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow">Day 1 → Day 2</div>
+      <h1 id="title">ショーヤンカップ</h1>
+    </div>
+    <div class="status" id="status" aria-live="polite"><span class="dot"></span><span id="statusText">接続中…</span></div>
+  </header>
+  <div class="notice" id="notice" hidden></div>
+
+  <nav class="tabs" role="tablist" aria-label="フライト" id="tabs"></nav>
+
+  <main id="main"></main>
+
+  <details class="set">
+    <summary>設定</summary>
+    <div class="inner">
+      <div class="row2">
+        <div class="field"><label for="evTitle">イベント名</label><input class="inp" id="evTitle" maxlength="40" placeholder="ショーヤンカップ"></div>
+        <button class="btn btn-ghost" id="saveTitle" type="button">保存</button>
+      </div>
+      <div>データはこのページを開いた全員で共有されます。スタックは「25000」「25,000」「25k」「2.5万」のどの書き方でも入ります。</div>
+    </div>
+  </details>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+'use strict';
+const FLIGHTS = ['A','B','C','D'];
+const DEFAULT_TITLE = 'ショーヤンカップ';
+const $ = s => document.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else if (v === false || v == null) continue;
+    else n.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids) if (k != null) n.append(k);
+  return n;
+};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const fmt = n => Number(n).toLocaleString('ja-JP');
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+/* ---------- スタックの読み取り：25000 / 25,000 / 25k / 2.5万 / 全角 ---------- */
+function parseStack(raw) {
+  let s = String(raw ?? '').trim().replace(/[０-９．，]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[,\s_]/g, '').toLowerCase();
+  if (!s) return NaN;
+  let mul = 1;
+  if (/万$/.test(s)) { mul = 10000; s = s.slice(0, -1); }
+  else if (/k$/.test(s)) { mul = 1000; s = s.slice(0, -1); }
+  else if (/m$/.test(s)) { mul = 1000000; s = s.slice(0, -1); }
+  if (!/^\d+(\.\d+)?$/.test(s)) return NaN;
+  const v = Math.round(parseFloat(s) * mul);
+  return v > 0 && v <= 1e9 ? v : NaN;
+}
+
+/* ---------- 状態 ---------- */
+const state = {
+  view: 'A', players: [], meta: null, mode: 'connecting', readonly: false,
+  sort: lsGet('sc_sort', 'stack'), editing: null, confirmDel: false, undo: null,
+};
+const viewFromHash = () => { const h = location.hash.replace('#', ''); return FLIGHTS.includes(h) || h === 'all' ? h : null; };
+state.view = viewFromHash() || lsGet('sc_view', 'A');
+
+/* ---------- 保存先：共有DB → なければこの端末だけ ---------- */
+const store = { db: null, unsub: [] };
+const LS_P = 'sc_players', LS_M = 'sc_meta';
+function startLocal(reason) {
+  state.mode = 'local'; state.localReason = reason;
+  state.players = lsGet(LS_P, []); state.meta = lsGet(LS_M, { title: DEFAULT_TITLE });
+  window.addEventListener('storage', e => { if (e.key === LS_P) { state.players = lsGet(LS_P, []); render(); } if (e.key === LS_M) { state.meta = lsGet(LS_M, {}); render(); } });
+  render();
+}
+async function initStore() {
+  let db = null;
+  try { if (window.claude?.use) db = await window.claude.use('db'); } catch {}
+  if (!db) return startLocal('shared-unavailable');
+  try {
+    const user = await window.claude.use('user');
+    if (user && await user.can('data.write') === false) state.readonly = true;
+  } catch {}
+  store.db = db; state.mode = 'db'; render();
+  let got = false;
+  const timer = setTimeout(() => { if (!got) { state.mode = 'slow'; render(); } }, 10000);
+  const arrived = () => { if (!got) { got = true; clearTimeout(timer); if (state.mode === 'slow') state.mode = 'db'; } };
+  const onErr = e => { console.error(e); clearTimeout(timer); state.mode = 'error'; state.errCode = e?.code; render(); };
+  store.unsub.push(db.collection('players').onSnapshot(snap => {
+    state.players = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (!snap.metadata.fromCache) arrived();
+    render();
+  }, onErr));
+  store.unsub.push(db.doc('meta/event').onSnapshot(snap => {
+    state.meta = snap.exists ? { ...snap.data() } : { title: DEFAULT_TITLE };
+    render();
+  }, onErr));
+}
+// 1人＝1文書。2台のスマホが同時に追加しても上書きし合わない
+async function writePlayer(p) {
+  if (state.mode === 'local') { const a = lsGet(LS_P, []).filter(x => x.id !== p.id); a.push(p); lsSet(LS_P, a); state.players = a; render(); return; }
+  const { id, ...body } = p;
+  await store.db.collection('players').doc(id).set(body);
+}
+async function removePlayer(id) {
+  if (state.mode === 'local') { const a = lsGet(LS_P, []).filter(x => x.id !== id); lsSet(LS_P, a); state.players = a; render(); return; }
+  await store.db.collection('players').doc(id).delete();
+}
+async function writeMeta(meta) {
+  if (state.mode === 'local') { lsSet(LS_M, meta); state.meta = meta; render(); return; }
+  await store.db.doc('meta/event').set(meta);
+}
+function explain(e) {
+  const c = e?.code;
+  if (c === 'invalid_argument') return '保存できませんでした。このページの編集権限がない可能性があります';
+  if (c === 'quota_exceeded') return '保存できる上限に達しました。不要な人を削除してください';
+  if (c === 'resource_exhausted') return '操作が速すぎます。少し待ってからもう一度';
+  if (c === 'revoked') return 'このページへのアクセスが変わりました。読み込み直してください';
+  return '保存できませんでした。通信を確認してもう一度お試しください';
+}
+
+/* ---------- トースト ---------- */
+let toastTimer = null;
+function toast(msg, action) {
+  const t = $('#toast'); t.replaceChildren(el('span', { text: msg }));
+  if (action) t.append(el('button', { type: 'button', text: action.label, onclick: () => { hideToast(); action.fn(); } }));
+  t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, action ? 7000 : 2600);
+}
+function hideToast() { $('#toast').classList.remove('show'); }
+
+/* ---------- 操作 ---------- */
+const canWrite = () => !state.readonly && (state.mode === 'db' || state.mode === 'slow' || state.mode === 'local');
+async function addPlayer(flight, name, stack) {
+  const p = { id: uid(), flight, name, stack, createdAt: Date.now(), updatedAt: Date.now() };
+  try { await writePlayer(p); toast(`${name} を${flight}に追加しました`); return true; }
+  catch (e) { console.error(e); toast(explain(e)); return false; }
+}
+async function savePlayer(id, patch) {
+  const cur = state.players.find(p => p.id === id); if (!cur) return;
+  try { await writePlayer({ ...cur, ...patch, updatedAt: Date.now() }); state.editing = null; render(); }
+  catch (e) { console.error(e); toast(explain(e)); }
+}
+async function deletePlayer(id) {
+  const cur = state.players.find(p => p.id === id); if (!cur) return;
+  try {
+    await removePlayer(id); state.editing = null; state.confirmDel = false; render();
+    toast(`${cur.name} を削除しました`, { label: '元に戻す', fn: async () => { try { await writePlayer(cur); toast('元に戻しました'); } catch (e) { toast(explain(e)); } } });
+  } catch (e) { console.error(e); toast(explain(e)); }
+}
+
+/* ---------- 画面 ---------- */
+const byFlight = f => state.players.filter(p => p.flight === f);
+function sorted(list) {
+  const a = [...list];
+  if (state.sort === 'stack') a.sort((x, y) => y.stack - x.stack || x.createdAt - y.createdAt);
+  else a.sort((x, y) => x.createdAt - y.createdAt);
+  return a;
+}
+function copyText(text) {
+  const done = () => toast('コピーしました。LINEなどに貼り付けてください');
+  const fallback = () => {
+    const ta = el('textarea', { style: 'position:fixed;opacity:0', readonly: true }); ta.value = text; document.body.append(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch {}
+    ta.remove(); ok ? done() : toast('コピーできませんでした。長押しで選んでコピーしてください');
+  };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+}
+function listText(view) {
+  const title = state.meta?.title || DEFAULT_TITLE;
+  const list = view === 'all' ? [...state.players].sort((x, y) => y.stack - x.stack) : sorted(byFlight(view));
+  const head = view === 'all' ? `${title} Day2進出者（${list.length}名）` : `${title} フライト${view} 通過者（${list.length}名）`;
+  const lines = list.map((p, i) => `${i + 1}. ${p.name}  ${fmt(p.stack)}${view === 'all' ? `（${p.flight}）` : ''}`);
+  return [head, ...lines].join('\n');
+}
+
+function renderStatus() {
+  const s = $('#status'), t = $('#statusText');
+  const m = state.mode;
+  let cls = '', txt = '接続中…';
+  if (m === 'db') { cls = state.readonly ? 'warn' : 'ok'; txt = state.readonly ? '共有中（見るだけ）' : '共有中'; }
+  else if (m === 'slow') { cls = 'warn'; txt = '共有データに届いていません…'; }
+  else if (m === 'local') { cls = 'warn'; txt = 'この端末だけに保存'; }
+  else if (m === 'error') { cls = 'bad'; txt = '接続エラー'; }
+  s.className = 'status ' + cls; t.textContent = txt;
+  const n = $('#notice'); n.hidden = true;
+  if (m === 'local') { n.hidden = false; n.replaceChildren('共有データにつながらないため、', el('b', { text: 'この端末の中だけ' }), 'に保存しています。ほかのスマホには出ません。'); }
+  else if (state.readonly) { n.hidden = false; n.replaceChildren('このページは', el('b', { text: '見るだけ' }), 'です。追加・編集はできません。'); }
+  else if (m === 'error') { n.hidden = false; n.replaceChildren('共有データに接続できませんでした。', el('b', { text: 'ページを読み込み直して' }), 'ください。'); }
+  else if (m === 'slow') { n.hidden = false; n.replaceChildren('共有データの読み込みに時間がかかっています。表示が', el('b', { text: '古い可能性' }), 'があります。'); }
+}
+function renderTabs() {
+  const tabs = $('#tabs'); tabs.replaceChildren();
+  for (const f of [...FLIGHTS, 'all']) {
+    const n = f === 'all' ? state.players.length : byFlight(f).length;
+    tabs.append(el('button', { class: 'tab', role: 'tab', type: 'button', 'data-f': f, 'aria-selected': String(state.view === f), onclick: () => setView(f) },
+      el('span', { class: 'l', text: f === 'all' ? '全体' : f }), el('span', { class: 'c', text: `${n}名` })));
+  }
+}
+function setView(v) { state.view = v; state.editing = null; lsSet('sc_view', v); if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v); render(); }
+window.addEventListener('hashchange', () => { const v = viewFromHash(); if (v && v !== state.view) { state.view = v; state.editing = null; render(); } });
+
+function stats(list) {
+  const total = list.reduce((a, p) => a + p.stack, 0);
+  return { n: list.length, total, avg: list.length ? Math.round(total / list.length) : 0, max: list.length ? Math.max(...list.map(p => p.stack)) : 0 };
+}
+function renderSummary(list, extra) {
+  const s = stats(list);
+  const box = el('div', { class: 'summary' },
+    el('div', { class: 'stat' }, el('div', { class: 'k', text: '通過人数' }), el('div', { class: 'v' }, s.n, el('small', { text: '名' }))),
+    el('div', { class: 'stat' }, el('div', { class: 'k', text: '合計チップ' }), el('div', { class: 'v', text: fmt(s.total) })),
+    el('div', { class: 'stat' }, el('div', { class: 'k', text: '平均スタック' }), el('div', { class: 'v', text: fmt(s.avg) })),
+    el('div', { class: 'stat' }, el('div', { class: 'k', text: 'チップリーダー' }), el('div', { class: 'v', text: fmt(s.max) })),
+  );
+  return box;
+}
+
+let addDraft = { name: '', stack: '' };
+function renderAdd(flight) {
+  const name = el('input', { class: 'inp', id: 'addName', placeholder: '例：しょうや', autocomplete: 'off', autocapitalize: 'off', maxlength: '40', enterkeyhint: 'next' });
+  const stack = el('input', { class: 'inp num', id: 'addStack', placeholder: '25000', inputmode: 'decimal', autocomplete: 'off', maxlength: '14', enterkeyhint: 'done' });
+  name.value = addDraft.name; stack.value = addDraft.stack;
+  const btn = el('button', { class: 'btn btn-add', id: 'addBtn', type: 'button', text: `${flight} に追加` });
+  const dup = el('div', { class: 'dup', hidden: true }), err = el('div', { class: 'err', hidden: true });
+  const check = () => {
+    addDraft = { name: name.value, stack: stack.value };
+    const nm = name.value.trim();
+    const hit = nm ? state.players.filter(p => p.name.toLowerCase() === nm.toLowerCase()) : [];
+    dup.hidden = !hit.length;
+    if (hit.length) dup.textContent = `同じ名前が フライト${[...new Set(hit.map(p => p.flight))].join('・')} に登録ずみです（そのまま追加もできます）`;
+    err.hidden = true;
+  };
+  name.addEventListener('input', check); stack.addEventListener('input', check);
+  const submit = async () => {
+    const nm = name.value.trim(); const st = parseStack(stack.value);
+    if (!nm) { err.hidden = false; err.textContent = 'ポーカーネームを入れてください'; name.focus(); return; }
+    if (!Number.isFinite(st)) { err.hidden = false; err.textContent = 'スタックは数字で入れてください（25000 / 25k / 2.5万）'; stack.focus(); return; }
+    btn.disabled = true;
+    const ok = await addPlayer(flight, nm, st);
+    btn.disabled = false;
+    if (ok) { name.value = ''; stack.value = ''; addDraft = { name: '', stack: '' }; dup.hidden = true; name.focus(); }
+  };
+  btn.addEventListener('click', submit);
+  name.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); stack.focus(); } });
+  stack.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+  check();
+  return el('section', { class: 'add', 'aria-label': '通過者を追加' },
+    el('div', { class: 'ttl' }, el('h2', { text: `フライト${flight} の通過者を追加` }), el('span', { class: 'hint', text: '名前 → スタック → 追加' })),
+    el('div', { class: 'row' },
+      el('div', { class: 'field' }, el('label', { for: 'addName', text: 'ポーカーネーム' }), name),
+      el('div', { class: 'field' }, el('label', { for: 'addStack', text: 'スタック' }), stack),
+      btn),
+    dup, err);
+}
+
+function renderEdit(p) {
+  const name = el('input', { class: 'inp', id: 'edName', value: p.name, maxlength: '40', autocomplete: 'off' });
+  const stack = el('input', { class: 'inp num', id: 'edStack', value: String(p.stack), inputmode: 'decimal', maxlength: '14' });
+  const sel = el('select', { class: 'inp', id: 'edFlight', 'aria-label': 'フライト' }, ...FLIGHTS.map(f => el('option', { value: f, selected: f === p.flight, text: `フライト${f}` })));
+  const err = el('div', { class: 'err', hidden: true });
+  const save = () => {
+    const nm = name.value.trim(), st = parseStack(stack.value);
+    if (!nm) { err.hidden = false; err.textContent = 'ポーカーネームを入れてください'; return; }
+    if (!Number.isFinite(st)) { err.hidden = false; err.textContent = 'スタックは数字で入れてください'; return; }
+    savePlayer(p.id, { name: nm, stack: st, flight: sel.value });
+  };
+  stack.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+  const del = el('button', { class: 'btn btn-sm ' + (state.confirmDel ? 'btn-danger' : 'btn-ghost'), type: 'button', text: state.confirmDel ? '本当に削除する' : '削除' });
+  del.addEventListener('click', () => {
+    if (!state.confirmDel) { state.confirmDel = true; del.className = 'btn btn-sm btn-danger'; del.textContent = '本当に削除する'; setTimeout(() => { if (state.confirmDel) { state.confirmDel = false; del.className = 'btn btn-sm btn-ghost'; del.textContent = '削除'; } }, 4000); return; }
+    deletePlayer(p.id);
+  });
+  const panel = el('div', { class: 'edit', 'data-id': p.id },
+    el('div', { class: 'row3' },
+      el('div', { class: 'field' }, el('label', { for: 'edName', text: 'ポーカーネーム' }), name),
+      el('div', { class: 'field' }, el('label', { for: 'edStack', text: 'スタック' }), stack),
+      el('div', { class: 'field' }, el('label', { for: 'edFlight', text: 'フライト' }), sel)),
+    err,
+    el('div', { class: 'acts' }, del,
+      el('div', { class: 'r' },
+        el('button', { class: 'btn btn-sm btn-ghost', type: 'button', text: 'キャンセル', onclick: () => { state.editing = null; state.confirmDel = false; render(); } }),
+        el('button', { class: 'btn btn-sm btn-add', type: 'button', text: '保存', onclick: save }))));
+  return panel;
+}
+
+function renderList(list, showFlight) {
+  const wrap = el('div', { class: 'list', role: 'list' });
+  if (!list.length) {
+    wrap.append(el('div', { class: 'empty' }, el('b', { text: showFlight ? 'まだ通過者がいません' : 'まだ通過者がいません' }), showFlight ? '各フライトのタブで追加すると、ここに全員分がまとまります' : '上のフォームに名前とスタックを入れて「追加」'));
+    return wrap;
+  }
+  const keep = document.querySelector('.edit[data-id]');
+  list.forEach((p, i) => {
+    if (state.editing === p.id) { wrap.append(keep && keep.dataset.id === p.id ? keep : renderEdit(p)); return; }
+    const b = el('button', { class: 'p', type: 'button', role: 'listitem', 'aria-label': `${p.name} ${fmt(p.stack)} を編集`, onclick: () => { if (!canWrite()) return; state.editing = p.id; state.confirmDel = false; render(); setTimeout(() => $('#edStack')?.focus(), 0); } },
+      el('span', { class: 'rk', text: i + 1 }),
+      el('span', { class: 'nm' }, showFlight ? el('span', { class: 'chip', 'data-f': p.flight, text: p.flight }) : null, el('span', { class: 'n', text: p.name })),
+      el('span', { class: 'st', text: fmt(p.stack) }));
+    wrap.append(b);
+  });
+  return wrap;
+}
+
+function render() {
+  renderStatus(); renderTabs();
+  $('#title').textContent = state.meta?.title || DEFAULT_TITLE;
+  const t = $('#evTitle'); if (document.activeElement !== t) t.value = state.meta?.title || '';
+  const main = $('#main'); const v = state.view;
+  const list = v === 'all' ? sorted(state.players) : sorted(byFlight(v));
+  const frag = document.createDocumentFragment();
+  frag.append(renderSummary(list));
+  if (v !== 'all' && canWrite()) frag.append(renderAdd(v));
+  if (state.mode === 'connecting') { frag.append(el('div', { class: 'empty' }, el('b', { text: '読み込み中…' }), '共有データにつないでいます')); main.replaceChildren(frag); return; }
+  const seg = el('div', { class: 'seg', role: 'group', 'aria-label': '並び順' },
+    el('button', { type: 'button', 'aria-pressed': String(state.sort === 'stack'), text: 'スタック順', onclick: () => { state.sort = 'stack'; lsSet('sc_sort', 'stack'); render(); } }),
+    el('button', { type: 'button', 'aria-pressed': String(state.sort === 'order'), text: '登録順', onclick: () => { state.sort = 'order'; lsSet('sc_sort', 'order'); render(); } }));
+  const copyBtn = list.length ? el('button', { class: 'btn btn-sm btn-ghost', type: 'button', text: 'テキストをコピー', onclick: () => copyText(listText(v)) }) : null;
+  frag.append(el('div', { class: 'listhead' }, el('h2', { text: v === 'all' ? 'Day2進出者（全フライト）' : `フライト${v} 通過者` }), el('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end' }, seg, copyBtn)));
+  frag.append(renderList(list, v === 'all'));
+  if (v === 'all' && state.players.length) {
+    frag.append(el('p', { class: 'notice', style: 'margin-top:12px', text: 'フライト別：' + FLIGHTS.map(f => `${f} ${byFlight(f).length}名`).join('　') }));
+  }
+  if (!canWrite() && v !== 'all' && state.mode !== 'connecting') frag.append(el('p', { class: 'notice', style: 'margin-top:12px', text: '名前を押しても編集できません（見るだけ）' }));
+  main.replaceChildren(frag);
+}
+
+$('#saveTitle').addEventListener('click', async () => {
+  if (!canWrite()) { toast('編集権限がありません'); return; }
+  const title = $('#evTitle').value.trim() || DEFAULT_TITLE;
+  try { await writeMeta({ ...(state.meta || {}), title }); toast('イベント名を保存しました'); } catch (e) { toast(explain(e)); }
+});
+
+render();
+initStore();
+})();
+</script>
