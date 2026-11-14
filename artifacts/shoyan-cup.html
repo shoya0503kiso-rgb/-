@@ -360,7 +360,7 @@ function setView(v) {
   try { if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v); } catch {}
   render();
 }
-window.addEventListener('hashchange', () => { const v = viewFromHash(); if (v && v !== state.view) { state.view = v; state.editing = null; render(); } });
+window.addEventListener('hashchange', () => { const v = viewFromHash(); if (v && v !== state.view) { state.view = v; lsSet('sc_view', v); closeEdit(); } });
 
 function stats(list) {
   const total = list.reduce((a, p) => a + p.stack, 0);
@@ -438,6 +438,7 @@ function makeEdit(p) {
     if (!state.confirmDel) {
       state.confirmDel = true; del.className = 'btn btn-sm btn-danger'; del.textContent = '本当に削除する';
       delTimer = setTimeout(() => { state.confirmDel = false; del.className = 'btn btn-sm btn-ghost'; del.textContent = '削除'; }, 4000);
+      if (editPanel) editPanel.delTimer = delTimer;
       return;
     }
     clearTimeout(delTimer); if (busy) return; busy = true;
@@ -463,7 +464,7 @@ function openEdit(id) {
   render();
   editPanel.node.querySelector('#edStack')?.focus(); // タップ操作の中で呼ぶ（iOSでキーボードが開くように）
 }
-function closeEdit() { state.editing = null; state.confirmDel = false; editPanel = null; render(); }
+function closeEdit() { state.editing = null; state.confirmDel = false; if (editPanel) clearTimeout(editPanel.delTimer); editPanel = null; render(); }
 
 /* リスト：1人＝1ノードを使い回し、順番が変わった分だけ動かす（編集中の欄は動かさないのでキーボードが閉じない） */
 const rows = new Map(); // id -> { node, rk, chip, n, st }
