@@ -507,10 +507,11 @@ function renderCounts() {
   if (!show) { closeCounts(); return; }
   if (cnt.open && cnt.forView !== state.view) closeCounts(); // タブが変わったら下書きは捨てる
   const c = countsOf(state.view);
-  cnt.text.replaceChildren(
-    el('span', { class: 'mut', text: 'エントリー ' }), el('b', { text: fmt(c.entries) }), el('span', { class: 'mut', text: '　アドオン ' }), el('b', { text: fmt(c.addons) }),
-    el('span', { class: 'mut', text: (!c.entries && !c.addons) ? '（未入力）' : '' }));
-  cnt.openBtn.textContent = (!c.entries && !c.addons) ? '入力' : '変更';
+  const empty = !c.entries && !c.addons;
+  if (cnt.open) cnt.text.replaceChildren(el('span', { text: `フライト${state.view} のエントリー数・アドオン数` }));
+  else if (empty) cnt.text.replaceChildren(el('span', { class: 'mut', text: 'エントリー数・アドオン数：未入力' }));
+  else cnt.text.replaceChildren(el('span', { class: 'mut', text: 'エントリー ' }), el('b', { text: fmt(c.entries) }), el('span', { class: 'mut', text: '　アドオン ' }), el('b', { text: fmt(c.addons) }));
+  cnt.openBtn.textContent = empty ? '入力' : '変更';
   cnt.form.hidden = !cnt.open;
   cnt.openBtn.hidden = cnt.open;
   if (cnt.open && !cnt.dirty) { cnt.entries.value = c.entries ? String(c.entries) : ''; cnt.addons.value = c.addons ? String(c.addons) : ''; }
