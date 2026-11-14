@@ -118,7 +118,7 @@ details.set .inner{display:flex;flex-direction:column;gap:10px;margin-top:10px}
 details.set .inner .row2{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
 
 /* トースト */
-.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow);transition:transform .18s,opacity .18s;max-width:calc(100vw - 32px);z-index:20}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%) translateY(-20px);opacity:0;pointer-events:none;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow);transition:transform .18s,opacity .18s;max-width:calc(100vw - 32px);z-index:20}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
 .toast button{font-weight:700;color:var(--accent);text-decoration:underline}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
@@ -137,7 +137,32 @@ details.set .inner .row2{display:grid;grid-template-columns:1fr auto;gap:8px;ali
 
   <nav class="tabs" role="tablist" aria-label="フライト" id="tabs"></nav>
 
-  <main id="main"></main>
+  <main id="main">
+    <div id="summary"></div>
+    <section class="add" id="addForm" aria-label="通過者を追加" hidden>
+      <div class="ttl"><h2 id="addTitle">通過者を追加</h2><span class="hint">名前 → スタック → 追加</span></div>
+      <div class="row">
+        <div class="field"><label for="addName">ポーカーネーム</label><input class="inp" id="addName" placeholder="例：しょうや" autocomplete="off" autocapitalize="off" maxlength="40" enterkeyhint="next"></div>
+        <div class="field"><label for="addStack">スタック</label><input class="inp num" id="addStack" placeholder="25000" inputmode="decimal" autocomplete="off" maxlength="14" enterkeyhint="done"></div>
+        <button class="btn btn-add" id="addBtn" type="button">追加</button>
+      </div>
+      <div class="dup" id="addDup" hidden></div>
+      <div class="err" id="addErr" hidden></div>
+    </section>
+    <div id="loading" class="empty"><b>読み込み中…</b>共有データにつないでいます</div>
+    <div class="listhead" id="listhead" hidden>
+      <h2 id="listTitle"></h2>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <div class="seg" role="group" aria-label="並び順">
+          <button type="button" id="sortStack" aria-pressed="true">スタック順</button>
+          <button type="button" id="sortOrder" aria-pressed="false">登録順</button>
+        </div>
+        <button class="btn btn-sm btn-ghost" type="button" id="copyBtn">テキストをコピー</button>
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+    <p class="notice" id="foot" style="margin-top:12px" hidden></p>
+  </main>
 
   <details class="set">
     <summary>設定</summary>
@@ -146,7 +171,8 @@ details.set .inner .row2{display:grid;grid-template-columns:1fr auto;gap:8px;ali
         <div class="field"><label for="evTitle">イベント名</label><input class="inp" id="evTitle" maxlength="40" placeholder="ショーヤンカップ"></div>
         <button class="btn btn-ghost" id="saveTitle" type="button">保存</button>
       </div>
-      <div>データはこのページを開いた全員で共有されます。スタックは「25000」「25,000」「25k」「2.5万」のどの書き方でも入ります。</div>
+      <div>データは、このページに編集者として招待されてログインしているスタッフ全員で共有されます。右上が「共有中」なら共有できています。「この端末だけに保存」と出ていたら、ログインか招待ができていません。</div>
+      <div>スタックは「25000」「25,000」のほか、PCなら「25k」「2.5万」でも入ります。</div>
     </div>
   </details>
 </div>
@@ -190,17 +216,18 @@ function parseStack(raw) {
 
 /* ---------- 状態 ---------- */
 const state = {
-  view: 'A', players: [], meta: null, mode: 'connecting', readonly: false,
-  sort: lsGet('sc_sort', 'stack'), editing: null, confirmDel: false, undo: null,
+  view: 'A', players: [], meta: null, mode: 'connecting', loaded: false, readonly: false,
+  sort: lsGet('sc_sort', 'stack'), editing: null, confirmDel: false,
 };
 const viewFromHash = () => { const h = location.hash.replace('#', ''); return FLIGHTS.includes(h) || h === 'all' ? h : null; };
 state.view = viewFromHash() || lsGet('sc_view', 'A');
+if (!FLIGHTS.includes(state.view) && state.view !== 'all') state.view = 'A';
 
 /* ---------- 保存先：共有DB → なければこの端末だけ ---------- */
 const store = { db: null, unsub: [] };
 const LS_P = 'sc_players', LS_M = 'sc_meta';
-function startLocal(reason) {
-  state.mode = 'local'; state.localReason = reason;
+function startLocal() {
+  state.mode = 'local'; state.loaded = true;
   state.players = lsGet(LS_P, []); state.meta = lsGet(LS_M, { title: DEFAULT_TITLE });
   window.addEventListener('storage', e => { if (e.key === LS_P) { state.players = lsGet(LS_P, []); render(); } if (e.key === LS_M) { state.meta = lsGet(LS_M, {}); render(); } });
   render();
@@ -208,16 +235,17 @@ function startLocal(reason) {
 async function initStore() {
   let db = null;
   try { if (window.claude?.use) db = await window.claude.use('db'); } catch {}
-  if (!db) return startLocal('shared-unavailable');
+  if (!db) return startLocal();
   try {
     const user = await window.claude.use('user');
     if (user && await user.can('data.write') === false) state.readonly = true;
   } catch {}
   store.db = db; state.mode = 'db'; render();
   let got = false;
-  const timer = setTimeout(() => { if (!got) { state.mode = 'slow'; render(); } }, 10000);
-  const arrived = () => { if (!got) { got = true; clearTimeout(timer); if (state.mode === 'slow') state.mode = 'db'; } };
-  const onErr = e => { console.error(e); clearTimeout(timer); state.mode = 'error'; state.errCode = e?.code; render(); };
+  const timer = setTimeout(() => { if (!got) { state.mode = 'slow'; state.loaded = true; render(); } }, 10000);
+  const arrived = () => { if (!got) { got = true; clearTimeout(timer); if (state.mode === 'slow') state.mode = 'db'; } state.loaded = true; };
+  const onErr = e => { console.error(e); clearTimeout(timer); state.mode = 'error'; state.loaded = true; render(); };
+  // 購読はここで1回だけ。1人＝1文書なので、2台のスマホが同時に追加しても上書きし合わない
   store.unsub.push(db.collection('players').onSnapshot(snap => {
     state.players = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (!snap.metadata.fromCache) arrived();
@@ -228,7 +256,6 @@ async function initStore() {
     render();
   }, onErr));
 }
-// 1人＝1文書。2台のスマホが同時に追加しても上書きし合わない
 async function writePlayer(p) {
   if (state.mode === 'local') { const a = lsGet(LS_P, []).filter(x => x.id !== p.id); a.push(p); lsSet(LS_P, a); state.players = a; render(); return; }
   const { id, ...body } = p;
@@ -251,7 +278,7 @@ function explain(e) {
   return '保存できませんでした。通信を確認してもう一度お試しください';
 }
 
-/* ---------- トースト ---------- */
+/* ---------- トースト（画面上部。入力欄やキーボードにかぶらない） ---------- */
 let toastTimer = null;
 function toast(msg, action) {
   const t = $('#toast'); t.replaceChildren(el('span', { text: msg }));
@@ -268,16 +295,17 @@ async function addPlayer(flight, name, stack) {
   catch (e) { console.error(e); toast(explain(e)); return false; }
 }
 async function savePlayer(id, patch) {
-  const cur = state.players.find(p => p.id === id); if (!cur) return;
-  try { await writePlayer({ ...cur, ...patch, updatedAt: Date.now() }); state.editing = null; render(); }
-  catch (e) { console.error(e); toast(explain(e)); }
+  const cur = state.players.find(p => p.id === id); if (!cur) return false;
+  try { await writePlayer({ ...cur, ...patch, updatedAt: Date.now() }); toast('保存しました'); return true; }
+  catch (e) { console.error(e); toast(explain(e)); return false; }
 }
 async function deletePlayer(id) {
-  const cur = state.players.find(p => p.id === id); if (!cur) return;
+  const cur = state.players.find(p => p.id === id); if (!cur) return false;
   try {
-    await removePlayer(id); state.editing = null; state.confirmDel = false; render();
+    await removePlayer(id);
     toast(`${cur.name} を削除しました`, { label: '元に戻す', fn: async () => { try { await writePlayer(cur); toast('元に戻しました'); } catch (e) { toast(explain(e)); } } });
-  } catch (e) { console.error(e); toast(explain(e)); }
+    return true;
+  } catch (e) { console.error(e); toast(explain(e)); return false; }
 }
 
 /* ---------- 画面 ---------- */
@@ -288,6 +316,7 @@ function sorted(list) {
   else a.sort((x, y) => x.createdAt - y.createdAt);
   return a;
 }
+const currentList = () => state.view === 'all' ? sorted(state.players) : sorted(byFlight(state.view));
 function copyText(text) {
   const done = () => toast('コピーしました。LINEなどに貼り付けてください');
   const fallback = () => {
@@ -297,12 +326,10 @@ function copyText(text) {
   };
   if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
 }
-function listText(view) {
-  const title = state.meta?.title || DEFAULT_TITLE;
-  const list = view === 'all' ? [...state.players].sort((x, y) => y.stack - x.stack) : sorted(byFlight(view));
-  const head = view === 'all' ? `${title} Day2進出者（${list.length}名）` : `${title} フライト${view} 通過者（${list.length}名）`;
-  const lines = list.map((p, i) => `${i + 1}. ${p.name}  ${fmt(p.stack)}${view === 'all' ? `（${p.flight}）` : ''}`);
-  return [head, ...lines].join('\n');
+function listText() {
+  const title = state.meta?.title || DEFAULT_TITLE, v = state.view, list = currentList();
+  const head = v === 'all' ? `${title} Day2進出者（${list.length}名）` : `${title} フライト${v} 通過者（${list.length}名）`;
+  return [head, ...list.map((p, i) => `${i + 1}. ${p.name}  ${fmt(p.stack)}${v === 'all' ? `（${p.flight}）` : ''}`)].join('\n');
 }
 
 function renderStatus() {
@@ -310,12 +337,12 @@ function renderStatus() {
   const m = state.mode;
   let cls = '', txt = '接続中…';
   if (m === 'db') { cls = state.readonly ? 'warn' : 'ok'; txt = state.readonly ? '共有中（見るだけ）' : '共有中'; }
-  else if (m === 'slow') { cls = 'warn'; txt = '共有データに届いていません…'; }
+  else if (m === 'slow') { cls = 'warn'; txt = '共有データにまだつながっていません…'; }
   else if (m === 'local') { cls = 'warn'; txt = 'この端末だけに保存'; }
   else if (m === 'error') { cls = 'bad'; txt = '接続エラー'; }
   s.className = 'status ' + cls; t.textContent = txt;
   const n = $('#notice'); n.hidden = true;
-  if (m === 'local') { n.hidden = false; n.replaceChildren('共有データにつながらないため、', el('b', { text: 'この端末の中だけ' }), 'に保存しています。ほかのスマホには出ません。'); }
+  if (m === 'local') { n.hidden = false; n.replaceChildren('共有データにつながらないため、', el('b', { text: 'この端末の中だけ' }), 'に保存しています。ほかのスマホには出ません。Claudeにログインしているか、このページに編集者として招待されているかを確認してください。'); }
   else if (state.readonly) { n.hidden = false; n.replaceChildren('このページは', el('b', { text: '見るだけ' }), 'です。追加・編集はできません。'); }
   else if (m === 'error') { n.hidden = false; n.replaceChildren('共有データに接続できませんでした。', el('b', { text: 'ページを読み込み直して' }), 'ください。'); }
   else if (m === 'slow') { n.hidden = false; n.replaceChildren('共有データの読み込みに時間がかかっています。表示が', el('b', { text: '古い可能性' }), 'があります。'); }
@@ -328,80 +355,97 @@ function renderTabs() {
       el('span', { class: 'l', text: f === 'all' ? '全体' : f }), el('span', { class: 'c', text: `${n}名` })));
   }
 }
-function setView(v) { state.view = v; state.editing = null; lsSet('sc_view', v); if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v); render(); }
+function setView(v) {
+  state.view = v; state.editing = null; state.confirmDel = false; lsSet('sc_view', v);
+  try { if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v); } catch {}
+  render();
+}
 window.addEventListener('hashchange', () => { const v = viewFromHash(); if (v && v !== state.view) { state.view = v; state.editing = null; render(); } });
 
 function stats(list) {
   const total = list.reduce((a, p) => a + p.stack, 0);
   return { n: list.length, total, avg: list.length ? Math.round(total / list.length) : 0, max: list.length ? Math.max(...list.map(p => p.stack)) : 0 };
 }
-function renderSummary(list, extra) {
+function renderSummary(list) {
   const s = stats(list);
-  const box = el('div', { class: 'summary' },
+  $('#summary').replaceChildren(el('div', { class: 'summary' },
     el('div', { class: 'stat' }, el('div', { class: 'k', text: '通過人数' }), el('div', { class: 'v' }, s.n, el('small', { text: '名' }))),
     el('div', { class: 'stat' }, el('div', { class: 'k', text: '合計チップ' }), el('div', { class: 'v', text: fmt(s.total) })),
     el('div', { class: 'stat' }, el('div', { class: 'k', text: '平均スタック' }), el('div', { class: 'v', text: fmt(s.avg) })),
     el('div', { class: 'stat' }, el('div', { class: 'k', text: 'チップリーダー' }), el('div', { class: 'v', text: fmt(s.max) })),
-  );
-  return box;
+  ));
 }
 
-let addDraft = { name: '', stack: '' };
-function renderAdd(flight) {
-  const name = el('input', { class: 'inp', id: 'addName', placeholder: '例：しょうや', autocomplete: 'off', autocapitalize: 'off', maxlength: '40', enterkeyhint: 'next' });
-  const stack = el('input', { class: 'inp num', id: 'addStack', placeholder: '25000', inputmode: 'decimal', autocomplete: 'off', maxlength: '14', enterkeyhint: 'done' });
-  name.value = addDraft.name; stack.value = addDraft.stack;
-  const btn = el('button', { class: 'btn btn-add', id: 'addBtn', type: 'button', text: `${flight} に追加` });
-  const dup = el('div', { class: 'dup', hidden: true }), err = el('div', { class: 'err', hidden: true });
-  const check = () => {
-    addDraft = { name: name.value, stack: stack.value };
-    const nm = name.value.trim();
-    const hit = nm ? state.players.filter(p => p.name.toLowerCase() === nm.toLowerCase()) : [];
-    dup.hidden = !hit.length;
-    if (hit.length) dup.textContent = `同じ名前が フライト${[...new Set(hit.map(p => p.flight))].join('・')} に登録ずみです（そのまま追加もできます）`;
-    err.hidden = true;
-  };
-  name.addEventListener('input', check); stack.addEventListener('input', check);
-  const submit = async () => {
-    const nm = name.value.trim(); const st = parseStack(stack.value);
-    if (!nm) { err.hidden = false; err.textContent = 'ポーカーネームを入れてください'; name.focus(); return; }
-    if (!Number.isFinite(st)) { err.hidden = false; err.textContent = 'スタックは数字で入れてください（25000 / 25k / 2.5万）'; stack.focus(); return; }
-    btn.disabled = true;
+/* 追加フォームは最初から置いてあるDOMをそのまま使う（描き直さないので、入力中にほかの端末のデータが届いてもキーボードが閉じない） */
+const add = { form: $('#addForm'), title: $('#addTitle'), name: $('#addName'), stack: $('#addStack'), btn: $('#addBtn'), dup: $('#addDup'), err: $('#addErr'), busy: false };
+function checkDup() {
+  const nm = add.name.value.trim();
+  const hit = nm ? state.players.filter(p => p.name.toLowerCase() === nm.toLowerCase()) : [];
+  add.dup.hidden = !hit.length;
+  if (hit.length) add.dup.textContent = `同じ名前が フライト${[...new Set(hit.map(p => p.flight))].join('・')} に登録済みです（そのまま追加もできます）`;
+}
+async function submitAdd() {
+  if (add.busy) return;
+  const flight = state.view; if (!FLIGHTS.includes(flight) || !canWrite()) return;
+  const nm = add.name.value.trim(); const st = parseStack(add.stack.value);
+  add.err.hidden = true;
+  if (!nm) { add.err.hidden = false; add.err.textContent = 'ポーカーネームを入れてください'; add.name.focus(); return; }
+  if (!Number.isFinite(st)) { add.err.hidden = false; add.err.textContent = 'スタックは数字で入れてください（例：25000）'; add.stack.focus(); return; }
+  add.busy = true; add.btn.disabled = true;
+  // 先に欄を空にしておく（保存を待つ間にもう一度押しても同じ人が二重に入らない）
+  add.name.value = ''; add.stack.value = ''; add.dup.hidden = true; add.name.focus();
+  try {
     const ok = await addPlayer(flight, nm, st);
-    btn.disabled = false;
-    if (ok) { name.value = ''; stack.value = ''; addDraft = { name: '', stack: '' }; dup.hidden = true; name.focus(); }
-  };
-  btn.addEventListener('click', submit);
-  name.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); stack.focus(); } });
-  stack.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
-  check();
-  return el('section', { class: 'add', 'aria-label': '通過者を追加' },
-    el('div', { class: 'ttl' }, el('h2', { text: `フライト${flight} の通過者を追加` }), el('span', { class: 'hint', text: '名前 → スタック → 追加' })),
-    el('div', { class: 'row' },
-      el('div', { class: 'field' }, el('label', { for: 'addName', text: 'ポーカーネーム' }), name),
-      el('div', { class: 'field' }, el('label', { for: 'addStack', text: 'スタック' }), stack),
-      btn),
-    dup, err);
+    if (!ok) { add.name.value = nm; add.stack.value = String(st); }
+  } finally { add.busy = false; add.btn.disabled = false; }
+}
+add.name.addEventListener('input', () => { checkDup(); add.err.hidden = true; });
+add.stack.addEventListener('input', () => { add.err.hidden = true; });
+add.name.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add.stack.focus(); } });
+add.stack.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitAdd(); } });
+add.btn.addEventListener('click', submitAdd);
+function renderAdd() {
+  const show = FLIGHTS.includes(state.view) && canWrite() && state.loaded;
+  add.form.hidden = !show;
+  if (!show) return;
+  add.title.textContent = `フライト${state.view} の通過者を追加`;
+  add.btn.textContent = `${state.view} に追加`;
+  checkDup();
 }
 
-function renderEdit(p) {
+/* 編集パネル：編集中の1人分だけ作り、描き直しのときは同じノードを使い回す */
+let editPanel = null; // { id, node }
+function makeEdit(p) {
   const name = el('input', { class: 'inp', id: 'edName', value: p.name, maxlength: '40', autocomplete: 'off' });
   const stack = el('input', { class: 'inp num', id: 'edStack', value: String(p.stack), inputmode: 'decimal', maxlength: '14' });
   const sel = el('select', { class: 'inp', id: 'edFlight', 'aria-label': 'フライト' }, ...FLIGHTS.map(f => el('option', { value: f, selected: f === p.flight, text: `フライト${f}` })));
   const err = el('div', { class: 'err', hidden: true });
-  const save = () => {
+  let busy = false;
+  const save = async () => {
+    if (busy) return;
     const nm = name.value.trim(), st = parseStack(stack.value);
     if (!nm) { err.hidden = false; err.textContent = 'ポーカーネームを入れてください'; return; }
-    if (!Number.isFinite(st)) { err.hidden = false; err.textContent = 'スタックは数字で入れてください'; return; }
-    savePlayer(p.id, { name: nm, stack: st, flight: sel.value });
+    if (!Number.isFinite(st)) { err.hidden = false; err.textContent = 'スタックは数字で入れてください（例：25000）'; return; }
+    busy = true;
+    const ok = await savePlayer(p.id, { name: nm, stack: st, flight: sel.value });
+    busy = false;
+    if (ok) closeEdit();
   };
   stack.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
-  const del = el('button', { class: 'btn btn-sm ' + (state.confirmDel ? 'btn-danger' : 'btn-ghost'), type: 'button', text: state.confirmDel ? '本当に削除する' : '削除' });
-  del.addEventListener('click', () => {
-    if (!state.confirmDel) { state.confirmDel = true; del.className = 'btn btn-sm btn-danger'; del.textContent = '本当に削除する'; setTimeout(() => { if (state.confirmDel) { state.confirmDel = false; del.className = 'btn btn-sm btn-ghost'; del.textContent = '削除'; } }, 4000); return; }
-    deletePlayer(p.id);
+  const del = el('button', { class: 'btn btn-sm btn-ghost', type: 'button', text: '削除' });
+  let delTimer = null;
+  del.addEventListener('click', async () => {
+    if (!state.confirmDel) {
+      state.confirmDel = true; del.className = 'btn btn-sm btn-danger'; del.textContent = '本当に削除する';
+      delTimer = setTimeout(() => { state.confirmDel = false; del.className = 'btn btn-sm btn-ghost'; del.textContent = '削除'; }, 4000);
+      return;
+    }
+    clearTimeout(delTimer); if (busy) return; busy = true;
+    const ok = await deletePlayer(p.id);
+    busy = false; state.confirmDel = false;
+    if (ok) closeEdit(); else { del.className = 'btn btn-sm btn-ghost'; del.textContent = '削除'; }
   });
-  const panel = el('div', { class: 'edit', 'data-id': p.id },
+  return el('div', { class: 'edit', 'data-id': p.id },
     el('div', { class: 'row3' },
       el('div', { class: 'field' }, el('label', { for: 'edName', text: 'ポーカーネーム' }), name),
       el('div', { class: 'field' }, el('label', { for: 'edStack', text: 'スタック' }), stack),
@@ -409,52 +453,78 @@ function renderEdit(p) {
     err,
     el('div', { class: 'acts' }, del,
       el('div', { class: 'r' },
-        el('button', { class: 'btn btn-sm btn-ghost', type: 'button', text: 'キャンセル', onclick: () => { state.editing = null; state.confirmDel = false; render(); } }),
+        el('button', { class: 'btn btn-sm btn-ghost', type: 'button', text: 'キャンセル', onclick: closeEdit }),
         el('button', { class: 'btn btn-sm btn-add', type: 'button', text: '保存', onclick: save }))));
-  return panel;
 }
+function openEdit(id) {
+  if (!canWrite()) return;
+  const p = state.players.find(x => x.id === id); if (!p) return;
+  state.editing = id; state.confirmDel = false; editPanel = { id, node: makeEdit(p) };
+  render();
+  editPanel.node.querySelector('#edStack')?.focus(); // タップ操作の中で呼ぶ（iOSでキーボードが開くように）
+}
+function closeEdit() { state.editing = null; state.confirmDel = false; editPanel = null; render(); }
 
-function renderList(list, showFlight) {
-  const wrap = el('div', { class: 'list', role: 'list' });
-  if (!list.length) {
-    wrap.append(el('div', { class: 'empty' }, el('b', { text: showFlight ? 'まだ通過者がいません' : 'まだ通過者がいません' }), showFlight ? '各フライトのタブで追加すると、ここに全員分がまとまります' : '上のフォームに名前とスタックを入れて「追加」'));
-    return wrap;
+/* リスト：1人＝1ノードを使い回し、順番が変わった分だけ動かす（編集中の欄は動かさないのでキーボードが閉じない） */
+const rows = new Map(); // id -> { node, rk, chip, n, st }
+function rowFor(p) {
+  let r = rows.get(p.id);
+  if (!r) {
+    r = { rk: el('span', { class: 'rk' }), chip: el('span', { class: 'chip' }), n: el('span', { class: 'n' }), st: el('span', { class: 'st' }) };
+    r.node = el('button', { class: 'p', type: 'button', onclick: () => openEdit(p.id) }, r.rk, el('span', { class: 'nm' }, r.chip, r.n), r.st);
+    rows.set(p.id, r);
   }
-  const keep = document.querySelector('.edit[data-id]');
+  return r;
+}
+let emptyNode = null;
+function renderList(list) {
+  const box = $('#list');
+  const showFlight = state.view === 'all';
+  const want = [];
+  if (!list.length) {
+    if (!emptyNode) emptyNode = el('div', { class: 'empty' }, el('b', { text: 'まだ通過者がいません' }), el('span'));
+    emptyNode.lastChild.textContent = showFlight ? '各フライトのタブで追加すると、ここに全員分がまとまります' : (canWrite() ? '上のフォームに名前とスタックを入れて「追加」' : '');
+    want.push(emptyNode);
+  }
   list.forEach((p, i) => {
-    if (state.editing === p.id) { wrap.append(keep && keep.dataset.id === p.id ? keep : renderEdit(p)); return; }
-    const b = el('button', { class: 'p', type: 'button', role: 'listitem', 'aria-label': `${p.name} ${fmt(p.stack)} を編集`, onclick: () => { if (!canWrite()) return; state.editing = p.id; state.confirmDel = false; render(); setTimeout(() => $('#edStack')?.focus(), 0); } },
-      el('span', { class: 'rk', text: i + 1 }),
-      el('span', { class: 'nm' }, showFlight ? el('span', { class: 'chip', 'data-f': p.flight, text: p.flight }) : null, el('span', { class: 'n', text: p.name })),
-      el('span', { class: 'st', text: fmt(p.stack) }));
-    wrap.append(b);
+    if (state.editing === p.id && editPanel && editPanel.id === p.id) { want.push(editPanel.node); return; }
+    const r = rowFor(p);
+    r.rk.textContent = i + 1; r.n.textContent = p.name; r.st.textContent = fmt(p.stack);
+    r.chip.hidden = !showFlight; r.chip.dataset.f = p.flight; r.chip.textContent = p.flight;
+    r.node.setAttribute('aria-label', `${p.name} ${fmt(p.stack)} を編集`);
+    want.push(r.node);
   });
-  return wrap;
+  if (state.editing && !list.some(p => p.id === state.editing)) { state.editing = null; editPanel = null; } // 編集中の人がほかの端末で消された
+  want.forEach((node, i) => { const cur = box.children[i]; if (cur !== node) box.insertBefore(node, cur || null); });
+  while (box.children.length > want.length) box.lastChild.remove();
+  const alive = new Set(state.players.map(p => p.id));
+  for (const id of rows.keys()) if (!alive.has(id)) rows.delete(id);
 }
 
 function render() {
   renderStatus(); renderTabs();
   $('#title').textContent = state.meta?.title || DEFAULT_TITLE;
   const t = $('#evTitle'); if (document.activeElement !== t) t.value = state.meta?.title || '';
-  const main = $('#main'); const v = state.view;
-  const list = v === 'all' ? sorted(state.players) : sorted(byFlight(v));
-  const frag = document.createDocumentFragment();
-  frag.append(renderSummary(list));
-  if (v !== 'all' && canWrite()) frag.append(renderAdd(v));
-  if (state.mode === 'connecting') { frag.append(el('div', { class: 'empty' }, el('b', { text: '読み込み中…' }), '共有データにつないでいます')); main.replaceChildren(frag); return; }
-  const seg = el('div', { class: 'seg', role: 'group', 'aria-label': '並び順' },
-    el('button', { type: 'button', 'aria-pressed': String(state.sort === 'stack'), text: 'スタック順', onclick: () => { state.sort = 'stack'; lsSet('sc_sort', 'stack'); render(); } }),
-    el('button', { type: 'button', 'aria-pressed': String(state.sort === 'order'), text: '登録順', onclick: () => { state.sort = 'order'; lsSet('sc_sort', 'order'); render(); } }));
-  const copyBtn = list.length ? el('button', { class: 'btn btn-sm btn-ghost', type: 'button', text: 'テキストをコピー', onclick: () => copyText(listText(v)) }) : null;
-  frag.append(el('div', { class: 'listhead' }, el('h2', { text: v === 'all' ? 'Day2進出者（全フライト）' : `フライト${v} 通過者` }), el('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end' }, seg, copyBtn)));
-  frag.append(renderList(list, v === 'all'));
-  if (v === 'all' && state.players.length) {
-    frag.append(el('p', { class: 'notice', style: 'margin-top:12px', text: 'フライト別：' + FLIGHTS.map(f => `${f} ${byFlight(f).length}名`).join('　') }));
-  }
-  if (!canWrite() && v !== 'all' && state.mode !== 'connecting') frag.append(el('p', { class: 'notice', style: 'margin-top:12px', text: '名前を押しても編集できません（見るだけ）' }));
-  main.replaceChildren(frag);
+  const v = state.view, list = currentList();
+  renderSummary(list);
+  renderAdd();
+  $('#loading').hidden = state.loaded;
+  $('#listhead').hidden = !state.loaded;
+  $('#list').hidden = !state.loaded;
+  if (!state.loaded) { $('#foot').hidden = true; return; }
+  $('#listTitle').textContent = v === 'all' ? 'Day2進出者（全フライト）' : `フライト${v} 通過者`;
+  $('#sortStack').setAttribute('aria-pressed', String(state.sort === 'stack'));
+  $('#sortOrder').setAttribute('aria-pressed', String(state.sort === 'order'));
+  $('#copyBtn').hidden = !list.length;
+  renderList(list);
+  const foot = $('#foot'); foot.hidden = true;
+  if (v === 'all' && state.players.length) { foot.hidden = false; foot.textContent = 'フライト別：' + FLIGHTS.map(f => `${f} ${byFlight(f).length}名`).join('　'); }
+  else if (v !== 'all' && !canWrite()) { foot.hidden = false; foot.textContent = '名前を押しても編集できません（見るだけ）'; }
 }
 
+$('#sortStack').addEventListener('click', () => { state.sort = 'stack'; lsSet('sc_sort', 'stack'); render(); });
+$('#sortOrder').addEventListener('click', () => { state.sort = 'order'; lsSet('sc_sort', 'order'); render(); });
+$('#copyBtn').addEventListener('click', () => copyText(listText()));
 $('#saveTitle').addEventListener('click', async () => {
   if (!canWrite()) { toast('編集権限がありません'); return; }
   const title = $('#evTitle').value.trim() || DEFAULT_TITLE;
