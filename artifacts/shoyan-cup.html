@@ -509,7 +509,7 @@ function renderCounts() {
   const c = countsOf(state.view);
   cnt.text.replaceChildren(
     el('span', { class: 'mut', text: 'エントリー ' }), el('b', { text: fmt(c.entries) }), el('span', { class: 'mut', text: '　アドオン ' }), el('b', { text: fmt(c.addons) }),
-    (!c.entries && !c.addons) ? el('span', { class: 'mut', text: '（未入力）' }) : null);
+    el('span', { class: 'mut', text: (!c.entries && !c.addons) ? '（未入力）' : '' }));
   cnt.openBtn.textContent = (!c.entries && !c.addons) ? '入力' : '変更';
   cnt.form.hidden = !cnt.open;
   cnt.openBtn.hidden = cnt.open;
