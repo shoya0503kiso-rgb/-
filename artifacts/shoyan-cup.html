@@ -114,6 +114,11 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(26px,6vw,34px);lin
 .grp-rows .edit{margin:0}
 .grp-f{padding:0 12px 10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.5}
 .grp-f b{color:var(--fg)}
+.grp-f .tip{display:block;margin-top:2px}
+.grp.dup{border-color:var(--danger)}
+.badge.warn{background:var(--danger);color:var(--danger-fg)}
+.p .also.err{color:var(--danger)}
+.dup.err{color:var(--danger)}
 .empty{padding:28px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
 .empty b{display:block;color:var(--fg);font-size:16px;margin-bottom:4px}
 
@@ -386,7 +391,7 @@ function renderStatus() {
 function renderTabs() {
   const tabs = $('#tabs'); tabs.replaceChildren();
   for (const f of [...FLIGHTS, 'all']) {
-    const n = f === 'all' ? state.players.length : byFlight(f).length;
+    const n = f === 'all' ? persons().length : byFlight(f).length;
     tabs.append(el('button', { class: 'tab', role: 'tab', type: 'button', 'data-f': f, 'aria-selected': String(state.view === f), onclick: () => setView(f) },
       el('span', { class: 'l', text: f === 'all' ? '全体' : f }), el('span', { class: 'c', text: `${n}名` })));
   }
@@ -418,7 +423,11 @@ function checkDup() {
   const nm = add.name.value.trim();
   const hit = nm ? state.players.filter(p => nameKey(p.name) === nameKey(nm)) : [];
   add.dup.hidden = !hit.length;
-  if (hit.length) {
+  const same = hit.filter(p => p.flight === state.view);
+  add.dup.classList.toggle('err', same.length > 0);
+  if (same.length) {
+    add.dup.textContent = `フライト${state.view} にすでに「${same[0].name} ${fmt(same[0].stack)}」が入っています。二重登録ではありませんか？（別人ならそのまま追加できます）`;
+  } else if (hit.length) {
     const st = parseStack(add.stack.value);
     const combined = Number.isFinite(st) ? personOf([...hit, { name: nm, stack: st, flight: state.view, createdAt: Date.now() }]).stack : null;
     add.dup.textContent = `${hit.map(p => `フライト${p.flight} ${fmt(p.stack)}`).join('・')} で通過済みの名前です。` + (combined ? `合算して Day2 は ${fmt(combined)} になります。` : '合算ルール（一番多い方＋残りの半分）でDay2スタックを計算します。');
@@ -556,8 +565,12 @@ function renderList(list) {
       if (q.entries.length === 1) { const p = q.entries[0]; want.push(editNodeFor(p) || fillRow(p, i, true)); return; }
       const g = groupFor(q);
       g.rk.textContent = i + 1; g.n.textContent = q.name; g.st.textContent = fmt(q.stack);
-      g.badge.textContent = `${q.entries.length}フライト通過`;
-      g.f.replaceChildren(el('b', { text: fmt(q.base) }), ` ＋ 残り ${q.entries.slice(1).map(p => fmt(p.stack)).join('＋')} の半分 `, el('b', { text: fmt(q.bonus) }), ' ＝ ', el('b', { text: fmt(q.stack) }));
+      const dupF = FLIGHTS.filter(f => q.entries.filter(p => p.flight === f).length > 1);
+      g.badge.textContent = dupF.length ? `${dupF.join('・')} に2件以上（要確認）` : `${q.entries.length}フライト通過`;
+      g.badge.classList.toggle('warn', dupF.length > 0);
+      g.node.classList.toggle('dup', dupF.length > 0);
+      g.f.replaceChildren(el('b', { text: fmt(q.base) }), ` ＋ 残り ${q.entries.slice(1).map(p => fmt(p.stack)).join('＋')} の半分 `, el('b', { text: fmt(q.bonus) }), ' ＝ ', el('b', { text: fmt(q.stack) }),
+        el('span', { class: 'tip', text: dupF.length ? '同じフライトに同じ名前が2件あります。二重登録なら行をタップして削除してください' : '各フライトの行をタップで編集' }));
       placeAll(g.rows, q.entries.map(p => editNodeFor(p) || fillRow(p, null, true)));
       want.push(g.node);
     });
@@ -566,9 +579,14 @@ function renderList(list) {
     list.forEach((p, i) => {
       const node = editNodeFor(p) || fillRow(p, i, false);
       if (!editNodeFor(p)) {
-        const q = pk.get(nameKey(p.name)), others = q ? q.entries.filter(x => x.id !== p.id) : [];
-        rowFor(p).also.textContent = others.length ? `${others.map(x => `${x.flight} ${fmt(x.stack)}`).join('・')} でも通過 → Day2 ${fmt(q.stack)}` : '';
-        rowFor(p).also.hidden = !others.length;
+        const q = pk.get(nameKey(p.name)), others = q ? q.entries.filter(x => x.id !== p.id && x.flight !== p.flight) : [];
+        const sameF = q ? q.entries.some(x => x.id !== p.id && x.flight === p.flight) : false;
+        const parts = [];
+        if (sameF) parts.push('同じ名前がこのフライトにもう1件（二重登録？）');
+        if (others.length) parts.push(`${others.map(x => `${x.flight} ${fmt(x.stack)}`).join('・')} でも通過 → Day2 ${fmt(q.stack)}`);
+        rowFor(p).also.textContent = parts.join('　');
+        rowFor(p).also.hidden = !parts.length;
+        rowFor(p).also.classList.toggle('err', sameF);
       }
       want.push(node);
     });
