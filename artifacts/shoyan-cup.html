@@ -65,10 +65,14 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(26px,6vw,34px);lin
 .stat .v{font-family:var(--display);font-size:22px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .stat .v small{font-size:12px;font-family:var(--body);color:var(--muted);margin-left:2px}
 @media (max-width:420px){.summary,.summary.six{grid-template-columns:repeat(2,1fr)}}
-.counts{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin:-6px 0 14px}
+.counts{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:-6px 0 14px}
+.counts .line{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px}
+.counts .line b{font-family:var(--display);font-size:18px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.counts .line .mut{color:var(--muted)}
+.counts .form{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:8px}
+.counts .form .acts{display:flex;gap:8px}
 .counts .field label{white-space:nowrap}
-.counts .saved{grid-column:1/-1;font-size:12px;color:var(--muted)}
-@media (max-width:460px){.counts{grid-template-columns:1fr 1fr}.counts .btn{grid-column:1/-1}}
+@media (max-width:460px){.counts .form{grid-template-columns:1fr 1fr}.counts .form .acts{grid-column:1/-1;justify-content:flex-end}}
 
 /* 追加フォーム */
 .add{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:14px;box-shadow:var(--shadow)}
@@ -163,11 +167,6 @@ details.set .inner .row2{display:grid;grid-template-columns:1fr auto;gap:8px;ali
 
   <main id="main">
     <div id="summary"></div>
-    <section class="counts" id="counts" aria-label="エントリー数とアドオン数" hidden>
-      <div class="field"><label for="cntEntries" id="cntEntriesLabel">エントリー数</label><input class="inp num" id="cntEntries" inputmode="numeric" placeholder="0" maxlength="6" autocomplete="off" enterkeyhint="next"></div>
-      <div class="field"><label for="cntAddons">アドオン数</label><input class="inp num" id="cntAddons" inputmode="numeric" placeholder="0" maxlength="6" autocomplete="off" enterkeyhint="done"></div>
-      <button class="btn btn-ghost" id="cntSave" type="button">保存</button>
-    </section>
     <section class="add" id="addForm" aria-label="通過者を追加" hidden>
       <div class="ttl"><h2 id="addTitle">通過者を追加</h2><span class="hint">名前 → スタック → 追加</span></div>
       <div class="row">
@@ -177,6 +176,14 @@ details.set .inner .row2{display:grid;grid-template-columns:1fr auto;gap:8px;ali
       </div>
       <div class="dup" id="addDup" hidden></div>
       <div class="err" id="addErr" hidden></div>
+    </section>
+    <section class="counts" id="counts" aria-label="エントリー数とアドオン数" hidden>
+      <div class="line" id="cntLine"><span id="cntText"></span><button class="btn btn-sm btn-ghost" id="cntOpen" type="button">変更</button></div>
+      <div class="form" id="cntForm" hidden>
+        <div class="field"><label for="cntEntries">エントリー数</label><input class="inp num" id="cntEntries" inputmode="numeric" placeholder="0" maxlength="6" autocomplete="off" enterkeyhint="next"></div>
+        <div class="field"><label for="cntAddons">アドオン数</label><input class="inp num" id="cntAddons" inputmode="numeric" placeholder="0" maxlength="6" autocomplete="off" enterkeyhint="done"></div>
+        <div class="acts"><button class="btn btn-ghost" id="cntCancel" type="button">キャンセル</button><button class="btn btn-add" id="cntSave" type="button">保存</button></div>
+      </div>
     </section>
     <div id="loading" class="empty"><b>読み込み中…</b>共有データにつないでいます</div>
     <div class="listhead" id="listhead" hidden>
@@ -202,7 +209,7 @@ details.set .inner .row2{display:grid;grid-template-columns:1fr auto;gap:8px;ali
       </div>
       <div>データは、このページに編集者として招待されてログインしているスタッフ全員で共有されます。右上が「共有中」なら共有できています。「この端末だけに保存」と出ていたら、ログインか招待ができていません。</div>
       <div>スタックは「25000」「25,000」のほか、PCなら「25k」「2.5万」でも入ります。</div>
-      <div>各フライトのタブで、エントリー数とアドオン数を入れて「保存」すると、全体タブに合計が出ます。</div>
+      <div>各フライトのタブの「エントリー ○　アドオン ○」の「入力／変更」から数を入れて保存すると、全体タブに合計が出ます。</div>
       <div>同じ名前で複数のフライトを通過した人は、全体タブで1人にまとまり、Day2スタックは「一番多いスタック ＋ 残りのスタックの半分」で自動計算します（例：Aで5万・Bで8万 → 8万＋2万5千＝10万5千）。名前は大文字小文字・全角半角の違いを無視して同じ人とみなします。</div>
     </div>
   </details>
@@ -247,7 +254,7 @@ function parseStack(raw) {
 
 /* ---------- 状態 ---------- */
 const state = {
-  view: 'A', players: [], meta: null, mode: 'connecting', loaded: false, readonly: false,
+  view: 'A', players: [], counts: {}, meta: null, mode: 'connecting', loaded: false, readonly: false,
   sort: lsGet('sc_sort', 'stack'), editing: null, confirmDel: false,
 };
 const viewFromHash = () => { const h = location.hash.replace('#', ''); return FLIGHTS.includes(h) || h === 'all' ? h : null; };
@@ -256,11 +263,11 @@ if (!FLIGHTS.includes(state.view) && state.view !== 'all') state.view = 'A';
 
 /* ---------- 保存先：共有DB → なければこの端末だけ ---------- */
 const store = { db: null, unsub: [] };
-const LS_P = 'sc_players', LS_M = 'sc_meta';
+const LS_P = 'sc_players', LS_M = 'sc_meta', LS_C = 'sc_counts';
 function startLocal() {
   state.mode = 'local'; state.loaded = true;
-  state.players = lsGet(LS_P, []); state.meta = lsGet(LS_M, { title: DEFAULT_TITLE });
-  window.addEventListener('storage', e => { if (e.key === LS_P) { state.players = lsGet(LS_P, []); render(); } if (e.key === LS_M) { state.meta = lsGet(LS_M, {}); render(); } });
+  state.players = lsGet(LS_P, []); state.meta = lsGet(LS_M, { title: DEFAULT_TITLE }); state.counts = lsGet(LS_C, {});
+  window.addEventListener('storage', e => { if (e.key === LS_P) { state.players = lsGet(LS_P, []); render(); } if (e.key === LS_M) { state.meta = lsGet(LS_M, {}); render(); } if (e.key === LS_C) { state.counts = lsGet(LS_C, {}); render(); } });
   render();
 }
 async function initStore() {
@@ -282,6 +289,11 @@ async function initStore() {
     if (!snap.metadata.fromCache) arrived();
     render();
   }, onErr));
+  // エントリー数・アドオン数は1フライト＝1文書（counts/A …）。別のフライトを別の端末が保存しても上書きし合わない
+  store.unsub.push(db.collection('counts').onSnapshot(snap => {
+    const c = {}; for (const d of snap.docs) if (FLIGHTS.includes(d.id)) c[d.id] = d.data();
+    state.counts = c; render();
+  }, onErr));
   store.unsub.push(db.doc('meta/event').onSnapshot(snap => {
     state.meta = snap.exists ? { ...snap.data() } : { title: DEFAULT_TITLE };
     render();
@@ -295,6 +307,10 @@ async function writePlayer(p) {
 async function removePlayer(id) {
   if (state.mode === 'local') { const a = lsGet(LS_P, []).filter(x => x.id !== id); lsSet(LS_P, a); state.players = a; render(); return; }
   await store.db.collection('players').doc(id).delete();
+}
+async function writeCounts(f, c) {
+  if (state.mode === 'local') { const all = { ...lsGet(LS_C, {}), [f]: c }; lsSet(LS_C, all); state.counts = all; render(); return; }
+  await store.db.collection('counts').doc(f).set(c);
 }
 async function writeMeta(meta) {
   if (state.mode === 'local') { lsSet(LS_M, meta); state.meta = meta; render(); return; }
@@ -364,8 +380,8 @@ function persons(list = state.players) {
 }
 const personByKey = () => { const m = new Map(); for (const q of persons()) m.set(q.key, q); return m; };
 const currentList = () => state.view === 'all' ? sorted(state.players) : sorted(byFlight(state.view));
-/* フライトごとのエントリー数・アドオン数（meta/event の flights に保存） */
-const countsOf = f => { const c = state.meta?.flights?.[f] || {}; return { entries: Number(c.entries) || 0, addons: Number(c.addons) || 0 }; };
+/* フライトごとのエントリー数・アドオン数（counts/A … counts/D の文書。1フライト＝1文書） */
+const countsOf = f => { const c = state.counts?.[f] || {}; return { entries: Number(c.entries) || 0, addons: Number(c.addons) || 0 }; };
 const totalCounts = () => FLIGHTS.reduce((a, f) => { const c = countsOf(f); return { entries: a.entries + c.entries, addons: a.addons + c.addons }; }, { entries: 0, addons: 0 });
 const parseCount = raw => { const t = String(raw ?? '').trim().replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[,\s]/g, ''); if (t === '') return 0; return /^\d{1,6}$/.test(t) ? Number(t) : NaN; };
 function copyText(text) {
@@ -483,32 +499,41 @@ function renderAdd() {
   checkDup();
 }
 
-/* エントリー数・アドオン数の入力欄（固定ノード。入力中は描き直しで上書きしない） */
-const cnt = { box: $('#counts'), entries: $('#cntEntries'), addons: $('#cntAddons'), btn: $('#cntSave'), busy: false, shownFor: null };
+/* エントリー数・アドオン数：普段は1行表示、「変更」で欄を開く。開いている間は描き直しで上書きしない */
+const cnt = { box: $('#counts'), text: $('#cntText'), openBtn: $('#cntOpen'), form: $('#cntForm'), entries: $('#cntEntries'), addons: $('#cntAddons'), btn: $('#cntSave'), cancel: $('#cntCancel'), open: false, dirty: false, busy: false, forView: null };
 function renderCounts() {
   const show = FLIGHTS.includes(state.view) && canWrite() && state.loaded;
   cnt.box.hidden = !show;
-  if (!show) { cnt.shownFor = null; return; }
+  if (!show) { closeCounts(); return; }
+  if (cnt.open && cnt.forView !== state.view) closeCounts(); // タブが変わったら下書きは捨てる
   const c = countsOf(state.view);
-  const changed = cnt.shownFor !== state.view;
-  if (changed || document.activeElement !== cnt.entries) cnt.entries.value = c.entries ? String(c.entries) : '';
-  if (changed || document.activeElement !== cnt.addons) cnt.addons.value = c.addons ? String(c.addons) : '';
-  cnt.shownFor = state.view;
+  cnt.text.replaceChildren(
+    el('span', { class: 'mut', text: 'エントリー ' }), el('b', { text: fmt(c.entries) }), el('span', { class: 'mut', text: '　アドオン ' }), el('b', { text: fmt(c.addons) }),
+    (!c.entries && !c.addons) ? el('span', { class: 'mut', text: '（未入力）' }) : null);
+  cnt.openBtn.textContent = (!c.entries && !c.addons) ? '入力' : '変更';
+  cnt.form.hidden = !cnt.open;
+  cnt.openBtn.hidden = cnt.open;
+  if (cnt.open && !cnt.dirty) { cnt.entries.value = c.entries ? String(c.entries) : ''; cnt.addons.value = c.addons ? String(c.addons) : ''; }
 }
+function openCounts() { cnt.open = true; cnt.dirty = false; cnt.forView = state.view; renderCounts(); cnt.entries.focus(); }
+function closeCounts() { cnt.open = false; cnt.dirty = false; cnt.forView = null; cnt.form.hidden = true; cnt.openBtn.hidden = false; }
 async function saveCounts() {
   if (cnt.busy || !FLIGHTS.includes(state.view) || !canWrite()) return;
   const f = state.view, entries = parseCount(cnt.entries.value), addons = parseCount(cnt.addons.value);
   if (!Number.isFinite(entries) || !Number.isFinite(addons)) { toast('エントリー数・アドオン数は数字で入れてください'); return; }
   cnt.busy = true; cnt.btn.disabled = true;
   try {
-    const meta = { ...(state.meta || {}), title: state.meta?.title || DEFAULT_TITLE, flights: { ...(state.meta?.flights || {}), [f]: { entries, addons } } };
-    await writeMeta(meta);
+    await writeCounts(f, { entries, addons, updatedAt: Date.now() });
     toast(`フライト${f}：エントリー ${entries}・アドオン ${addons} を保存しました`);
-    cnt.entries.blur(); cnt.addons.blur();
+    closeCounts(); render();
   } catch (e) { console.error(e); toast(explain(e)); }
   finally { cnt.busy = false; cnt.btn.disabled = false; }
 }
+cnt.openBtn.addEventListener('click', openCounts);
+cnt.cancel.addEventListener('click', () => { closeCounts(); render(); });
 cnt.btn.addEventListener('click', saveCounts);
+cnt.entries.addEventListener('input', () => { cnt.dirty = true; });
+cnt.addons.addEventListener('input', () => { cnt.dirty = true; });
 cnt.entries.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); cnt.addons.focus(); } });
 cnt.addons.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveCounts(); } });
 
@@ -654,8 +679,8 @@ function render() {
   const t = $('#evTitle'); if (document.activeElement !== t) t.value = state.meta?.title || '';
   const v = state.view, list = currentList();
   renderSummary(list);
-  renderCounts();
   renderAdd();
+  renderCounts();
   $('#loading').hidden = state.loaded;
   $('#listhead').hidden = !state.loaded;
   $('#list').hidden = !state.loaded;
