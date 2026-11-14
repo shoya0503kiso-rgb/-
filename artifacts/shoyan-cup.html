@@ -100,6 +100,20 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(26px,6vw,34px);lin
 .p .st{font-family:var(--display);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.02em;white-space:nowrap}
 .chip{display:inline-flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:600;font-size:12px;line-height:1;padding:4px 7px;border-radius:6px;color:#fff;background:var(--muted);letter-spacing:.06em}
 .chip[data-f="A"]{background:var(--fA)} .chip[data-f="B"]{background:var(--fB)} .chip[data-f="C"]{background:var(--fC)} .chip[data-f="D"]{background:var(--fD)}
+.p .also{font-size:12px;color:var(--muted);flex-basis:100%;line-height:1.3}
+.p .rk:empty::before{content:"·"}
+.grp{border:1px solid var(--accent);border-radius:12px;background:var(--surface);overflow:hidden}
+.grp-h{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:10px 12px;min-height:56px}
+.grp-h .rk{font-family:var(--display);font-size:18px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:center}
+.grp-h .nm{min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.grp-h .n{font-weight:700;font-size:17px;overflow-wrap:anywhere}
+.grp-h .st{font-family:var(--display);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.02em;white-space:nowrap;color:var(--accent)}
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 7px;border-radius:999px;background:var(--accent);color:var(--accent-fg);line-height:1;white-space:nowrap}
+.grp-rows{display:flex;flex-direction:column;gap:6px;padding:0 8px 8px}
+.grp-rows .p{background:var(--surface2);min-height:48px;padding:8px 10px}
+.grp-rows .edit{margin:0}
+.grp-f{padding:0 12px 10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.5}
+.grp-f b{color:var(--fg)}
 .empty{padding:28px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
 .empty b{display:block;color:var(--fg);font-size:16px;margin-bottom:4px}
 
@@ -173,6 +187,7 @@ details.set .inner .row2{display:grid;grid-template-columns:1fr auto;gap:8px;ali
       </div>
       <div>データは、このページに編集者として招待されてログインしているスタッフ全員で共有されます。右上が「共有中」なら共有できています。「この端末だけに保存」と出ていたら、ログインか招待ができていません。</div>
       <div>スタックは「25000」「25,000」のほか、PCなら「25k」「2.5万」でも入ります。</div>
+      <div>同じ名前で複数のフライトを通過した人は、全体タブで1人にまとまり、Day2スタックは「一番多いスタック ＋ 残りのスタックの半分」で自動計算します（例：Aで5万・Bで8万 → 8万＋2万5千＝10万5千）。名前は大文字小文字・全角半角の違いを無視して同じ人とみなします。</div>
     </div>
   </details>
 </div>
@@ -316,6 +331,22 @@ function sorted(list) {
   else a.sort((x, y) => x.createdAt - y.createdAt);
   return a;
 }
+/* 同じ名前で複数フライトを通過した人：一番多いスタック ＋ 残りの半分（端数切り捨て） */
+const nameKey = n => String(n ?? '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' ');
+function personOf(entries) {
+  const es = [...entries].sort((x, y) => y.stack - x.stack || x.createdAt - y.createdAt);
+  const base = es[0].stack, rest = es.slice(1).reduce((a, p) => a + p.stack, 0), bonus = Math.floor(rest / 2);
+  return { key: nameKey(es[0].name), name: es[0].name, entries: es, base, bonus, stack: base + bonus, createdAt: Math.min(...es.map(p => p.createdAt)), flights: [...new Set(es.map(p => p.flight))].sort() };
+}
+function persons(list = state.players) {
+  const m = new Map();
+  for (const p of list) { const k = nameKey(p.name); if (!m.has(k)) m.set(k, []); m.get(k).push(p); }
+  const a = [...m.values()].map(personOf);
+  if (state.sort === 'stack') a.sort((x, y) => y.stack - x.stack || x.createdAt - y.createdAt);
+  else a.sort((x, y) => x.createdAt - y.createdAt);
+  return a;
+}
+const personByKey = () => { const m = new Map(); for (const q of persons()) m.set(q.key, q); return m; };
 const currentList = () => state.view === 'all' ? sorted(state.players) : sorted(byFlight(state.view));
 function copyText(text) {
   const done = () => toast('コピーしました。LINEなどに貼り付けてください');
@@ -328,8 +359,13 @@ function copyText(text) {
 }
 function listText() {
   const title = state.meta?.title || DEFAULT_TITLE, v = state.view, list = currentList();
-  const head = v === 'all' ? `${title} Day2進出者（${list.length}名）` : `${title} フライト${v} 通過者（${list.length}名）`;
-  return [head, ...list.map((p, i) => `${i + 1}. ${p.name}  ${fmt(p.stack)}${v === 'all' ? `（${p.flight}）` : ''}`)].join('\n');
+  if (v === 'all') {
+    const ps = persons();
+    const head = `${title} Day2進出者（${ps.length}名）`;
+    return [head, ...ps.map((q, i) => `${i + 1}. ${q.name}  ${fmt(q.stack)}（${q.entries.length > 1 ? [...q.entries].sort((x, y) => x.flight.localeCompare(y.flight)).map(p => `${p.flight} ${fmt(p.stack)}`).join(' + ') + ' → 合算' : q.entries[0].flight}）`)].join('\n');
+  }
+  const head = `${title} フライト${v} 通過者（${list.length}名）`;
+  return [head, ...list.map((p, i) => `${i + 1}. ${p.name}  ${fmt(p.stack)}`)].join('\n');
 }
 
 function renderStatus() {
@@ -367,7 +403,7 @@ function stats(list) {
   return { n: list.length, total, avg: list.length ? Math.round(total / list.length) : 0, max: list.length ? Math.max(...list.map(p => p.stack)) : 0 };
 }
 function renderSummary(list) {
-  const s = stats(list);
+  const s = stats(state.view === 'all' ? persons() : list);
   $('#summary').replaceChildren(el('div', { class: 'summary' },
     el('div', { class: 'stat' }, el('div', { class: 'k', text: '通過人数' }), el('div', { class: 'v' }, s.n, el('small', { text: '名' }))),
     el('div', { class: 'stat' }, el('div', { class: 'k', text: '合計チップ' }), el('div', { class: 'v', text: fmt(s.total) })),
@@ -380,9 +416,13 @@ function renderSummary(list) {
 const add = { form: $('#addForm'), title: $('#addTitle'), name: $('#addName'), stack: $('#addStack'), btn: $('#addBtn'), dup: $('#addDup'), err: $('#addErr'), busy: false };
 function checkDup() {
   const nm = add.name.value.trim();
-  const hit = nm ? state.players.filter(p => p.name.toLowerCase() === nm.toLowerCase()) : [];
+  const hit = nm ? state.players.filter(p => nameKey(p.name) === nameKey(nm)) : [];
   add.dup.hidden = !hit.length;
-  if (hit.length) add.dup.textContent = `同じ名前が フライト${[...new Set(hit.map(p => p.flight))].join('・')} に登録済みです（そのまま追加もできます）`;
+  if (hit.length) {
+    const st = parseStack(add.stack.value);
+    const combined = Number.isFinite(st) ? personOf([...hit, { name: nm, stack: st, flight: state.view, createdAt: Date.now() }]).stack : null;
+    add.dup.textContent = `${hit.map(p => `フライト${p.flight} ${fmt(p.stack)}`).join('・')} で通過済みの名前です。` + (combined ? `合算して Day2 は ${fmt(combined)} になります。` : '合算ルール（一番多い方＋残りの半分）でDay2スタックを計算します。');
+  }
 }
 async function submitAdd() {
   if (add.busy) return;
@@ -400,7 +440,7 @@ async function submitAdd() {
   } finally { add.busy = false; add.btn.disabled = false; }
 }
 add.name.addEventListener('input', () => { checkDup(); add.err.hidden = true; });
-add.stack.addEventListener('input', () => { add.err.hidden = true; });
+add.stack.addEventListener('input', () => { checkDup(); add.err.hidden = true; });
 add.name.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add.stack.focus(); } });
 add.stack.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitAdd(); } });
 add.btn.addEventListener('click', submitAdd);
@@ -471,35 +511,73 @@ const rows = new Map(); // id -> { node, rk, chip, n, st }
 function rowFor(p) {
   let r = rows.get(p.id);
   if (!r) {
-    r = { rk: el('span', { class: 'rk' }), chip: el('span', { class: 'chip' }), n: el('span', { class: 'n' }), st: el('span', { class: 'st' }) };
-    r.node = el('button', { class: 'p', type: 'button', onclick: () => openEdit(p.id) }, r.rk, el('span', { class: 'nm' }, r.chip, r.n), r.st);
+    r = { rk: el('span', { class: 'rk' }), chip: el('span', { class: 'chip' }), n: el('span', { class: 'n' }), also: el('span', { class: 'also' }), st: el('span', { class: 'st' }) };
+    r.node = el('button', { class: 'p', type: 'button', onclick: () => openEdit(p.id) }, r.rk, el('span', { class: 'nm' }, r.chip, r.n, r.also), r.st);
     rows.set(p.id, r);
   }
   return r;
 }
 let emptyNode = null;
+const groups = new Map(); // 複数フライト通過の人：nameKey -> { node, rk, n, badge, st, rows, f }
+function groupFor(q) {
+  let g = groups.get(q.key);
+  if (!g) {
+    g = { rk: el('span', { class: 'rk' }), n: el('span', { class: 'n' }), badge: el('span', { class: 'badge' }), st: el('span', { class: 'st' }), rows: el('div', { class: 'grp-rows' }), f: el('div', { class: 'grp-f' }) };
+    g.node = el('div', { class: 'grp' }, el('div', { class: 'grp-h' }, g.rk, el('span', { class: 'nm' }, g.badge, g.n), g.st), g.rows, g.f);
+    groups.set(q.key, g);
+  }
+  return g;
+}
+function fillRow(p, i, showFlight) {
+  const r = rowFor(p);
+  r.rk.textContent = i == null ? '' : i + 1; r.n.textContent = p.name; r.st.textContent = fmt(p.stack);
+  r.chip.hidden = !showFlight; r.chip.dataset.f = p.flight; r.chip.textContent = p.flight;
+  if (showFlight) { r.also.textContent = ''; r.also.hidden = true; }
+  r.node.setAttribute('aria-label', `${p.name} ${fmt(p.stack)} を編集`);
+  return r.node;
+}
+function placeAll(box, want) {
+  // 欲しい順にノードを並べ、要らないものを外す。すでに正しい位置のノードは動かさない（編集中の欄のキーボードが閉じない）
+  for (const c of [...box.children]) if (!want.includes(c)) c.remove();
+  want.forEach((node, i) => { const cur = box.children[i]; if (cur !== node) box.insertBefore(node, cur || null); });
+}
+const editNodeFor = p => (state.editing === p.id && editPanel && editPanel.id === p.id) ? editPanel.node : null;
 function renderList(list) {
   const box = $('#list');
   const showFlight = state.view === 'all';
   const want = [];
+  if (state.editing && !state.players.some(p => p.id === state.editing)) { state.editing = null; editPanel = null; } // 編集中の人がほかの端末で消された
   if (!list.length) {
     if (!emptyNode) emptyNode = el('div', { class: 'empty' }, el('b', { text: 'まだ通過者がいません' }), el('span'));
     emptyNode.lastChild.textContent = showFlight ? '各フライトのタブで追加すると、ここに全員分がまとまります' : (canWrite() ? '上のフォームに名前とスタックを入れて「追加」' : '');
     want.push(emptyNode);
+  } else if (showFlight) {
+    persons().forEach((q, i) => {
+      if (q.entries.length === 1) { const p = q.entries[0]; want.push(editNodeFor(p) || fillRow(p, i, true)); return; }
+      const g = groupFor(q);
+      g.rk.textContent = i + 1; g.n.textContent = q.name; g.st.textContent = fmt(q.stack);
+      g.badge.textContent = `${q.entries.length}フライト通過`;
+      g.f.replaceChildren(el('b', { text: fmt(q.base) }), ` ＋ 残り ${q.entries.slice(1).map(p => fmt(p.stack)).join('＋')} の半分 `, el('b', { text: fmt(q.bonus) }), ' ＝ ', el('b', { text: fmt(q.stack) }));
+      placeAll(g.rows, q.entries.map(p => editNodeFor(p) || fillRow(p, null, true)));
+      want.push(g.node);
+    });
+  } else {
+    const pk = personByKey();
+    list.forEach((p, i) => {
+      const node = editNodeFor(p) || fillRow(p, i, false);
+      if (!editNodeFor(p)) {
+        const q = pk.get(nameKey(p.name)), others = q ? q.entries.filter(x => x.id !== p.id) : [];
+        rowFor(p).also.textContent = others.length ? `${others.map(x => `${x.flight} ${fmt(x.stack)}`).join('・')} でも通過 → Day2 ${fmt(q.stack)}` : '';
+        rowFor(p).also.hidden = !others.length;
+      }
+      want.push(node);
+    });
   }
-  list.forEach((p, i) => {
-    if (state.editing === p.id && editPanel && editPanel.id === p.id) { want.push(editPanel.node); return; }
-    const r = rowFor(p);
-    r.rk.textContent = i + 1; r.n.textContent = p.name; r.st.textContent = fmt(p.stack);
-    r.chip.hidden = !showFlight; r.chip.dataset.f = p.flight; r.chip.textContent = p.flight;
-    r.node.setAttribute('aria-label', `${p.name} ${fmt(p.stack)} を編集`);
-    want.push(r.node);
-  });
-  if (state.editing && !list.some(p => p.id === state.editing)) { state.editing = null; editPanel = null; } // 編集中の人がほかの端末で消された
-  want.forEach((node, i) => { const cur = box.children[i]; if (cur !== node) box.insertBefore(node, cur || null); });
-  while (box.children.length > want.length) box.lastChild.remove();
+  placeAll(box, want);
   const alive = new Set(state.players.map(p => p.id));
   for (const id of rows.keys()) if (!alive.has(id)) rows.delete(id);
+  const multi = new Set(persons().filter(q => q.entries.length > 1).map(q => q.key));
+  for (const k of groups.keys()) if (!multi.has(k)) groups.delete(k);
 }
 
 function render() {
@@ -519,7 +597,11 @@ function render() {
   $('#copyBtn').hidden = !list.length;
   renderList(list);
   const foot = $('#foot'); foot.hidden = true;
-  if (v === 'all' && state.players.length) { foot.hidden = false; foot.textContent = 'フライト別：' + FLIGHTS.map(f => `${f} ${byFlight(f).length}名`).join('　'); }
+  if (v === 'all' && state.players.length) {
+    const multi = persons().filter(q => q.entries.length > 1).length;
+    foot.hidden = false;
+    foot.textContent = 'フライト別：' + FLIGHTS.map(f => `${f} ${byFlight(f).length}名`).join('　') + (multi ? `　／　複数フライト通過 ${multi}名（一番多いスタック＋残りの半分でDay2へ）` : '');
+  }
   else if (v !== 'all' && !canWrite()) { foot.hidden = false; foot.textContent = '名前を押しても編集できません（見るだけ）'; }
 }
 
