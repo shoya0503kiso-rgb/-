@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0612">
+<meta name="description" content="読めない外国語の言葉は、しょうやを褒めてる？それともバカにしてる？10問で当てるゲーム。">
+<meta property="og:title" content="褒めてる？バカにしてる？">
+<meta property="og:description" content="読めない外国語で、しょうやは褒められてるのか、バカにされてるのか。10問勝負。">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>褒めてる？バカにしてる？</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Noto+Sans:wght@700&family=Noto+Sans+Arabic:wght@700&family=Noto+Sans+Thai:wght@700&family=Noto+Sans+Devanagari:wght@700&family=Noto+Sans+Georgian:wght@700&family=Noto+Sans+Hebrew:wght@700&family=Noto+Sans+Ethiopic:wght@700&display=swap">
+<style>
+/* 暗いポーカーバー＋ネオン。文字サイズはすべて clamp() でスマホ〜1920pxのテレビまで伸び縮みする */
+:root {
+  --bg: #0b0612;
+  --bg2: #160b24;
+  --felt: #0d3b2c;
+  --ink: #f5eefc;
+  --muted: #a99bbd;
+  --pink: #ff3fa4;
+  --cyan: #2ee6ff;
+  --green: #39ff9a;
+  --red: #ff4d5e;
+  --gold: #ffd25a;
+  --card: rgba(255,255,255,.05);
+  --line: rgba(255,255,255,.12);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 110%, rgba(13,59,44,.85), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 15% 0%, rgba(255,63,164,.16), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 85% 0%, rgba(46,230,255,.13), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: "Noto Sans JP", system-ui, sans-serif;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.app {
+  min-height: 100dvh;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+.screen { display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: clamp(16px, 3vh, 40px); }
+.screen.on { display: flex; }
+
+/* ネオン文字 */
+.neon-pink { color: #ffd6ec; text-shadow: 0 0 6px var(--pink), 0 0 18px var(--pink), 0 0 42px rgba(255,63,164,.6); }
+.neon-cyan { color: #d8fbff; text-shadow: 0 0 6px var(--cyan), 0 0 18px var(--cyan), 0 0 42px rgba(46,230,255,.6); }
+
+/* タイトル */
+.title { font-weight: 900; line-height: 1.15; margin: 0; font-size: clamp(40px, 8vw, 120px); letter-spacing: .02em; }
+.title span { display: block; }
+.title .q { font-size: .6em; color: var(--muted); text-shadow: none; margin: .15em 0; }
+.lead { font-size: clamp(16px, 2vw, 30px); color: var(--muted); line-height: 1.7; margin: 0; max-width: 34em; }
+.lead b { color: var(--ink); }
+.sample { display: flex; gap: clamp(10px, 2vw, 32px); flex-wrap: wrap; justify-content: center; font-size: clamp(22px, 3.2vw, 48px); color: rgba(255,255,255,.35); }
+.sample span { animation: drift 6s ease-in-out infinite; }
+.sample span:nth-child(2n) { animation-delay: -2s; }
+.sample span:nth-child(3n) { animation-delay: -4s; }
+@keyframes drift { 50% { transform: translateY(-8px); color: rgba(255,255,255,.6); } }
+
+/* ボタン */
+button { font: inherit; color: inherit; cursor: pointer; border: none; }
+.btn {
+  font-weight: 900;
+  font-size: clamp(20px, 2.6vw, 40px);
+  padding: .7em 1.6em;
+  border-radius: 999px;
+  background: transparent;
+  border: 3px solid var(--pink);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(255,63,164,.55), inset 0 0 14px rgba(255,63,164,.35);
+  text-shadow: 0 0 8px var(--pink);
+  transition: transform .12s, box-shadow .2s, background .2s;
+}
+.btn:hover { background: rgba(255,63,164,.15); }
+.btn:active { transform: scale(.96); }
+.btn:focus-visible, .choice:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; }
+.btn.cyan { border-color: var(--cyan); box-shadow: 0 0 14px rgba(46,230,255,.55), inset 0 0 14px rgba(46,230,255,.35); text-shadow: 0 0 8px var(--cyan); }
+.btn.cyan:hover { background: rgba(46,230,255,.12); }
+
+/* ゲーム画面 */
+#game { justify-content: flex-start; }
+.hud { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: clamp(15px, 1.8vw, 28px); font-weight: 700; }
+.hud .pill { padding: .35em .9em; border-radius: 999px; background: var(--card); border: 1px solid var(--line); white-space: nowrap; }
+.hud .streak { color: var(--gold); }
+.hud .streak.hot { box-shadow: 0 0 14px rgba(255,210,90,.6); border-color: var(--gold); }
+.progress { width: 100%; height: 6px; background: var(--card); border-radius: 3px; overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--pink), var(--cyan)); box-shadow: 0 0 10px var(--cyan); transition: width .4s; }
+
+.stage { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(18px, 4vh, 56px); position: relative; }
+.ask { font-size: clamp(16px, 2vw, 30px); color: var(--muted); margin: 0; }
+.wordcard {
+  position: relative;
+  width: min(100%, 1100px);
+  min-height: clamp(150px, 28vh, 360px);
+  display: flex; align-items: center; justify-content: center;
+  padding: clamp(20px, 4vw, 60px);
+  border-radius: 28px;
+  background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+  border: 2px solid rgba(46,230,255,.45);
+  box-shadow: 0 0 30px rgba(46,230,255,.18), inset 0 0 40px rgba(46,230,255,.08);
+}
+.word {
+  font-family: "Noto Sans", "Noto Sans Arabic", "Noto Sans Thai", "Noto Sans Devanagari", "Noto Sans Georgian", "Noto Sans Hebrew", "Noto Sans Ethiopic", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(54px, 11vw, 180px);
+  line-height: 1.35;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.word.long { font-size: clamp(42px, 8.5vw, 150px); }
+.word.pop { animation: pop .55s cubic-bezier(.2,1.6,.4,1); }
+@keyframes pop { 0% { transform: scale(.2) rotate(-6deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+
+.choices { width: min(100%, 1100px); display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 2vw, 32px); }
+.choice {
+  font-weight: 900;
+  font-size: clamp(20px, 3vw, 46px);
+  padding: clamp(18px, 3vh, 40px) 8px;
+  border-radius: 22px;
+  color: #fff;
+  display: flex; flex-direction: column; align-items: center; gap: .2em;
+  transition: transform .12s, filter .2s, opacity .3s;
+}
+.choice .emo { font-size: 1.6em; line-height: 1; }
+.choice.praise { background: linear-gradient(160deg, #1d8f5f, #0d5a3b); box-shadow: 0 0 22px rgba(57,255,154,.35), inset 0 0 0 2px rgba(57,255,154,.6); }
+.choice.mock { background: linear-gradient(160deg, #a3264a, #5e1028); box-shadow: 0 0 22px rgba(255,77,94,.35), inset 0 0 0 2px rgba(255,77,94,.6); }
+.choice:hover { filter: brightness(1.15); }
+.choice:active { transform: scale(.96); }
+.choice:disabled { cursor: default; filter: none; }
+.choice.dim { opacity: .25; }
+.choice.picked { transform: scale(1.03); }
+/* 答えを出したら言葉とボタンを詰めて、テレビでも1画面に収める */
+.stage.answered { gap: clamp(12px, 2.4vh, 32px); }
+.stage.answered .wordcard { min-height: 0; padding-block: clamp(12px, 2.4vh, 32px); }
+.stage.answered .word { font-size: clamp(44px, 8vw, 130px); }
+.stage.answered .choice { padding-block: clamp(10px, 1.6vh, 20px); flex-direction: row; justify-content: center; gap: .4em; }
+.stage.answered .choice .emo { font-size: 1.1em; }
+
+/* 正解/不正解の演出 */
+.verdict {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column;
+  pointer-events: none; z-index: 20; opacity: 0;
+}
+.verdict.show { animation: verdict 1.25s ease-out forwards; }
+@keyframes verdict { 0% { opacity: 0; } 10% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+.verdict .mark { font-size: clamp(140px, 30vw, 420px); line-height: 1; animation: stamp .5s cubic-bezier(.2,1.8,.4,1); }
+.verdict .label { font-size: clamp(36px, 7vw, 110px); font-weight: 900; margin-top: .1em; }
+.verdict.ok { background: radial-gradient(circle, rgba(57,255,154,.28), transparent 65%); }
+.verdict.ok .label { color: #dfffee; text-shadow: 0 0 10px var(--green), 0 0 30px var(--green); }
+.verdict.ng { background: radial-gradient(circle, rgba(255,77,94,.3), transparent 65%); }
+.verdict.ng .label { color: #ffe1e4; text-shadow: 0 0 10px var(--red), 0 0 30px var(--red); }
+@keyframes stamp { 0% { transform: scale(3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.shake { animation: shake .45s; }
+@keyframes shake { 20%,60% { transform: translateX(-12px); } 40%,80% { transform: translateX(12px); } }
+.flash-ok { animation: flashok .6s; }
+@keyframes flashok { 30% { box-shadow: 0 0 60px rgba(57,255,154,.8), inset 0 0 60px rgba(57,255,154,.3); border-color: var(--green); } }
+
+.confetti { position: fixed; top: -20px; width: 10px; height: 16px; z-index: 19; pointer-events: none; border-radius: 2px; animation: fall linear forwards; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+/* 答え */
+.answer {
+  width: min(100%, 1100px);
+  display: none;
+  grid-template-columns: 1fr 1.4fr 1.2fr 1.2fr;
+  gap: clamp(8px, 1.4vw, 20px);
+  animation: rise .35s ease-out;
+}
+.answer.on { display: grid; }
+@keyframes rise { from { transform: translateY(16px); opacity: 0; } }
+.answer .cell { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: clamp(10px, 1.6vw, 22px) 10px; }
+.answer .k { font-size: clamp(12px, 1.3vw, 20px); color: var(--muted); margin-bottom: .3em; }
+.answer .v { font-size: clamp(18px, 2.2vw, 34px); white-space: nowrap; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: .3em; flex-wrap: wrap; }
+.answer .v.praise { color: var(--green); text-shadow: 0 0 10px rgba(57,255,154,.6); }
+.answer .v.mock { color: var(--red); text-shadow: 0 0 10px rgba(255,77,94,.6); }
+.speak { font-size: .85em; width: 1.8em; height: 1.8em; border-radius: 50%; background: rgba(46,230,255,.15); border: 2px solid var(--cyan); display: inline-flex; align-items: center; justify-content: center; }
+.speak:active { transform: scale(.92); }
+.next-row { display: none; }
+.next-row.on { display: block; }
+
+/* 結果 */
+.score { font-size: min(16vw, 17vh, 220px); font-weight: 900; line-height: 1; margin: 0; }
+.score small { font-size: .35em; color: var(--muted); text-shadow: none; }
+.rank-k { font-size: clamp(16px, 2vw, 30px); color: var(--muted); margin: 0; }
+.rank { font-size: max(30px, min(6vw, 8vh, 96px)); font-weight: 900; margin: 0; color: var(--gold); text-shadow: 0 0 10px var(--gold), 0 0 32px rgba(255,210,90,.6); }
+.rank-note { font-size: clamp(15px, 1.8vw, 26px); color: var(--muted); margin: 0; }
+.best { font-size: clamp(14px, 1.6vw, 24px); color: var(--muted); margin: 0; }
+.review { width: min(100%, 1300px); display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 8px; text-align: left; }
+.review div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 6px 12px; font-size: clamp(14px, 1.2vw, 20px); display: flex; gap: .6em; align-items: center; }
+.review .w { white-space: nowrap; font-family: "Noto Sans", "Noto Sans Arabic", "Noto Sans Thai", "Noto Sans Devanagari", "Noto Sans Georgian", "Noto Sans Hebrew", "Noto Sans Ethiopic", sans-serif; font-weight: 700; }
+.review .m { color: var(--muted); margin-left: auto; text-align: right; }
+
+@media (max-width: 560px) {
+  .answer { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 400px) {
+  .stage.answered .choice { flex-direction: column; gap: 0; }
+}
+#result { gap: clamp(8px, 1.8vh, 28px); }
+#result .btn { margin-top: clamp(4px, 1vh, 16px); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- タイトル -->
+  <section class="screen on" id="title">
+    <h1 class="title">
+      <span class="neon-cyan">褒めてる？</span>
+      <span class="neon-pink">バカにしてる？</span>
+    </h1>
+    <div class="sample" aria-hidden="true">
+      <span>ქართული</span><span>ภาษาไทย</span><span>العربية</span><span>हिन्दी</span><span>አማርኛ</span><span>עברית</span>
+    </div>
+    <p class="lead">画面に出る<b>読めない外国語</b>は、<br>しょうやを<b>褒めてる</b>？ それとも<b>バカにしてる</b>？<br>全<b>10問</b>。しょうや愛が試される。</p>
+    <button class="btn" id="startBtn">スタート</button>
+  </section>
+
+  <!-- ゲーム -->
+  <section class="screen" id="game">
+    <div class="hud">
+      <span class="pill" id="qNum">第1問 / 10</span>
+      <span class="pill" id="scoreNow">正解 0</span>
+      <span class="pill streak" id="streak">🔥 連続 0</span>
+    </div>
+    <div class="progress"><i id="bar"></i></div>
+    <div class="stage">
+      <p class="ask">この言葉、しょうやのこと…</p>
+      <div class="wordcard" id="wordcard"><p class="word" id="word" dir="auto"></p></div>
+      <div class="choices" id="choices">
+        <button class="choice praise" data-pick="praise"><span class="emo">👍</span>褒めてる</button>
+        <button class="choice mock" data-pick="mock"><span class="emo">👎</span>バカにしてる</button>
+      </div>
+      <div class="answer" id="answer">
+        <div class="cell"><div class="k">言語</div><div class="v" id="aLang"></div></div>
+        <div class="cell"><div class="k">読み</div><div class="v" id="aRead"></div></div>
+        <div class="cell"><div class="k">意味</div><div class="v" id="aMean"></div></div>
+        <div class="cell"><div class="k">正解</div><div class="v" id="aType"></div></div>
+      </div>
+      <div class="next-row" id="nextRow"><button class="btn cyan" id="nextBtn">次へ ▶</button></div>
+    </div>
+  </section>
+
+  <!-- 結果 -->
+  <section class="screen" id="result">
+    <p class="rank-k">あなたの正解数</p>
+    <p class="score neon-cyan" id="finalScore">0<small> / 10</small></p>
+    <p class="rank-k">称号</p>
+    <p class="rank" id="rank"></p>
+    <p class="rank-note" id="rankNote"></p>
+    <p class="best" id="bestStreak"></p>
+    <div class="review" id="review"></div>
+    <button class="btn" id="againBtn">もう一回</button>
+  </section>
+</div>
+
+<div class="verdict" id="verdict"><div class="mark" id="vMark"></div><div class="label" id="vLabel"></div></div>
+
+<script>
+// ==== 単語データ ====
+// 追加するときはこの配列に1行足すだけ。type は "praise"（褒め）か "mock"（けなし）。
+// lang は表示用の言語名、tts は読み上げの言語コード。
+const WORDS = [
+  { lang: "アラビア語",   tts: "ar-SA", word: "وسيم",      read: "ワスィーム",     mean: "ハンサム",         type: "praise" },
+  { lang: "アラビア語",   tts: "ar-SA", word: "ذكي",       read: "ザキー",         mean: "賢い",             type: "praise" },
+  { lang: "アラビア語",   tts: "ar-SA", word: "غبي",       read: "ガビー",         mean: "バカ",             type: "mock" },
+  { lang: "アラビア語",   tts: "ar-SA", word: "كسلان",     read: "カスラーン",     mean: "怠け者",           type: "mock" },
+  { lang: "タイ語",       tts: "th-TH", word: "หล่อ",      read: "ロー",           mean: "イケメン",         type: "praise" },
+  { lang: "タイ語",       tts: "th-TH", word: "เก่ง",      read: "ケン",           mean: "すごい・できる人", type: "praise" },
+  { lang: "タイ語",       tts: "th-TH", word: "โง่",       read: "ゴー",           mean: "バカ",             type: "mock" },
+  { lang: "タイ語",       tts: "th-TH", word: "ขี้เกียจ",  read: "キーキアット",   mean: "怠け者",           type: "mock" },
+  { lang: "ヒンディー語", tts: "hi-IN", word: "होशियार",   read: "ホーシヤール",   mean: "賢い",             type: "praise" },
+  { lang: "ヒンディー語", tts: "hi-IN", word: "बहादुर",    read: "バハードゥル",   mean: "勇敢",             type: "praise" },
+  { lang: "ヒンディー語", tts: "hi-IN", word: "बेवकूफ़",    read: "ベーヴクーフ",   mean: "バカ",             type: "mock" },
+  { lang: "ヒンディー語", tts: "hi-IN", word: "आलसी",      read: "アールスィー",   mean: "怠け者",           type: "mock" },
+  { lang: "ロシア語",     tts: "ru-RU", word: "красавчик", read: "クラサーフチク", mean: "イケメン",         type: "praise" },
+  { lang: "ロシア語",     tts: "ru-RU", word: "умница",    read: "ウームニツァ",   mean: "賢い人",           type: "praise" },
+  { lang: "ロシア語",     tts: "ru-RU", word: "дурак",     read: "ドゥラーク",     mean: "バカ",             type: "mock" },
+  { lang: "ロシア語",     tts: "ru-RU", word: "лентяй",    read: "レンチャーイ",   mean: "怠け者",           type: "mock" },
+  { lang: "ジョージア語", tts: "ka-GE", word: "ლამაზი",    read: "ラマズィ",       mean: "美しい",           type: "praise" },
+  { lang: "ジョージア語", tts: "ka-GE", word: "ჭკვიანი",   read: "チクヴィアニ",   mean: "賢い",             type: "praise" },
+  { lang: "ジョージア語", tts: "ka-GE", word: "სულელი",    read: "スレリ",         mean: "バカ",             type: "mock" },
+  { lang: "ジョージア語", tts: "ka-GE", word: "ზარმაცი",   read: "ザルマツィ",     mean: "怠け者",           type: "mock" },
+  { lang: "ヘブライ語",   tts: "he-IL", word: "חכם",       read: "ハハム",         mean: "賢い",             type: "praise" },
+  { lang: "ヘブライ語",   tts: "he-IL", word: "גיבור",     read: "ギボール",       mean: "ヒーロー",         type: "praise" },
+  { lang: "ヘブライ語",   tts: "he-IL", word: "טיפש",      read: "ティペシュ",     mean: "バカ",             type: "mock" },
+  { lang: "ヘブライ語",   tts: "he-IL", word: "עצלן",      read: "アツラン",       mean: "怠け者",           type: "mock" },
+  { lang: "ギリシャ語",   tts: "el-GR", word: "έξυπνος",   read: "エクスィプノス", mean: "賢い",             type: "praise" },
+  { lang: "ギリシャ語",   tts: "el-GR", word: "ήρωας",     read: "イロアス",       mean: "ヒーロー",         type: "praise" },
+  { lang: "ギリシャ語",   tts: "el-GR", word: "βλάκας",    read: "ヴラカス",       mean: "バカ",             type: "mock" },
+  { lang: "ギリシャ語",   tts: "el-GR", word: "τεμπέλης",  read: "テンベリス",     mean: "怠け者",           type: "mock" },
+  { lang: "アムハラ語",   tts: "am-ET", word: "ጎበዝ",       read: "ゴベズ",         mean: "賢い・できる人",   type: "praise" },
+  { lang: "アムハラ語",   tts: "am-ET", word: "ሰነፍ",       read: "セネフ",         mean: "怠け者",           type: "mock" },
+  { lang: "アムハラ語",   tts: "am-ET", word: "ደደብ",       read: "デデブ",         mean: "バカ",             type: "mock" },
+];
+
+const QUESTIONS = 10;
+const RANKS = [
+  { min: 10, name: "しょうや検定1級",       note: "全問正解。もはや本人より詳しい。" },
+  { min: 7,  name: "しょうやマニア",         note: "かなりの通。しょうやも喜んでいる。" },
+  { min: 4,  name: "ふつうの客",             note: "まあまあ。もっと通って理解を深めよう。" },
+  { min: 0,  name: "しょうやに興味なさすぎ", note: "しょうやが少し悲しんでいる。" },
+];
+const TYPE_LABEL = { praise: "👍 褒めてる", mock: "👎 バカにしてる" };
+
+// ==== 状態 ====
+let deck = [], idx = 0, score = 0, streak = 0, bestStreak = 0, history = [], answered = false;
+
+const $ = (id) => document.getElementById(id);
+const screens = ["title", "game", "result"];
+function show(id) { screens.forEach((s) => $(s).classList.toggle("on", s === id)); window.scrollTo(0, 0); }
+
+function shuffle(a) {
+  a = a.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+function start() {
+  deck = shuffle(WORDS).slice(0, Math.min(QUESTIONS, WORDS.length));
+  idx = 0; score = 0; streak = 0; bestStreak = 0; history = [];
+  show("game");
+  renderQuestion();
+}
+
+function renderHud() {
+  $("qNum").textContent = `第${idx + 1}問 / ${deck.length}`;
+  $("scoreNow").textContent = `正解 ${score}`;
+  $("streak").textContent = `🔥 連続 ${streak}`;
+  $("streak").classList.toggle("hot", streak >= 3);
+  $("bar").style.width = `${(idx / deck.length) * 100}%`;
+}
+
+function renderQuestion() {
+  answered = false;
+  const q = deck[idx];
+  renderHud();
+  const w = $("word");
+  w.textContent = q.word;
+  w.classList.toggle("long", [...q.word].length >= 8);
+  w.classList.remove("pop"); void w.offsetWidth; w.classList.add("pop");
+  document.querySelectorAll(".choice").forEach((b) => { b.disabled = false; b.classList.remove("dim", "picked"); });
+  $("answer").classList.remove("on");
+  document.querySelector(".stage").classList.remove("answered");
+  $("nextRow").classList.remove("on");
+  $("choices").querySelector(".choice").focus({ preventScroll: true });
+}
+
+function pick(choice) {
+  if (answered) return;
+  answered = true;
+  const q = deck[idx];
+  const ok = choice === q.type;
+  if (ok) { score++; streak++; bestStreak = Math.max(bestStreak, streak); } else { streak = 0; }
+  history.push({ q, ok });
+
+  document.querySelectorAll(".choice").forEach((b) => {
+    b.disabled = true;
+    b.classList.toggle("picked", b.dataset.pick === choice);
+    b.classList.toggle("dim", b.dataset.pick !== choice);
+  });
+
+  showVerdict(ok);
+  const card = $("wordcard");
+  card.classList.remove("shake", "flash-ok"); void card.offsetWidth;
+  card.classList.add(ok ? "flash-ok" : "shake");
+  if (ok) confetti(streak >= 3 ? 70 : 36);
+  if (navigator.vibrate) navigator.vibrate(ok ? 40 : [60, 40, 60]);
+
+  // 答えの表示
+  $("aLang").textContent = q.lang;
+  $("aRead").textContent = q.read;
+  if (canSpeak(q.tts)) {
+    const b = document.createElement("button");
+    b.className = "speak"; b.type = "button"; b.textContent = "🔊"; b.setAttribute("aria-label", "読み上げ");
+    b.onclick = () => speak(q);
+    $("aRead").appendChild(b);
+  }
+  $("aMean").textContent = q.mean;
+  const t = $("aType");
+  t.textContent = TYPE_LABEL[q.type];
+  t.className = "v " + q.type;
+  $("answer").classList.add("on");
+  document.querySelector(".stage").classList.add("answered");
+  $("nextRow").classList.add("on");
+  $("nextBtn").textContent = idx + 1 >= deck.length ? "結果を見る ▶" : "次へ ▶";
+  renderHud();
+  $("scoreNow").textContent = `正解 ${score}`;
+  $("bar").style.width = `${((idx + 1) / deck.length) * 100}%`;
+  setTimeout(() => $("nextBtn").focus({ preventScroll: true }), 300);
+}
+
+function next() {
+  idx++;
+  if (idx >= deck.length) return finish();
+  renderQuestion();
+}
+
+function finish() {
+  const r = RANKS.find((x) => score >= x.min);
+  $("finalScore").innerHTML = `${score}<small> / ${deck.length}</small>`;
+  $("rank").textContent = r.name;
+  $("rankNote").textContent = r.note;
+  $("bestStreak").textContent = `最高連続正解：${bestStreak}問`;
+  const rv = $("review");
+  rv.innerHTML = "";
+  history.forEach(({ q, ok }) => {
+    const d = document.createElement("div");
+    d.innerHTML = `<span>${ok ? "⭕" : "❌"}</span><span class="w" dir="auto"></span><span class="m"></span>`;
+    d.querySelector(".w").textContent = q.word;
+    d.querySelector(".m").textContent = `${q.type === "praise" ? "👍" : "👎"} ${q.mean}`;
+    rv.appendChild(d);
+  });
+  show("result");
+  if (score >= 7) confetti(score === deck.length ? 140 : 60);
+}
+
+// ==== 演出 ====
+let verdictTimer;
+function showVerdict(ok) {
+  const v = $("verdict");
+  $("vMark").textContent = ok ? "⭕" : "❌";
+  $("vLabel").textContent = ok ? "正解！" : "ざんねん！";
+  v.className = "verdict " + (ok ? "ok" : "ng");
+  void v.offsetWidth;
+  v.classList.add("show");
+  clearTimeout(verdictTimer);
+  verdictTimer = setTimeout(() => v.classList.remove("show"), 1300);
+}
+
+function confetti(n) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const colors = ["#ff3fa4", "#2ee6ff", "#39ff9a", "#ffd25a", "#ffffff"];
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement("i");
+    c.className = "confetti";
+    c.style.left = Math.random() * 100 + "vw";
+    c.style.background = colors[i % colors.length];
+    c.style.animationDuration = 1.4 + Math.random() * 1.6 + "s";
+    c.style.animationDelay = Math.random() * 0.3 + "s";
+    c.style.transform = `rotate(${Math.random() * 360}deg)`;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 3500);
+  }
+}
+
+// ==== 読み上げ ====
+// その言語の音声が端末にあるときだけ 🔊 を出す
+let voices = [];
+function loadVoices() { try { voices = window.speechSynthesis ? speechSynthesis.getVoices() : []; } catch { voices = []; } }
+if (window.speechSynthesis) { loadVoices(); speechSynthesis.addEventListener?.("voiceschanged", loadVoices); }
+function findVoice(code) {
+  const c = code.toLowerCase().replace("_", "-");
+  const base = c.split("-")[0];
+  return voices.find((v) => v.lang.toLowerCase().replace("_", "-") === c)
+      || voices.find((v) => v.lang.toLowerCase().split(/[-_]/)[0] === base);
+}
+function canSpeak(code) { return !!(window.speechSynthesis && findVoice(code)); }
+function speak(q) {
+  const v = findVoice(q.tts);
+  if (!v) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(q.word);
+  u.voice = v; u.lang = v.lang; u.rate = 0.85;
+  speechSynthesis.speak(u);
+}
+
+// ==== 操作 ====
+$("startBtn").onclick = start;
+$("againBtn").onclick = start;
+$("nextBtn").onclick = next;
+document.querySelectorAll(".choice").forEach((b) => (b.onclick = () => pick(b.dataset.pick)));
+// PC・テレビ用：← / 1 で褒めてる、→ / 2 でバカにしてる、Enter で次へ
+document.addEventListener("keydown", (e) => {
+  if (!$("game").classList.contains("on")) return;
+  if (!answered) {
+    if (e.key === "ArrowLeft" || e.key === "1") pick("praise");
+    if (e.key === "ArrowRight" || e.key === "2") pick("mock");
+  }
+});
+</script>
+</body>
+</html>

@@ -49,6 +49,14 @@ SELECT "playerId", name, tables FROM "DealerQuestScore" ORDER BY tables DESC LIM
 DELETE FROM "DealerQuestScore" WHERE "playerId" = '（消したい行のplayerId）';
 ```
 
+## ミニゲーム「褒めてる？バカにしてる？」
+
+`/homeru-kenasu` でログインなしに遊べるクイズ（本体は `public/homeru-kenasu.html` の1ファイル。サーバー不要で、ファイルを直接開いても動く）。読めない外国語の言葉が、しょうやを褒めているのかバカにしているのかを当てる。1ゲーム10問（重複なしランダム）で、最後にスコアと称号を出す。
+
+- 単語はファイル内の `WORDS` 配列に1行足せば増やせる（`type` は `"praise"` か `"mock"`）
+- 答えの 🔊 は端末にその言語の読み上げ音声があるときだけ出る
+- PC・テレビではキーボードでも遊べる（← / 1 で褒めてる、→ / 2 でバカにしてる）
+
 ## ミニゲーム「お絵描きバトル」
 
 `/drawing-battle` でログインなしに遊べるパーティーゲーム（本体は `public/drawing-battle.html`）。スマホのブラウザで2〜8人、ホストが部屋を作り、ほかの人はルームコードかQRで参加します。

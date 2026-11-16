@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
       { source: "/dealer-quest", destination: "/dealer-quest.html" },
       { source: "/drawing-battle", destination: "/drawing-battle.html" },
       { source: "/lucky-hour", destination: "/lucky-hour.html" },
+      { source: "/homeru-kenasu", destination: "/homeru-kenasu.html" },
     ];
   },
 };
