@@ -86,6 +86,8 @@ export function useSfx() {
     () => ({
       on,
       toggle,
+      /** タップの中で呼んで、あとから鳴らす音を出せるようにしておく（iPhone 対策） */
+      unlock: () => void ctx(),
       /** 手やサイコロの目が切り替わるカチカチ */
       tick: () => tone(1100, 0.03, { type: "square", vol: 0.025 }),
       /** 「じゃん」「けん」「ぽん」 */
@@ -127,7 +129,7 @@ export function useSfx() {
         tone(1319, 0.3, { type: "square", vol: 0.06, at: 0.08 });
       },
     }),
-    [on, toggle, tone, noise],
+    [on, toggle, ctx, tone, noise],
   );
 }
 

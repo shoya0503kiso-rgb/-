@@ -75,7 +75,7 @@ function PlayedToday({ played, pointName, characterName }: { played: Played; poi
 }
 
 /** 舞台：ゆれ・フラッシュ・紙吹雪をまとめて出す */
-function useStage() {
+function useStage(reduced: boolean) {
   const [shake, setShake] = useState(0);
   const [flash, setFlash] = useState(0);
   const [confetti, setConfetti] = useState<{ n: number; gold: boolean } | null>(null);
@@ -84,10 +84,13 @@ function useStage() {
     flash,
     confetti,
     bang: () => {
+      if (reduced) return;
       setShake((n) => n + 1);
       setFlash((n) => n + 1);
     },
-    party: (gold = false) => setConfetti((c) => ({ n: (c?.n ?? 0) + 1, gold })),
+    party: (gold = false) => {
+      if (!reduced) setConfetti((c) => ({ n: (c?.n ?? 0) + 1, gold }));
+    },
   };
 }
 
@@ -117,7 +120,7 @@ function Janken({ onDone, reward, pointName, characterName, sfx, reduced }: Comm
   const [line, setLine] = useState("じゃんけんで勝負よ！");
   const [result, setResult] = useState<{ res: "win" | "lose"; points: number } | null>(null);
   const [error, setError] = useState("");
-  const stage = useStage();
+  const stage = useStage(reduced);
   const alive = useRef(true);
   useEffect(() => () => void (alive.current = false), []);
 
@@ -142,14 +145,21 @@ function Janken({ onDone, reward, pointName, characterName, sfx, reduced }: Comm
       sfx.chant(i);
       await wait(reduced ? 150 : 420);
     }
-    const res = await req;
-    clearInterval(spinner);
+    let res: Awaited<typeof req> | null = null;
+    try {
+      res = await req;
+    } catch {
+      res = null;
+    } finally {
+      clearInterval(spinner);
+    }
     if (!alive.current) return;
-    if (!res.ok) {
+    if (!res || !res.ok) {
       setChant("");
       setPhase("pick");
-      setLine("あれ？うまくいかなかったみたい");
-      setError(res.error);
+      setLine("あれ？ うまくいかなかったみたい");
+      // 通信の失敗は、サーバーに記録されたか分からないので開き直してもらう
+      setError(res ? res.error : "通信できませんでした。画面を開き直してください");
       return;
     }
     const d = res.data!;
@@ -176,10 +186,10 @@ function Janken({ onDone, reward, pointName, characterName, sfx, reduced }: Comm
       sfx.win();
       stage.party();
       setTimeout(() => sfx.coin(), 500);
-      setLine("まけちゃった〜！ つよいね！");
+      setLine("くやしい〜！ つよいね！");
     } else {
       sfx.lose();
-      setLine("やった〜！ わたしの勝ち♪");
+      setLine("やった♪ わたしの勝ち！");
     }
   }
 
@@ -219,7 +229,7 @@ function Janken({ onDone, reward, pointName, characterName, sfx, reduced }: Comm
               +<CountUp to={result.points} /> <span className="text-base">{pointName}</span>
             </p>
           )}
-          <AfterPlay characterName={characterName} />
+          <AfterPlay />
         </div>
       ) : (
         <>
@@ -303,7 +313,7 @@ function Chinchiro({ onDone, rewards, pointName, characterName, sfx, reduced }: 
   const [data, setData] = useState<CData | null>(null);
   const [glow, setGlow] = useState(false);
   const [error, setError] = useState("");
-  const stage = useStage();
+  const stage = useStage(reduced);
   const alive = useRef(true);
   useEffect(() => () => void (alive.current = false), []);
 
@@ -325,33 +335,41 @@ function Chinchiro({ onDone, rewards, pointName, characterName, sfx, reduced }: 
       const h = evalChinchiro(rolls[i]);
       if (h.name === "目なし" && i < rolls.length - 1) {
         setNote("目なし！ もう一回…");
-        setLine(who === "house" ? "あれ、目なし…もう一回振るね" : "目なし！ もう一回振れるよ");
+        setLine(who === "house" ? "目なし…もう一回ね！" : "目なし！ もう一回振れるよ");
         await wait(reduced ? 300 : 950);
         if (!alive.current) return;
       }
     }
   }
 
-  function showHand(h: ChinchiroHand, who: "house" | "player") {
+  function showHand(h: ChinchiroHand, who: "house" | "player", playerWins: boolean) {
     setNote(h.name);
     if (h.big) {
       setGlow(true);
       sfx.fanfare();
       stage.bang();
-      if (who === "player") stage.party(true);
+      if (who === "player" && playerWins) stage.party(true);
     } else if (h.name === "ヒフミ") {
-      sfx.lose();
+      if (who === "house") sfx.coin();
+      else sfx.lose();
     }
   }
 
   async function start() {
     setError("");
     setPhase("loading");
-    const res = await chinchiroAction();
+    // iPhone は操作の中でないと音が出せないので、通信の前に音を準備する
+    sfx.unlock();
+    let res: Awaited<ReturnType<typeof chinchiroAction>> | null = null;
+    try {
+      res = await chinchiroAction();
+    } catch {
+      res = null;
+    }
     if (!alive.current) return;
-    if (!res.ok) {
+    if (!res || !res.ok) {
       setPhase("ready");
-      setError(res.error);
+      setError(res ? res.error : "通信できませんでした。画面を開き直してください");
       return;
     }
     const d = res.data! as CData;
@@ -363,12 +381,12 @@ function Chinchiro({ onDone, rewards, pointName, characterName, sfx, reduced }: 
     await rollOut(d.house.rolls, "house");
     if (!alive.current) return;
     setHouseHand(d.house.hand);
-    showHand(d.house.hand, "house");
+    showHand(d.house.hand, "house", d.result === "win");
     setLine(
       d.house.hand.big
         ? `${d.house.hand.name}！ どう？ すごいでしょ♪`
         : d.house.hand.name === "ヒフミ"
-          ? "ヒフミ…あちゃ〜"
+          ? "ヒフミ…あちゃ〜！"
           : d.house.hand.name === "目なし"
             ? "目なし…ついてないなぁ"
             : `わたしは「${d.house.hand.name}」よ！`,
@@ -377,7 +395,7 @@ function Chinchiro({ onDone, rewards, pointName, characterName, sfx, reduced }: 
     if (!alive.current) return;
     setGlow(false);
     setPhase("turn");
-    setLine("次はあなたの番！ 思いっきり振って！");
+    setLine("あなたの番！ 振ってみて！");
   }
 
   async function playerRoll() {
@@ -387,7 +405,7 @@ function Chinchiro({ onDone, rewards, pointName, characterName, sfx, reduced }: 
     await rollOut(data.player.rolls, "player");
     if (!alive.current) return;
     setPlayerHand(data.player.hand);
-    showHand(data.player.hand, "player");
+    showHand(data.player.hand, "player", data.result === "win");
     await wait(reduced ? 300 : data.player.hand.big ? 1300 : 700);
     if (!alive.current) return;
     setPhase("result");
@@ -397,10 +415,10 @@ function Chinchiro({ onDone, rewards, pointName, characterName, sfx, reduced }: 
         stage.party();
       }
       setTimeout(() => sfx.coin(), 500);
-      setLine(data.player.hand.big ? "うそ〜！ 役で負けた〜！" : "まけちゃった〜！ つよいね！");
+      setLine(data.player.hand.big ? "うそ〜！ 役で負けた！" : "くやしい〜！ つよいね！");
     } else if (data.result === "lose") {
       sfx.lose();
-      setLine("わたしの勝ち♪ また明日ね！");
+      setLine("やった♪ わたしの勝ち！");
     } else {
       sfx.draw();
       setLine("同じ強さ…わかれね！");
@@ -470,7 +488,7 @@ function Chinchiro({ onDone, rewards, pointName, characterName, sfx, reduced }: 
                 +<CountUp to={data.points} /> <span className="text-base">{pointName}</span>
               </p>
             )}
-            <AfterPlay characterName={characterName} />
+            <AfterPlay />
           </div>
         ) : (
           <p className="py-4 text-center text-sm font-bold text-slate-500">{phase === "house" ? `${characterName}が振っています…` : "サイコロが転がっています…"}</p>
@@ -500,11 +518,11 @@ function HandSlot({ label, hand, active }: { label: string; hand: ChinchiroHand 
   );
 }
 
-function AfterPlay({ characterName }: { characterName: string }) {
+function AfterPlay() {
   return (
     <div className="grid grid-cols-2 gap-3">
-      <Link href="/mochi" className="rounded-xl bg-rose-500 py-3 text-center text-sm font-bold text-white">
-        {characterName}をなでる
+      <Link href="/mochi" className="rounded-xl bg-rose-500 py-3 text-center text-sm font-bold whitespace-nowrap text-white">
+        なでなでへ
       </Link>
       <Link href="/me" className="rounded-xl bg-white py-3 text-center text-sm font-bold text-rose-600 ring-1 ring-rose-200">
         マイページ

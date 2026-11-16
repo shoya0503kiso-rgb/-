@@ -116,8 +116,6 @@ body {
 /* 役が出たときの金の光 */
 @keyframes fx-glow { 0%, 100% { box-shadow: 0 14px 0 #0f172a33, 0 0 0 0 rgba(251,191,36,0); } 50% { box-shadow: 0 14px 0 #0f172a33, 0 0 40px 14px rgba(251,191,36,.85); } }
 .fx-glow { animation: fx-glow .9s ease-in-out infinite; }
-@keyframes fx-rays { to { transform: rotate(360deg); } }
-.fx-rays { animation: fx-rays 6s linear infinite; }
 
 /* トランプちゃんがはねる・しょんぼり */
 @keyframes fx-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-12px); } }
@@ -130,5 +128,5 @@ body {
 .fx-roulette { animation: fx-blur .12s linear infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .fx-confetti, .fx-pump, .fx-shake, .fx-tumble, .fx-glow, .fx-rays, .fx-hop, .fx-roulette { animation: none !important; }
+  .fx-confetti, .fx-pump, .fx-shake, .fx-tumble, .fx-glow, .fx-hop, .fx-roulette { animation: none !important; }
 }
