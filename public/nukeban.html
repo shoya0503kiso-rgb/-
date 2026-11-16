@@ -475,6 +475,7 @@ input[type=text] {
         ok.disabled = false;
         ok.textContent = q === 5 ? "結果を見る" : "次の問題へ";
         ok.onclick = function () {
+          if (finished) return;
           if (q === 5) { finished = true; done({ cleared: right >= 3, score: right, detail: "5問中 " + right + " 問正解" }); }
           else ask();
         };
