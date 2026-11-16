@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<title>抜け番大四喜</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#0f3a2c">
+<meta name="description" content="三人麻雀の抜け番の人が1回ずつミニゲームに挑戦。4人全員クリアで大四喜！">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap">
+<style>
+/* Layout: one screen at a time on a felt table. Tiles are ivory blocks; the 4 wind tiles are the progress meter. Single dark look by design. */
+:root {
+  --felt: #0f3a2c;
+  --felt-2: #164b39;
+  --felt-3: #1f6049;
+  --ivory: #fbf6e9;
+  --ivory-2: #e9dfc6;
+  --tile-back: #2f8f6a;
+  --ink: #1d1b16;
+  --text: #f3efe2;
+  --text-soft: #b9cbbf;
+  --gold: #f2c14e;
+  --red: #d8342b;
+  --blue: #1f5fbf;
+  --green: #18874a;
+  --bad: #ff7a6e;
+  --display: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --body: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(120% 80% at 50% 0%, var(--felt-2), var(--felt) 70%) fixed, var(--felt);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 24px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+main { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+h1, h2 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 2rem; letter-spacing: .04em; }
+h2 { font-size: 1.4rem; }
+p { margin: 0; }
+.soft { color: var(--text-soft); font-size: .9rem; }
+.label { font-size: .75rem; letter-spacing: .12em; color: var(--gold); font-weight: 800; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.center { text-align: center; align-items: center; }
+.panel { background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 16px; }
+
+button {
+  font: inherit; font-weight: 800; color: var(--ink); background: var(--gold);
+  border: 0; border-radius: 12px; padding: 14px 18px; cursor: pointer;
+  box-shadow: 0 3px 0 #a87f1e; touch-action: manipulation;
+}
+button:active { transform: translateY(2px); box-shadow: 0 1px 0 #a87f1e; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--ivory); outline-offset: 2px; }
+button.ghost { background: transparent; color: var(--text-soft); box-shadow: none; border: 1px solid rgba(255,255,255,.2); padding: 10px 14px; font-weight: 700; }
+button.danger { background: var(--bad); box-shadow: 0 3px 0 #9e3a31; }
+button.big { width: 100%; font-size: 1.15rem; padding: 16px; }
+button:disabled { opacity: .45; cursor: default; }
+
+input[type=text] {
+  -webkit-user-select: text; user-select: text;
+  font: inherit; width: 100%; min-width: 0; padding: 12px 14px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.25); color: var(--text);
+}
+
+/* tiles */
+.tile {
+  --w: 44px;
+  width: var(--w); height: calc(var(--w) * 1.36); flex: none;
+  background: linear-gradient(var(--ivory), var(--ivory-2));
+  border-radius: calc(var(--w) * .14);
+  box-shadow: 0 calc(var(--w) * .1) 0 var(--tile-back), 0 calc(var(--w) * .12) 4px rgba(0,0,0,.35);
+  color: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--display); line-height: 1; position: relative;
+}
+.tile b { font-weight: 400; font-size: calc(var(--w) * .5); }
+.tile i { font-style: normal; font-size: calc(var(--w) * .32); margin-top: calc(var(--w) * .06); }
+.tile.m b { color: var(--ink); } .tile.m i { color: var(--red); }
+.tile.p b, .tile.p i { color: var(--blue); }
+.tile.s b, .tile.s i { color: var(--green); }
+.tile .h { font-size: calc(var(--w) * .62); }
+.tile.z5::after { content: ""; position: absolute; inset: 18% 20%; border: 2px solid var(--blue); border-radius: 3px; }
+.tile.z6 .h { color: var(--green); } .tile.z7 .h { color: var(--red); }
+.tile.back { background: linear-gradient(var(--tile-back), #23714f); }
+.tile.back > * { visibility: hidden; }
+.tile.dim { opacity: .3; }
+
+/* winds meter */
+.winds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.seat {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 4px 10px;
+  border-radius: 14px; background: rgba(0,0,0,.2); border: 2px solid transparent; color: var(--text);
+  box-shadow: none; font-weight: 700; min-width: 0;
+}
+.seat:active { transform: none; box-shadow: none; }
+.seat .tile { --w: 46px; }
+.seat .nm { font-size: .9rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat .st { font-size: .72rem; color: var(--text-soft); font-weight: 700; }
+.seat.todo { border-color: rgba(242,193,78,.6); }
+.seat.ok .st { color: var(--gold); }
+.seat.ng .st { color: var(--bad); }
+.seat.ng .tile { filter: grayscale(1) brightness(.75); }
+.seat.todo .tile { opacity: .55; }
+
+/* game hud */
+.hud { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 800; }
+.hud .t { font-family: var(--display); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.hud .t.warn { color: var(--bad); }
+.bar { height: 8px; background: rgba(0,0,0,.3); border-radius: 99px; overflow: hidden; }
+.bar > div { height: 100%; background: var(--gold); width: 100%; transition: width .1s linear; }
+
+.board { display: grid; gap: 10px; justify-content: center; }
+.mem { grid-template-columns: repeat(4, auto); }
+.mem .tile { --w: min(18vw, 70px); cursor: pointer; transition: transform .15s; }
+.mem .tile.got { opacity: .35; transform: scale(.92); }
+
+.hand { display: flex; flex-wrap: nowrap; gap: 2px; justify-content: center; }
+.hand .tile { --w: min(34px, calc((min(100vw, 520px) - 32px - 20px - 24px) / 13)); }
+.panel.tight { padding-inline: 10px; }
+.waits { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; }
+.waits button { padding: 0; background: none; box-shadow: none; border-radius: 8px; display: flex; justify-content: center; }
+.waits button .tile { --w: min(8.5vw, 40px); transition: transform .1s; }
+.waits button.on .tile { transform: translateY(-8px); box-shadow: 0 4px 0 var(--gold), 0 0 0 3px var(--gold); }
+
+.sortrow { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; min-height: calc(min(8vw, 40px) * 1.36 + 6px); padding: 6px; border-radius: 10px; background: rgba(0,0,0,.25); }
+.sortrow .tile { --w: min(8vw, 40px); }
+.pool { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.pool .tile { --w: min(14vw, 56px); cursor: pointer; }
+.shake { animation: shake .3s; }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+.holes { grid-template-columns: repeat(3, 1fr); width: 100%; max-width: 360px; margin: 0 auto; }
+.hole { aspect-ratio: 1; max-width: 100%; border-radius: 50%; background: radial-gradient(#082419, #0b2e22 60%, var(--felt-3)); display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: inset 0 6px 12px rgba(0,0,0,.5); }
+.hole:active { transform: none; box-shadow: inset 0 6px 12px rgba(0,0,0,.5); }
+.hole .tile { --w: min(15vw, 62px); animation: pop .12s ease-out; }
+.hole .tile.hit { animation: none; transform: scale(.8) rotate(-12deg); opacity: .4; }
+@keyframes pop { from { transform: translateY(30%) scale(.7); } }
+
+.flash { font-family: var(--display); font-size: 1.1rem; min-height: 1.6em; text-align: center; }
+.flash.good { color: var(--gold); } .flash.bad { color: var(--bad); }
+
+.count { font-family: var(--display); font-size: 6rem; text-align: center; color: var(--gold); line-height: 1; padding: 40px 0; }
+
+.big-yaku { font-family: var(--display); font-size: 3rem; color: var(--gold); text-align: center; line-height: 1.15; letter-spacing: .06em; }
+.points { font-family: var(--display); font-size: 1.6rem; text-align: center; }
+.res-list { display: flex; flex-direction: column; gap: 8px; }
+.res-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,.2); }
+.res-row .tile { --w: 32px; }
+.res-row .who { min-width: 0; }
+.res-row .who div:first-child { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.res-row .sc { font-weight: 800; text-align: right; white-space: nowrap; }
+.res-row .who .soft { font-size: .8rem; line-height: 1.45; }
+.ok-c { color: var(--gold); } .ng-c { color: var(--bad); }
+
+.rules { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+.confirm { display: flex; flex-direction: column; gap: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+(function () {
+  "use strict";
+  var WINDS = ["東", "南", "西", "北"];
+  var KEY = "nukeban-daisuushi-v1";
+  var KAN = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+  var HONOR = ["", "東", "南", "西", "北", "白", "發", "中"];
+  // 三麻の牌：萬子は1と9だけ
+  var KINDS = ["m1", "m9"];
+  for (var n = 1; n <= 9; n++) KINDS.push("p" + n);
+  for (n = 1; n <= 9; n++) KINDS.push("s" + n);
+  for (n = 1; n <= 7; n++) KINDS.push("z" + n);
+
+  var app = document.getElementById("app");
+  var cleanup = [];
+  function clearTimers() { cleanup.forEach(function (f) { f(); }); cleanup = []; }
+  function every(ms, fn) { var id = setInterval(fn, ms); cleanup.push(function () { clearInterval(id); }); return id; }
+  function later(ms, fn) { var id = setTimeout(fn, ms); cleanup.push(function () { clearTimeout(id); }); return id; }
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+  function tile(code, cls) {
+    var s = code[0], v = +code.slice(1), inner;
+    if (s === "m") inner = "<b>" + KAN[v] + "</b><i>萬</i>";
+    else if (s === "p") inner = "<b>" + v + "</b><i>筒</i>";
+    else if (s === "s") inner = "<b>" + v + "</b><i>索</i>";
+    else inner = v === 5 ? "<b class=\"h\"></b>" : "<b class=\"h\">" + HONOR[v] + "</b>";
+    var name = s === "z" ? HONOR[v] : (s === "m" ? KAN[v] + "萬" : v + (s === "p" ? "筒" : "索"));
+    return "<div class=\"tile " + s + (s === "z" ? " z" + v : "") + (cls ? " " + cls : "") + "\" role=\"img\" aria-label=\"" + name + "\">" + inner + "</div>";
+  }
+  function windTile(i, cls) { return tile("z" + (i + 1), cls); }
+
+  // ---------- state ----------
+  var state = load();
+  function load() {
+    try { var s = JSON.parse(localStorage.getItem(KEY)); if (s && s.players && s.players.length === 4) return s; } catch (e) {}
+    return null;
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  // ---------- games ----------
+  var GAMES = [
+    {
+      name: "牌の神経衰弱", sub: "記憶力",
+      rules: ["16枚の牌が裏向きで並びます", "2枚ずつめくって、同じ牌をそろえる", "60秒以内に8組ぜんぶそろえたらクリア"],
+      unit: "組", run: runMemory
+    },
+    {
+      name: "清一色の待ち当て", sub: "牌効率",
+      rules: ["筒子だけの13枚の手牌が出ます", "待ちの牌をぜんぶ選んで「これで決定」", "待ちが何種類あるかは教えます", "5問中3問正解でクリア（時間制限なし）"],
+      unit: "問", run: runChinitsu
+    },
+    {
+      name: "理牌スピード", sub: "手さばき",
+      rules: ["バラバラの牌10枚を、理牌する順番でタップ", "順番は 萬子 → 筒子 → 索子 → 東南西北白發中、数字は小さい順", "まちがえると2秒減ります", "60秒以内に3局ぶん並べ終えたらクリア"],
+      unit: "秒", run: runRipai
+    },
+    {
+      name: "北抜きモグラ", sub: "反射神経",
+      rules: ["穴から牌が顔を出します", "「北」だけタップして抜く（+1）", "北以外をタップすると −1", "30秒で15枚以上抜いたらクリア"],
+      unit: "枚", run: runNorth
+    }
+  ];
+
+  // ---------- screens ----------
+  function render(html) { clearTimers(); app.innerHTML = html; window.scrollTo(0, 0); }
+
+  function screenSetup() {
+    var names = state ? state.players.map(function (p) { return p.name; }) : ["", "", "", ""];
+    render(
+      "<header class=\"stack\"><p class=\"label\">三人麻雀・抜け番用</p><h1>抜け番大四喜</h1>" +
+      "<p class=\"soft\">抜け番になった人が、自分の風のミニゲームに1回だけ挑戦。クリアするとその風牌がもらえて、4人ぜんぶそろえば<b>大四喜</b>です。スマホ1台をみんなで回して使います。</p></header>" +
+      "<section class=\"panel stack\"><p class=\"label\">メンバー（4人）</p>" +
+      WINDS.map(function (w, i) {
+        return "<label class=\"row\" for=\"nm" + i + "\" style=\"flex-wrap:nowrap\">" + windTile(i, "") +
+          "<span class=\"stack\" style=\"gap:2px;flex:1;min-width:0\"><span class=\"soft\">" + GAMES[i].name + "</span>" +
+          "<input type=\"text\" id=\"nm" + i + "\" maxlength=\"10\" placeholder=\"" + w + "の人の名前\" value=\"" + esc(names[i]) + "\"></span></label>";
+      }).join("") +
+      "</section><button class=\"big\" id=\"go\">この4人ではじめる</button>"
+    );
+    app.querySelectorAll(".panel .tile").forEach(function (t) { t.style.setProperty("--w", "40px"); });
+    document.getElementById("go").onclick = function () {
+      var ps = WINDS.map(function (w, i) {
+        var v = document.getElementById("nm" + i).value.trim();
+        return { name: v || w + "の人", done: false, cleared: false, score: 0 };
+      });
+      state = { players: ps };
+      save();
+      screenHome();
+    };
+  }
+
+  function cleared() { return state.players.filter(function (p) { return p.cleared; }).length; }
+  function doneCount() { return state.players.filter(function (p) { return p.done; }).length; }
+
+  function screenHome() {
+    if (doneCount() === 4) return screenFinal();
+    render(
+      "<header class=\"stack\"><p class=\"label\">抜け番大四喜</p><h2>抜け番の人は、自分の名前をタップ</h2>" +
+      "<p class=\"soft\">挑戦は1人1回。あと " + (4 - doneCount()) + " 人。</p></header>" +
+      "<div class=\"winds\">" + state.players.map(function (p, i) {
+        var cls = !p.done ? "todo" : p.cleared ? "ok" : "ng";
+        var st = !p.done ? "まだ" : p.cleared ? "クリア" : "失敗";
+        return "<button class=\"seat " + cls + "\" data-i=\"" + i + "\">" + windTile(i) +
+          "<span class=\"nm\">" + esc(p.name) + "</span><span class=\"st\">" + st + "</span></button>";
+      }).join("") + "</div>" +
+      "<section class=\"panel stack\"><p class=\"label\">いまの手</p><p>" + yakuFor(cleared(), true).now + "</p></section>" +
+      "<div class=\"row\" style=\"justify-content:space-between\"><button class=\"ghost\" id=\"names\">名前を直す</button><button class=\"ghost\" id=\"reset\">最初からやり直す</button></div>" +
+      "<div id=\"cf\"></div>"
+    );
+    app.querySelectorAll(".seat").forEach(function (b) {
+      b.onclick = function () {
+        var i = +b.getAttribute("data-i");
+        if (state.players[i].done) screenPlayerResult(i); else screenIntro(i);
+      };
+    });
+    document.getElementById("names").onclick = screenNames;
+    document.getElementById("reset").onclick = function () { confirmReset(document.getElementById("cf")); };
+  }
+
+  function confirmReset(box) {
+    box.innerHTML = "<div class=\"panel confirm\"><p>記録を全部消して、最初からやり直しますか？</p>" +
+      "<div class=\"row\"><button class=\"danger\" id=\"yes\">消してやり直す</button><button class=\"ghost\" id=\"no\">やめる</button></div></div>";
+    document.getElementById("yes").onclick = function () { state = null; try { localStorage.removeItem(KEY); } catch (e) {} screenSetup(); };
+    document.getElementById("no").onclick = function () { box.innerHTML = ""; };
+  }
+
+  function screenNames() {
+    render(
+      "<h2>名前を直す</h2><section class=\"panel stack\">" + state.players.map(function (p, i) {
+        return "<label class=\"row\" for=\"nm" + i + "\" style=\"flex-wrap:nowrap\">" + windTile(i) +
+          "<input type=\"text\" id=\"nm" + i + "\" maxlength=\"10\" value=\"" + esc(p.name) + "\"></label>";
+      }).join("") + "</section><button class=\"big\" id=\"ok\">保存</button>"
+    );
+    app.querySelectorAll(".panel .tile").forEach(function (t) { t.style.setProperty("--w", "36px"); });
+    document.getElementById("ok").onclick = function () {
+      state.players.forEach(function (p, i) { var v = document.getElementById("nm" + i).value.trim(); if (v) p.name = v; });
+      save(); screenHome();
+    };
+  }
+
+  function screenIntro(i) {
+    var g = GAMES[i], p = state.players[i];
+    render(
+      "<header class=\"stack center\">" + windTile(i).replace("class=\"tile", "style=\"--w:64px\" class=\"tile") +
+      "<p class=\"label\">" + WINDS[i] + "の試練 ・ " + g.sub + "</p><h2>" + esc(p.name) + " さん<br>「" + g.name + "」</h2></header>" +
+      "<section class=\"panel\"><ul class=\"rules\">" + g.rules.map(function (r) { return "<li>" + r + "</li>"; }).join("") + "</ul></section>" +
+      "<p class=\"soft center\" style=\"text-align:center\">チャンスは1回だけ。スタート後に画面を閉じると失敗になります。</p>" +
+      "<button class=\"big\" id=\"start\">スタート</button><button class=\"ghost\" id=\"back\">戻る（まだやらない）</button>"
+    );
+    document.getElementById("back").onclick = screenHome;
+    document.getElementById("start").onclick = function () {
+      // ここから先は1回ぶんとして数える（途中で閉じても失敗扱い）
+      p.done = true; p.cleared = false; p.score = 0; save();
+      countdown(function () {
+        g.run(function (res) {
+          clearTimers();
+          p.cleared = res.cleared; p.score = res.score; p.detail = res.detail; save();
+          screenGameEnd(i);
+        });
+      });
+    };
+  }
+
+  function countdown(next) {
+    var n = 3;
+    render("<div class=\"count\" id=\"c\">3</div>");
+    every(700, function () {
+      n--;
+      var c = document.getElementById("c");
+      if (n > 0) c.textContent = n;
+      else if (n === 0) c.textContent = "はじめ！";
+      else { clearTimers(); next(); }
+    });
+  }
+
+  function hud(left) {
+    return "<div class=\"hud\"><span>" + left + "</span><span class=\"t\" id=\"t\"></span></div><div class=\"bar\"><div id=\"bar\"></div></div>";
+  }
+  function timer(sec, onEnd) {
+    var end = Date.now() + sec * 1000, total = sec * 1000;
+    var api = {
+      left: function () { return Math.max(0, end - Date.now()) / 1000; },
+      add: function (s) { end += s * 1000; },
+      stop: function () { stopped = true; }
+    };
+    var stopped = false;
+    function tick() {
+      if (stopped) return;
+      var ms = Math.max(0, end - Date.now());
+      var t = document.getElementById("t"), b = document.getElementById("bar");
+      if (t) { t.textContent = (ms / 1000).toFixed(1); t.classList.toggle("warn", ms < 10000); }
+      if (b) b.style.width = Math.min(100, ms / total * 100) + "%";
+      if (ms <= 0) { stopped = true; onEnd(); }
+    }
+    every(100, tick); tick();
+    return api;
+  }
+
+  // 東：神経衰弱
+  function runMemory(done) {
+    var kinds = shuffle(KINDS.slice()).slice(0, 8);
+    var deck = shuffle(kinds.concat(kinds));
+    var open = [], got = 0, lock = false, finished = false;
+    render(hud("そろえた <b id=\"g\">0</b> / 8 組") + "<div class=\"board mem\" id=\"b\">" +
+      deck.map(function (c, k) { return "<div data-k=\"" + k + "\">" + tile(c, "back") + "</div>"; }).join("") + "</div><p class=\"flash\" id=\"f\"></p>");
+    var tm = timer(60, function () { end(); });
+    function end() {
+      if (finished) return; finished = true; tm.stop();
+      var left = Math.ceil(tm.left());
+      done({ cleared: got === 8, score: got, detail: got === 8 ? "残り " + left + " 秒でコンプリート" : "8組中 " + got + " 組" });
+    }
+    document.getElementById("b").onclick = function (e) {
+      var cell = e.target.closest("[data-k]"); if (!cell || lock || finished) return;
+      var t = cell.firstChild; if (!t.classList.contains("back") || t.classList.contains("got")) return;
+      t.classList.remove("back"); open.push(cell);
+      if (open.length < 2) return;
+      var a = open[0], b = open[1]; open = [];
+      if (deck[+a.dataset.k] === deck[+b.dataset.k]) {
+        a.firstChild.classList.add("got"); b.firstChild.classList.add("got"); got++;
+        document.getElementById("g").textContent = got;
+        if (got === 8) later(400, end);
+      } else {
+        lock = true;
+        later(650, function () { a.firstChild.classList.add("back"); b.firstChild.classList.add("back"); lock = false; });
+      }
+    };
+  }
+
+  // 南：清一色待ち当て
+  function canSets(c) {
+    var i = 0; while (i < 9 && c[i] === 0) i++;
+    if (i === 9) return true;
+    if (c[i] >= 3) { c[i] -= 3; var ok = canSets(c); c[i] += 3; if (ok) return true; }
+    if (i <= 6 && c[i + 1] > 0 && c[i + 2] > 0) { c[i]--; c[i + 1]--; c[i + 2]--; var ok2 = canSets(c); c[i]++; c[i + 1]++; c[i + 2]++; if (ok2) return true; }
+    return false;
+  }
+  function isAgari(c) {
+    if (c.filter(function (x) { return x === 2; }).length === 7) return true; // 七対子
+    for (var i = 0; i < 9; i++) if (c[i] >= 2) { c[i] -= 2; var ok = canSets(c); c[i] += 2; if (ok) return true; }
+    return false;
+  }
+  function waitsOf(c) {
+    var w = [];
+    for (var t = 0; t < 9; t++) if (c[t] < 4) { c[t]++; if (isAgari(c)) w.push(t); c[t]--; }
+    return w;
+  }
+  function makeChinitsu() {
+    for (var tries = 0; tries < 20000; tries++) {
+      var wall = []; for (var t = 0; t < 9; t++) for (var k = 0; k < 4; k++) wall.push(t);
+      shuffle(wall);
+      var c = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+      wall.slice(0, 13).forEach(function (x) { c[x]++; });
+      var w = waitsOf(c);
+      if (w.length >= 2 && w.length <= 5) return { c: c, w: w };
+    }
+    return { c: [3, 1, 1, 1, 1, 1, 1, 1, 3], w: [0, 1, 2, 3, 4, 5, 6, 7, 8] };
+  }
+  function runChinitsu(done) {
+    var q = 0, right = 0, finished = false;
+    function ask() {
+      var h = makeChinitsu(), sel = {};
+      var tiles = []; h.c.forEach(function (n, t) { for (var k = 0; k < n; k++) tiles.push("p" + (t + 1)); });
+      render(
+        "<div class=\"hud\"><span>第 " + (q + 1) + " 問 / 5</span><span>正解 " + right + "</span></div>" +
+        "<section class=\"panel tight stack center\"><div class=\"hand\">" + tiles.map(function (c) { return tile(c); }).join("") + "</div>" +
+        "<p>待ちは <b style=\"color:var(--gold);font-size:1.3em\">" + h.w.length + "</b> 種類</p></section>" +
+        "<p class=\"soft\" style=\"text-align:center\">待ちだと思う牌をタップ（もう一度で解除）</p>" +
+        "<div class=\"waits\" id=\"w\">" + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(function (n) { return "<button data-n=\"" + (n - 1) + "\" aria-pressed=\"false\">" + tile("p" + n) + "</button>"; }).join("") + "</div>" +
+        "<p class=\"flash\" id=\"f\"></p><button class=\"big\" id=\"ok\" disabled>待ちを選んでください</button>"
+      );
+      document.getElementById("w").onclick = function (e) {
+        var b = e.target.closest("button"); if (!b || b.disabled) return;
+        var n = +b.dataset.n; sel[n] = !sel[n]; b.classList.toggle("on", sel[n]); b.setAttribute("aria-pressed", sel[n] ? "true" : "false");
+        var any = Object.keys(sel).some(function (k) { return sel[k]; });
+        var okb = document.getElementById("ok");
+        okb.disabled = !any; okb.textContent = any ? "これで決定" : "待ちを選んでください";
+      };
+      // 出題直後は何も選んでいないので「これで決定」は押せない（「次の問題へ」の連打が回答にならない）
+      document.getElementById("ok").onclick = function () {
+        if (finished) return;
+        var mine = Object.keys(sel).filter(function (k) { return sel[k]; }).map(Number).sort();
+        var good = mine.length === h.w.length && mine.every(function (x, k) { return x === h.w[k]; });
+        if (good) right++;
+        q++;
+        var f = document.getElementById("f");
+        f.className = "flash " + (good ? "good" : "bad");
+        f.textContent = (good ? "正解！ " : "ざんねん… ") + "答え：" + h.w.map(function (t) { return (t + 1) + "筒"; }).join("・");
+        app.querySelectorAll("#w button").forEach(function (b) {
+          b.disabled = true;
+          if (h.w.indexOf(+b.dataset.n) < 0) b.querySelector(".tile").classList.add("dim");
+        });
+        var ok = document.getElementById("ok");
+        ok.disabled = false;
+        ok.textContent = q === 5 ? "結果を見る" : "次の問題へ";
+        ok.onclick = function () {
+          if (q === 5) { finished = true; done({ cleared: right >= 3, score: right, detail: "5問中 " + right + " 問正解" }); }
+          else ask();
+        };
+      };
+    }
+    ask();
+  }
+
+  // 西：理牌スピード
+  function sortKey(c) { return "mpsz".indexOf(c[0]) * 10 + +c.slice(1); }
+  function runRipai(done) {
+    var round = 0, finished = false, miss = 0, hand, placed;
+    render(hud("第 <b id=\"r\">1</b> 局 / 3") + "<p class=\"soft\" style=\"text-align:center\">萬 → 筒 → 索 → 東南西北白發中、小さい順</p>" +
+      "<div class=\"sortrow\" id=\"row\"></div><div class=\"pool\" id=\"pool\"></div><p class=\"flash\" id=\"f\"></p>");
+    var tm = timer(60, function () { end(false); });
+    function deal() {
+      var wall = []; KINDS.forEach(function (k) { for (var i = 0; i < 4; i++) wall.push(k); });
+      hand = shuffle(wall).slice(0, 10); placed = [];
+      document.getElementById("r").textContent = round + 1;
+      document.getElementById("row").innerHTML = "";
+      document.getElementById("pool").innerHTML = hand.map(function (c, k) { return "<div data-k=\"" + k + "\">" + tile(c) + "</div>"; }).join("");
+    }
+    function end(all) {
+      if (finished) return; finished = true; tm.stop();
+      var left = Math.round(tm.left() * 10) / 10;
+      done({ cleared: all, score: all ? left : round, detail: all ? "残り " + left.toFixed(1) + " 秒で3局クリア（ミス " + miss + " 回）" : "3局中 " + round + " 局まで" });
+    }
+    document.getElementById("pool").onclick = function (e) {
+      if (finished) return;
+      var cell = e.target.closest("[data-k]"); if (!cell) return;
+      var c = hand[+cell.dataset.k];
+      var rest = hand.filter(function (x, k) { return placed.indexOf(k) < 0; });
+      var min = Math.min.apply(null, rest.map(sortKey));
+      var f = document.getElementById("f");
+      if (sortKey(c) === min) {
+        placed.push(+cell.dataset.k);
+        cell.remove();
+        document.getElementById("row").insertAdjacentHTML("beforeend", tile(c));
+        f.textContent = "";
+        if (placed.length === 10) {
+          round++;
+          if (round === 3) end(true);
+          else { f.className = "flash good"; f.textContent = "OK！ 次の局"; deal(); }
+        }
+      } else {
+        miss++; tm.add(-2);
+        cell.firstChild.classList.remove("shake"); void cell.firstChild.offsetWidth; cell.firstChild.classList.add("shake");
+        f.className = "flash bad"; f.textContent = "ちがう！ −2秒";
+      }
+    };
+    deal();
+  }
+
+  // 北：北抜きモグラ
+  function runNorth(done) {
+    var score = 0, hits = 0, wrong = 0, finished = false, elapsed = 0;
+    render(hud("抜いた北 <b id=\"s\">0</b> 枚（目標15）") + "<div class=\"board holes\" id=\"h\">" +
+      [0, 1, 2, 3, 4, 5, 6, 7, 8].map(function (k) { return "<button class=\"hole\" data-k=\"" + k + "\" aria-label=\"穴" + (k + 1) + "\"></button>"; }).join("") +
+      "</div><p class=\"flash\" id=\"f\"></p>");
+    var holes = Array.prototype.slice.call(app.querySelectorAll(".hole"));
+    var live = {}; // k -> {code, until}
+    var others = KINDS.filter(function (k) { return k !== "z4"; });
+    var tm = timer(30, function () {
+      if (finished) return; finished = true;
+      done({ cleared: score >= 15, score: score, detail: "北 " + hits + " 枚抜き・おてつき " + wrong + " 回 → " + score + " 枚" });
+    });
+    function spawn() {
+      var free = holes.filter(function (h, k) { return !live[k]; });
+      if (!free.length) return;
+      var h = pick(free), k = +h.dataset.k;
+      var code = Math.random() < 0.45 ? "z4" : pick(others);
+      var stay = Math.max(650, 1300 - elapsed * 20);
+      live[k] = { code: code, until: Date.now() + stay };
+      h.innerHTML = tile(code);
+    }
+    every(100, function () {
+      if (finished) return;
+      var now = Date.now();
+      Object.keys(live).forEach(function (k) { if (live[k].until <= now) { delete live[k]; holes[k].innerHTML = ""; } });
+    });
+    var acc = 0;
+    every(50, function () {
+      if (finished) return;
+      elapsed = 30 - tm.left();
+      acc += 50;
+      var gap = Math.max(380, 750 - elapsed * 12);
+      if (acc >= gap) { acc = 0; spawn(); if (elapsed > 12 && Math.random() < 0.35) spawn(); }
+    });
+    document.getElementById("h").onclick = function (e) {
+      if (finished) return;
+      var h = e.target.closest(".hole"); if (!h) return;
+      var k = +h.dataset.k, it = live[k]; if (!it) return;
+      delete live[k];
+      var f = document.getElementById("f");
+      var t = h.querySelector(".tile"); if (t) t.classList.add("hit");
+      later(160, function () { if (!live[k]) h.innerHTML = ""; });
+      if (it.code === "z4") { score++; hits++; f.className = "flash good"; f.textContent = "北抜き！"; }
+      else { score--; wrong++; f.className = "flash bad"; f.textContent = "おてつき −1"; }
+      document.getElementById("s").textContent = score;
+    };
+    spawn();
+  }
+
+  // ---------- results ----------
+  function yakuFor(n, home) {
+    var table = [
+      { yaku: "ノーテン", pts: "罰符 3000点", now: "まだ風牌はありません。最初の抜け番の人、たのみます！" },
+      { yaku: "役牌", pts: "1翻 1000点", now: "風牌1枚。役牌は確定！" },
+      { yaku: "役牌×2", pts: "2翻 2000点", now: "風牌2枚。まだまだ伸びます" },
+      { yaku: "小四喜", pts: "役満 32000点", now: "風牌3枚。小四喜が見えてきた！" },
+      { yaku: "大四喜", pts: "ダブル役満 64000点", now: "4枚そろった！ 大四喜！" }
+    ];
+    return table[n];
+  }
+
+  function screenGameEnd(i) {
+    var p = state.players[i], all = doneCount() === 4;
+    render(
+      "<div class=\"stack center\" style=\"padding-top:20px\">" +
+      windTile(i, p.cleared ? "" : "dim").replace("class=\"tile", "style=\"--w:80px\" class=\"tile") +
+      "<h1 class=\"" + (p.cleared ? "ok-c" : "ng-c") + "\">" + (p.cleared ? "クリア！" : "ざんねん…") + "</h1>" +
+      "<p>" + esc(p.detail || "") + "</p>" +
+      "<p class=\"soft\">" + (p.cleared ? WINDS[i] + "をゲット。" : WINDS[i] + "は取れませんでした。") + "風牌 " + cleared() + " / 4</p></div>" +
+      "<button class=\"big\" id=\"next\">" + (all ? "4人の結果を見る" : "スマホを卓に戻す") + "</button>"
+    );
+    document.getElementById("next").onclick = all ? screenFinal : screenHome;
+  }
+
+  function screenPlayerResult(i) {
+    var p = state.players[i];
+    render(
+      "<div class=\"stack center\" style=\"padding-top:20px\">" + windTile(i, p.cleared ? "" : "dim").replace("class=\"tile", "style=\"--w:64px\" class=\"tile") +
+      "<h2>" + esc(p.name) + " さんは挑戦ずみ</h2><p class=\"" + (p.cleared ? "ok-c" : "ng-c") + "\">" + GAMES[i].name + "：" + (p.cleared ? "クリア" : "失敗") + "</p>" +
+      "<p class=\"soft\">" + esc(p.detail || "途中で終わりました") + "</p></div><button class=\"big\" id=\"b\">戻る</button>"
+    );
+    document.getElementById("b").onclick = screenHome;
+  }
+
+  function screenFinal() {
+    var n = cleared(), y = yakuFor(n);
+    render(
+      "<div class=\"stack center\"><p class=\"label\">全員の抜け番が終わりました</p>" +
+      "<div class=\"row\" style=\"justify-content:center;gap:6px\">" + state.players.map(function (p, i) { return windTile(i, p.cleared ? "" : "dim").replace("class=\"tile", "style=\"--w:56px\" class=\"tile"); }).join("") + "</div>" +
+      "<div class=\"big-yaku\" id=\"yk\">" + y.yaku + "</div><div class=\"points\">" + y.pts + "</div>" +
+      "<p class=\"soft\">" + (n === 4 ? "4人全員クリア。お見事！" : "風牌 " + n + " / 4。次の半荘でリベンジ！") + "</p></div>" +
+      "<div class=\"res-list\">" + state.players.map(function (p, i) {
+        return "<div class=\"res-row\">" + windTile(i, p.cleared ? "" : "dim") +
+          "<div class=\"who\"><div>" + esc(p.name) + "</div><div class=\"soft\">" + GAMES[i].name + "・" + esc(p.detail || "途中で終了") + "</div></div>" +
+          "<div class=\"sc " + (p.cleared ? "ok-c" : "ng-c") + "\">" + (p.cleared ? "クリア" : "失敗") + "</div></div>";
+      }).join("") + "</div>" +
+      "<button class=\"big\" id=\"again\">同じメンバーでもう一周</button><div id=\"cf\"></div>" +
+      "<button class=\"ghost\" id=\"newm\">メンバーを変える</button>"
+    );
+    if (n === 4) celebrate();
+    document.getElementById("again").onclick = function () {
+      var box = document.getElementById("cf");
+      box.innerHTML = "<div class=\"panel confirm\"><p>この結果を消して、同じ4人でもう一周しますか？</p>" +
+        "<div class=\"row\"><button id=\"yes\">もう一周する</button><button class=\"ghost\" id=\"no\">やめる</button></div></div>";
+      document.getElementById("yes").onclick = function () {
+        state.players.forEach(function (p) { p.done = false; p.cleared = false; p.score = 0; p.detail = ""; });
+        save(); screenHome();
+      };
+      document.getElementById("no").onclick = function () { box.innerHTML = ""; };
+    };
+    document.getElementById("newm").onclick = screenSetup;
+  }
+
+  function celebrate() {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
+    var yk = document.getElementById("yk");
+    var k = 0;
+    every(120, function () { if (yk) yk.style.transform = "scale(" + (1 + 0.06 * Math.sin(k++ / 2)) + ")"; });
+  }
+
+  if (!state) screenSetup(); else screenHome();
+})();
+</script>
+</body>
+</html>
