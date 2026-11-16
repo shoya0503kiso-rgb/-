@@ -159,7 +159,7 @@ function Janken({ onDone, reward, pointName, characterName, sfx, reduced }: Comm
       setPhase("pick");
       setLine("あれ？ うまくいかなかったみたい");
       // 通信の失敗は、サーバーに記録されたか分からないので開き直してもらう
-      setError(res ? res.error : "通信できませんでした。画面を開き直してください");
+      setError(res ? res.error : "通信できませんでした。開き直してね");
       return;
     }
     const d = res.data!;
@@ -369,7 +369,7 @@ function Chinchiro({ onDone, rewards, pointName, characterName, sfx, reduced }: 
     if (!alive.current) return;
     if (!res || !res.ok) {
       setPhase("ready");
-      setError(res ? res.error : "通信できませんでした。画面を開き直してください");
+      setError(res ? res.error : "通信できませんでした。開き直してね");
       return;
     }
     const d = res.data! as CData;

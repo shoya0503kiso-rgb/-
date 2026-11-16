@@ -87,7 +87,15 @@ export function useSfx() {
       on,
       toggle,
       /** タップの中で呼んで、あとから鳴らす音を出せるようにしておく（iPhone 対策） */
-      unlock: () => void ctx(),
+      unlock: () => {
+        // 古い iOS は音を1回鳴らすまで無音のままなので、聞こえない音を一瞬だけ鳴らす
+        const c = ctx();
+        if (!c) return;
+        const src = c.createBufferSource();
+        src.buffer = c.createBuffer(1, 1, c.sampleRate);
+        src.connect(c.destination);
+        src.start();
+      },
       /** 手やサイコロの目が切り替わるカチカチ */
       tick: () => tone(1100, 0.03, { type: "square", vol: 0.025 }),
       /** 「じゃん」「けん」「ぽん」 */
