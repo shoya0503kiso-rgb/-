@@ -1,0 +1,98 @@
+// 忘年会予約のDB設計。開発は SQLite、本番は PostgreSQL（Neon）を想定。
+// 両方で動くよう enum / Json 型は使わず String で保持する。日付は JST の "YYYY-MM-DD"。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// 管理画面のスタッフアカウント（ログイン方法は暫定。docs/provisional.md 参照）
+model AdminUser {
+  id                 String   @id @default(cuid())
+  loginId            String   @unique
+  name               String
+  passwordHash       String
+  active             Boolean  @default(true)
+  /// ログアウト・パスワード変更で +1 し、発行済みセッションを失効させる
+  tokenVersion       Int      @default(0)
+  /// 初期・仮パスワードのまま（変更するまで他の画面に入れない）
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+/// ログイン失敗の記録（総当たり対策）
+model LoginFailure {
+  id        String   @id @default(cuid())
+  loginId   String
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([loginId, createdAt])
+  @@index([ip, createdAt])
+}
+
+/// 予約
+model Reservation {
+  id               String    @id @default(cuid())
+  /// お客さんに伝える受付番号（例 B1A2C3）
+  code             String    @unique
+  /// "company"（会社・団体） / "friends"（友人・個人グループ）
+  groupType        String
+  representative   String
+  companyName      String    @default("")
+  phone            String
+  email            String
+  /// 利用日 "YYYY-MM-DD"
+  date             String
+  /// スタート時刻（0時からの分。例 19:30 → 1170）
+  startMin         Int
+  /// "basic" / "casino"
+  plan             String
+  /// 予約時の人数
+  bookedPeople     Int
+  /// 現在の人数（管理画面で変更）
+  people           Int
+  extensionHours   Int
+  hors             Boolean
+  /// 現在の人数での合計金額の目安
+  estimate         Int
+  /// 申込元の接続元（いたずら対策の回数制限用）
+  ip               String    @default("")
+  /// "active" / "cancelled"
+  status           String    @default("active")
+  /// 前日確認済み
+  confirmed        Boolean   @default(false)
+  note             String    @default("")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  cancelledAt      DateTime?
+
+  @@index([date, status])
+}
+
+/// 1日ごとのロック行（同時に2件来ても枠の判定が崩れないようにする）
+model DayLock {
+  date      String   @id
+  version   Int      @default(0)
+}
+
+/// 通知の送信履歴（LINE・メール。未設定のときは送らずにここだけ記録）
+model NotificationLog {
+  id            String   @id @default(cuid())
+  /// "line" / "email"
+  channel       String
+  to            String   @default("")
+  body          String
+  /// "sent" / "mock" / "failed"
+  status        String
+  error         String   @default("")
+  reservationId String?
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+}

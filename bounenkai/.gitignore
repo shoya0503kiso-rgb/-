@@ -1,0 +1,12 @@
+/node_modules
+/.next/
+/out/
+.env*
+!.env.example
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+/prisma/*.db
+/prisma/*.db-journal
+/test-results
+/playwright-report

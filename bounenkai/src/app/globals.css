@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0c0c0f;
+  --color-panel: #16161b;
+  --color-panel2: #1d1d23;
+  --color-line: #3a3324;
+  --color-gold: #e2bd52;
+  --color-gold2: #f3d77f;
+  --color-chip: #9b1c24;
+  --color-muted: #a3a09a;
+  --font-serif: "Cinzel", "Times New Roman", "Hiragino Mincho ProN", serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: #0c0c0f;
+  color: #f1ede4;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 管理画面は明るい配色 */
+.admin-root {
+  background: #f6f5f2;
+  color: #1f1d1a;
+  color-scheme: light;
+  min-height: 100dvh;
+}
+
+.gold-text {
+  background: linear-gradient(180deg, #f7e19a 0%, #e2bd52 55%, #b98d2c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gold-btn {
+  background: linear-gradient(180deg, #f3d77f 0%, #dcb24a 60%, #c39a35 100%);
+  color: #1b1607;
+  box-shadow: 0 6px 24px -6px rgba(226, 189, 82, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.gold-btn:disabled {
+  background: #4a4639;
+  color: #9a9483;
+  box-shadow: none;
+}
+
+.felt {
+  background:
+    radial-gradient(120% 80% at 80% 0%, rgba(226, 189, 82, 0.13), transparent 60%),
+    radial-gradient(90% 70% at 0% 100%, rgba(155, 28, 36, 0.18), transparent 60%),
+    #0c0c0f;
+}
+
+/* ポーカーチップ風の番号 */
+.chip-num {
+  background:
+    radial-gradient(circle, #9b1c24 0 52%, transparent 53%),
+    repeating-conic-gradient(#f4efe4 0 12deg, #9b1c24 12deg 30deg);
+  box-shadow: 0 0 0 2px #9b1c24;
+}
+.chip-num > span {
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+}
+
+@keyframes float-card {
+  0%, 100% { transform: translateY(0) rotate(var(--r)); }
+  50% { transform: translateY(-6px) rotate(var(--r)); }
+}
+.float-card {
+  animation: float-card 6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-card { animation: none; }
+}

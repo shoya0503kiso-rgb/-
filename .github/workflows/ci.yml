@@ -67,3 +67,30 @@ jobs:
         run: npm test
       - name: ビルド
         run: npx next build
+
+  bounenkai:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: bounenkai
+    env:
+      DATABASE_URL: file:./ci.db
+      SESSION_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      APP_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: bounenkai/package-lock.json
+      - run: npm ci
+      - name: 型チェック
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: テスト
+        run: npm test
+      - name: ビルド
+        run: npx next build
