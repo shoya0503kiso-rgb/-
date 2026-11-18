@@ -30,13 +30,13 @@ export async function sendLinePush(text: string, reservationId?: string) {
   }
 }
 
-export async function sendMail(to: string, subject: string, text: string, reservationId?: string) {
+export async function sendMail(to: string, subject: string, text: string, reservationId?: string): Promise<"sent" | "mock" | "failed"> {
   const key = process.env.RESEND_API_KEY?.trim();
   const from = process.env.MAIL_FROM?.trim();
   const body = `件名：${subject}\n\n${text}`;
   if (!key || !from) {
     await log({ channel: "email", to, body, status: "mock", reservationId });
-    return;
+    return "mock";
   }
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -46,8 +46,10 @@ export async function sendMail(to: string, subject: string, text: string, reserv
     });
     if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 300)}`);
     await log({ channel: "email", to, body, status: "sent", reservationId });
+    return "sent";
   } catch (e) {
     console.error(e);
     await log({ channel: "email", to, body, status: "failed", error: String(e), reservationId });
+    return "failed";
   }
 }

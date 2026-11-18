@@ -22,6 +22,7 @@ import {
   type GroupType,
   type Plan,
 } from "@/lib/booking";
+import { formatPhone, isValidEmail, isValidPhone } from "@/lib/validate";
 import { START_STEP_MIN, STORE, TAX_INCLUDED } from "@/lib/config";
 import { cancelPolicyText, PRICE_NOTE } from "@/lib/policy";
 import { prisma, type Tx } from "./db";
@@ -80,10 +81,9 @@ export const reservationInput = z.object({
   people: z.coerce.number().int().min(MIN_PEOPLE, `人数は${MIN_PEOPLE}〜${MAX_PEOPLE}名です`).max(MAX_PEOPLE, `人数は${MIN_PEOPLE}〜${MAX_PEOPLE}名です`),
   phone: z
     .string()
-    .trim()
-    .transform((s) => s.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/[－ー‐−]/g, "-"))
-    .refine((s) => /^[0-9+][0-9-]{8,15}$/.test(s) && s.replace(/\D/g, "").length >= 10, "電話番号を正しく入力してください"),
-  email: z.string().trim().max(200).email("メールアドレスを正しく入力してください"),
+    .refine(isValidPhone, "電話番号を正しく入力してください")
+    .transform(formatPhone),
+  email: z.string().trim().refine(isValidEmail, "メールアドレスを正しく入力してください"),
   date: z.string(),
   startMin: z.coerce.number().int(),
   plan: z.enum(["basic", "casino"]),
@@ -180,7 +180,7 @@ export async function createReservation(raw: unknown, now = new Date(), ip = "")
 
   const lines = summaryLines(created);
   const base = process.env.APP_BASE_URL?.replace(/\/$/, "") ?? "";
-  await Promise.all([
+  const [, mailStatus] = await Promise.all([
     sendLinePush(["🎰 忘年会の予約が入りました", "", ...lines, "", base ? `${base}/admin` : ""].join("\n").trim(), created.id),
     sendMail(
       created.email,
@@ -207,7 +207,7 @@ export async function createReservation(raw: unknown, now = new Date(), ip = "")
       created.id,
     ),
   ]);
-  return created;
+  return { ...created, mailStatus };
 }
 
 // ───────── 管理画面 ─────────

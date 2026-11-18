@@ -14,11 +14,11 @@ export async function POST(req: Request) {
   }
   // ボット対策のダミー欄（人には見えない）。入っていたら受け付けたふりをする
   if (body && typeof body === "object" && (body as { website?: string }).website) {
-    return NextResponse.json({ ok: true, code: "------" });
+    return NextResponse.json({ ok: true, code: "------", mailSent: true });
   }
   try {
     const r = await createReservation(body, new Date(), await clientIp());
-    return NextResponse.json({ ok: true, code: r.code });
+    return NextResponse.json({ ok: true, code: r.code, mailSent: r.mailStatus === "sent" });
   } catch (e) {
     if (e instanceof UserError) return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
     console.error(e);

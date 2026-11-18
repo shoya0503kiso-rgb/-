@@ -61,6 +61,10 @@ describe("予約", () => {
     await expect(createReservation({ ...base, date: "2026-11-19" }, now)).rejects.toThrow("受け付けていません");
     await expect(createReservation({ ...base, startMin: 17 * 60 + 15 }, now)).rejects.toThrow("スタート時間");
     await expect(createReservation({ ...base, email: "x" }, now)).rejects.toThrow("メール");
+    const odd = await createReservation({ ...base, phone: "+81 90 1234 5678", email: "abc.@docomo.ne.jp", startMin: 21 * 60 + 30, extensionHours: 0 }, now);
+    expect(odd.phone).toBe("090-1234-5678");
+    expect(odd.mailStatus).toBe("mock");
+    await prisma.reservation.delete({ where: { id: odd.id } });
     const f = await createReservation({ ...base, groupType: "friends", companyName: "消える" }, now);
     expect(f.companyName).toBe("");
   });

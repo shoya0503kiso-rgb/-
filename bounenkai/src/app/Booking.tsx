@@ -19,7 +19,8 @@ import {
   type Plan,
   type SlotInfo,
 } from "@/lib/booking";
-import { TAX_INCLUDED } from "@/lib/config";
+import { STORE, TAX_INCLUDED } from "@/lib/config";
+import { isValidEmail, isValidPhone } from "@/lib/validate";
 import { CANCEL_NOTES, CANCEL_POLICY, PRICE_NOTE } from "@/lib/policy";
 
 type DayStatus = "open" | "few" | "full" | "closed";
@@ -64,6 +65,7 @@ export function Booking({ season: initialSeason, step }: { season: Season; step:
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [mailSent, setMailSent] = useState(true);
 
   const refs = {
     date: useRef<HTMLDivElement>(null),
@@ -117,11 +119,10 @@ export function Booking({ season: initialSeason, step }: { season: Season; step:
     if (ext > maxExt) setExt(maxExt);
   }, [ext, maxExt]);
 
-  const q = quote({ plan: plan ?? "basic", people, extensionHours: Math.min(ext, maxExt), hors: hors ?? false });
+  const q = plan && quote({ plan, people, extensionHours: Math.min(ext, maxExt), hors: hors ?? false });
 
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const phoneDigits = phone.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/\D/g, "");
-  const phoneOk = phoneDigits.length >= 10 && phoneDigits.length <= 13;
+  const emailOk = isValidEmail(email);
+  const phoneOk = isValidPhone(phone);
   const missing = useMemo(() => {
     const m: { key: keyof typeof refs; label: string }[] = [];
     if (!date) m.push({ key: "date", label: "日程を選ぶ" });
@@ -166,13 +167,14 @@ export function Booking({ season: initialSeason, step }: { season: Season; step:
           website,
         }),
       });
-      const body = (await res.json()) as { ok: boolean; code?: string; error?: string };
+      const body = (await res.json()) as { ok: boolean; code?: string; error?: string; mailSent?: boolean };
       if (!body.ok) {
         setSendError(body.error ?? "送信に失敗しました");
         // 枠が埋まった場合などに備えて空きを読み直す
         await Promise.all([loadDay(date), refreshSeason()]);
         return;
       }
+      setMailSent(body.mailSent === true);
       setDone(body.code ?? "");
       setConfirming(false);
     } catch {
@@ -204,9 +206,25 @@ export function Booking({ season: initialSeason, step }: { season: Season; step:
         <p className="mt-2 text-sm text-muted">受付番号</p>
         <p className="font-serif text-3xl tracking-[0.2em] text-gold2">{done}</p>
         <p className="mt-4 text-sm leading-relaxed text-white/85">
-          ご入力のメールアドレスに確認メールをお送りしました。
-          <br />
-          届かない場合は、お手数ですがお店までご連絡ください。
+          {mailSent ? (
+            <>
+              ご入力のメールアドレスに確認メールをお送りしました。
+              <br />
+              届かない場合は、お手数ですがお店までご連絡ください。
+            </>
+          ) : (
+            <>
+              ただいま確認メールをお送りできませんでした（ご予約は受け付けています）。
+              <br />
+              この画面を保存するか、受付番号を控えておいてください。
+            </>
+          )}
+          {STORE.phone && (
+            <>
+              <br />
+              TEL <a href={`tel:${STORE.phone}`} className="text-gold underline">{STORE.phone}</a>
+            </>
+          )}
         </p>
         <dl className="mt-5 space-y-1.5 text-left text-sm">
           {summary.map(([k, v]) => (
@@ -529,7 +547,7 @@ export function Booking({ season: initialSeason, step }: { season: Season; step:
       <section className="rounded-3xl border border-line bg-panel p-5">
         <h3 className="text-xl font-bold">お見積もり</h3>
         <p className="mt-1 text-sm text-muted">
-          {plan ? PLANS[plan].name : "プラン未選択（基本プランで計算）"}・{people}名・延長{extensionLabel(Math.min(ext, maxExt))}
+          {plan ? PLANS[plan].name : "プラン未選択"}・{people}名・延長{extensionLabel(Math.min(ext, maxExt))}
         </p>
         <div className="mt-4 rounded-2xl border border-gold/30 bg-gradient-to-b from-[#221d10] to-black/40 p-5 text-center">
           <p className="text-sm text-muted">合計金額の目安{tax}</p>
@@ -537,7 +555,7 @@ export function Booking({ season: initialSeason, step }: { season: Season; step:
             {q ? q.total.toLocaleString("ja-JP") : "—"}
             <span className="ml-1 font-sans text-xl">円</span>
           </p>
-          <p className="mt-1 text-sm text-white/80">1人あたり {q ? yen(q.perPerson) : "—"}</p>
+          <p className="mt-1 text-sm text-white/80">{q ? `1人あたり ${yen(q.perPerson)}` : "プランを選ぶと表示します"}</p>
         </div>
         <p className="mt-3 rounded-xl border border-dashed border-gold/40 bg-gold/5 px-3 py-2 text-sm text-gold2">
           料金は当日の人数で計算し直します。
@@ -566,7 +584,7 @@ export function Booking({ season: initialSeason, step }: { season: Season; step:
           <div className="min-w-0">
             <p className="text-xs text-muted">合計金額の目安{tax}</p>
             <p className="text-2xl leading-tight font-bold text-gold2">{q ? yen(q.total) : "—"}</p>
-            <p className="text-xs text-muted">1人あたり {q ? yen(q.perPerson) : "—"}・当日の人数で再計算</p>
+            <p className="text-xs text-muted">{q ? `1人あたり ${yen(q.perPerson)}・当日の人数で再計算` : "プランを選ぶと表示します"}</p>
           </div>
           <button type="button" onClick={next} className="gold-btn shrink-0 rounded-2xl px-5 py-3.5 font-bold">
             {missing[0]?.label ?? "確認へ"}
@@ -616,7 +634,10 @@ export function Booking({ season: initialSeason, step }: { season: Season; step:
                 type="button"
                 onClick={() => {
                   setConfirming(false);
-                  if (sendError && date) refs.time.current?.scrollIntoView({ block: "start" });
+                  if (sendError) {
+                    const inInfo = /電話|メール|代表者|会社/.test(sendError);
+                    (inInfo ? refs.info : refs.time).current?.scrollIntoView({ block: "start" });
+                  }
                 }}
                 className="mt-2 w-full rounded-2xl py-3 text-sm text-muted"
               >

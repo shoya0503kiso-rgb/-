@@ -54,3 +54,4 @@ npm run typecheck && npm run lint && npm test
 2. Neon で新しいデータベースを作り、接続文字列を `DATABASE_URL` に（ビルド時に自動でテーブルを作ります）
 3. 環境変数：`SESSION_SECRET`（32文字以上のランダム）・`SETUP_TOKEN`（16文字以上）・`APP_BASE_URL`・LINE / メールの設定
 4. デプロイ後 `/setup` を開き、`SETUP_TOKEN` を入れて最初のスタッフ（店長）を作る
+5. 公開前のチェック：`src/lib/config.ts` の `STORE`（電話番号・住所）を埋める（確認メールと完了画面の連絡先になる）。`RESEND_API_KEY`・`MAIL_FROM`・LINE の設定を入れたら、テスト予約を1件入れて「通知履歴」が「送信済み」になることを確認する（メールが送れなかったときは、完了画面に「確認メールをお送りできませんでした」と出ます）

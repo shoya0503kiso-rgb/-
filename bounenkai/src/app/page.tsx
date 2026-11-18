@@ -46,7 +46,7 @@ export default async function Home() {
           </h1>
           <p className="mt-3 text-lg font-bold text-white/90">カジノ体験型の貸し切り忘年会</p>
           <ul className="mt-5 flex flex-wrap gap-2 text-sm">
-            {["8〜30名様", "2時間飲み放題", "ディーラー付きポーカー", "11月・12月 毎日受付"].map((t) => (
+            {["8〜30名様", "2時間飲み放題", "ポーカーで盛り上がる", "11月・12月 毎日受付"].map((t) => (
               <li key={t} className="rounded-full border border-line px-3.5 py-1.5 text-white/90">
                 {t}
               </li>
