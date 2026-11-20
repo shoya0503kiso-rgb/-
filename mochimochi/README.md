@@ -75,7 +75,7 @@ npm run lint
    | 変数 | 内容 |
    |---|---|
    | `DATABASE_URL` | Neon の接続文字列（そのまま貼ればOK） |
-   | `SESSION_SECRET` | 32文字以上のランダム文字列（`openssl rand -base64 48`）。**チェックインQRの元にもなるので漏らさない** |
+   | `SESSION_SECRET` | 32文字以上のランダム文字列（`openssl rand -base64 48`）。**チェックインQR・宝くじの当選番号の元にもなるので漏らさない**。変えると、まだ結果を見ていない宝くじの当選番号も変わるので、変えるのは宝くじの抽選結果がみんなに行き渡ってから |
    | `APP_BASE_URL` | 公開URL（例 `https://mochimochi.vercel.app`）。QRの読み取り先になります |
    | `SETUP_TOKEN` | 最初のスタッフを作るときのキー（16文字以上） |
    | `NEXT_PUBLIC_LIFF_ID` / `LINE_LOGIN_CHANNEL_ID` | 公式LINE を作ってから（下記） |
