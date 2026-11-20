@@ -82,6 +82,20 @@ model StoreSetting {
   mochiWinOdds          Int       @default(50000)
   mochiWinPoints        Int       @default(100)
   mochiDailyWinLimit    Int       @default(1)
+  // ── スロット（ポイントで回す） ──
+  slotEnabled             Boolean @default(true)
+  slotCost                Int     @default(10)
+  slotDailyLimit          Int     @default(30)
+  // ── 宝くじ（ポイントで買う。営業日ごとに抽選） ──
+  lotteryEnabled          Boolean @default(true)
+  lotteryPrice            Int     @default(10)
+  /// 1回の抽選で1人が買える枚数
+  lotteryMaxTickets       Int     @default(10)
+  /// 1等（4桁すべて）〜4等（下1桁）
+  lotteryPrize1           Int     @default(10000)
+  lotteryPrize2           Int     @default(1000)
+  lotteryPrize3           Int     @default(100)
+  lotteryPrize4           Int     @default(15)
   // ── ランキングの公開（オフにするとお客さんの画面に出さない。記録は続く） ──
   rankingDartsEnabled     Boolean @default(true)
   rankingPokerEnabled     Boolean @default(true)
@@ -141,6 +155,8 @@ model Member {
   mochiDays    MochiDaily[]
   matchEntries MatchEntry[]
   submarines   SubmarineLog[]
+  slotSpins    SlotSpin[]
+  lottery      LotteryTicket[]
   redemptions  Redemption[]
 
   @@index([nickname])
@@ -295,4 +311,42 @@ model Redemption {
   member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([status, createdAt])
+}
+
+// ───────────────────────── スロット・宝くじ ─────────────────────────
+
+/// スロット1回分（結果はサーバーで決める）
+model SlotSpin {
+  id           String   @id @default(cuid())
+  memberId     String
+  businessDate String
+  cost         Int
+  /// trump | two | bar | bell | grape | cherry | miss
+  outcome      String
+  /// 3つのリールの真ん中の絵柄（カンマ区切り）
+  reels        String
+  payout       Int      @default(0)
+  createdAt    DateTime @default(now())
+  member       Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, businessDate])
+}
+
+/// 宝くじ1枚。drawDate（買った営業日）が終わったら抽選
+model LotteryTicket {
+  id        String    @id @default(cuid())
+  memberId  String
+  drawDate  String
+  /// 4桁の番号（"0042" など）
+  number    String
+  price     Int
+  /// 1〜4（等）。外れは 0。抽選前は null
+  rank      Int?
+  prize     Int       @default(0)
+  settledAt DateTime?
+  createdAt DateTime  @default(now())
+  member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, drawDate])
+  @@index([drawDate])
 }

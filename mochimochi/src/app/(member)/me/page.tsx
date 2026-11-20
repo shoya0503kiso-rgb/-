@@ -3,6 +3,7 @@ import { Panel } from "@/components/member/Panel";
 import { StampCard } from "@/components/member/StampCard";
 import { IMG } from "@/lib/brand-images";
 import { formatMonth, monthOf } from "@/lib/time";
+import { settleLottery } from "@/server/casino";
 import { prisma } from "@/server/db";
 import { requireMember } from "@/server/member-auth";
 import { pointDayLabel } from "@/server/points";
@@ -13,7 +14,10 @@ import { logoutAction } from "../actions";
 export const dynamic = "force-dynamic";
 
 export default async function MyPage() {
-  const member = await requireMember("/me");
+  const me = await requireMember("/me");
+  // 終わった宝くじの当たりをここでも払い出す（ポイントの表示を正しくするため）
+  const lottery = await settleLottery(me.id);
+  const member = lottery.settled > 0 ? await prisma.member.findUniqueOrThrow({ where: { id: me.id } }) : me;
   const [s, tiers, date] = await Promise.all([getSettings(), getRankTiers(), today()]);
   const month = monthOf(date);
   const [ranks, visitedToday, playedToday, pointDay, pending] = await Promise.all([
@@ -28,6 +32,11 @@ export default async function MyPage() {
 
   return (
     <div className="space-y-4">
+      {lottery.won > 0 && (
+        <Link href="/game/lottery" className="block rounded-2xl bg-gradient-to-r from-amber-300 to-pink-400 px-4 py-3 text-center font-bold text-white shadow">
+          🎟️ 宝くじが当たりました！ +{lottery.won.toLocaleString()}pt（結果を見る ›）
+        </Link>
+      )}
       {pointDay && (
         <div className="rounded-2xl bg-gradient-to-r from-amber-400 to-rose-400 px-4 py-3 text-center font-bold text-white shadow">
           🎉 今日は {pointDayLabel(pointDay)}！

@@ -17,6 +17,16 @@ type Numbers = {
   mochiWinOdds: number;
   mochiWinPoints: number;
   mochiDailyWinLimit: number;
+  slotEnabled: boolean;
+  slotCost: number;
+  slotDailyLimit: number;
+  lotteryEnabled: boolean;
+  lotteryPrice: number;
+  lotteryMaxTickets: number;
+  lotteryPrize1: number;
+  lotteryPrize2: number;
+  lotteryPrize3: number;
+  lotteryPrize4: number;
   guestSignupEnabled: boolean;
   geoEnabled: boolean;
   geoLat: number | null;
@@ -190,6 +200,16 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
               mochiWinOdds: num("mochiWinOdds"),
               mochiWinPoints: num("mochiWinPoints"),
               mochiDailyWinLimit: num("mochiDailyWinLimit"),
+              slotEnabled: f.get("slotEnabled") === "on",
+              slotCost: num("slotCost"),
+              slotDailyLimit: num("slotDailyLimit"),
+              lotteryEnabled: f.get("lotteryEnabled") === "on",
+              lotteryPrice: num("lotteryPrice"),
+              lotteryMaxTickets: num("lotteryMaxTickets"),
+              lotteryPrize1: num("lotteryPrize1"),
+              lotteryPrize2: num("lotteryPrize2"),
+              lotteryPrize3: num("lotteryPrize3"),
+              lotteryPrize4: num("lotteryPrize4"),
               guestSignupEnabled: f.get("guestSignupEnabled") === "on",
               geoEnabled,
               geoLat: lat.trim() === "" ? null : lat,
@@ -215,6 +235,24 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
           <NumField name="mochiWinOdds" label="起きる確率 1 / ◯" value={n.mochiWinOdds} hint={`1回なでるごとに 1/${n.mochiWinOdds.toLocaleString()} で起きる`} />
           <NumField name="mochiWinPoints" label="起きたときのポイント" value={n.mochiWinPoints} />
           <NumField name="mochiDailyWinLimit" label="1日に起きる上限（回）" value={n.mochiDailyWinLimit} hint="上限まで起きたら、その日はもう起きません" />
+        </Section>
+        <Section title="スロット（ポイントで回す）">
+          <label className="flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
+            <input type="checkbox" name="slotEnabled" defaultChecked={n.slotEnabled} /> スロットを遊べるようにする
+          </label>
+          <NumField name="slotCost" label="1回の値段（pt）" value={n.slotCost} hint="当たりは「値段×倍率」。払い出しは平均で値段の約9割" />
+          <NumField name="slotDailyLimit" label="1日に回せる回数" value={n.slotDailyLimit} />
+        </Section>
+        <Section title="宝くじ（ポイントで買う・毎日抽選）">
+          <label className="flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
+            <input type="checkbox" name="lotteryEnabled" defaultChecked={n.lotteryEnabled} /> 宝くじを買えるようにする
+          </label>
+          <NumField name="lotteryPrice" label="1枚の値段（pt）" value={n.lotteryPrice} />
+          <NumField name="lotteryMaxTickets" label="1日に買える枚数" value={n.lotteryMaxTickets} hint="抽選は営業日の切り替え時刻。結果は翌日に見られます" />
+          <NumField name="lotteryPrize1" label="1等（4桁すべて）" value={n.lotteryPrize1} />
+          <NumField name="lotteryPrize2" label="2等（下3桁）" value={n.lotteryPrize2} />
+          <NumField name="lotteryPrize3" label="3等（下2桁）" value={n.lotteryPrize3} />
+          <NumField name="lotteryPrize4" label="4等（下1桁）" value={n.lotteryPrize4} />
         </Section>
         <Section title="チェックインの位置情報チェック（任意）">
           <label className="flex items-center gap-2 text-sm sm:col-span-2">

@@ -130,3 +130,32 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .fx-confetti, .fx-pump, .fx-shake, .fx-tumble, .fx-glow, .fx-hop, .fx-roulette { animation: none !important; }
 }
+
+/* ───── スロット ───── */
+.slot-reel { container-type: inline-size; background: linear-gradient(90deg, #d4d4d8 0%, #ffffff 18%, #ffffff 82%, #d4d4d8 100%); }
+.slot-reel::before, .slot-reel::after { content: ""; position: absolute; left: 0; right: 0; height: 22%; z-index: 2; pointer-events: none; }
+.slot-reel::before { top: 0; background: linear-gradient(rgba(0,0,0,.28), transparent); }
+.slot-reel::after { bottom: 0; background: linear-gradient(transparent, rgba(0,0,0,.28)); }
+@keyframes slot-spin { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+.slot-spin { animation: slot-spin .22s linear infinite; filter: blur(1.2px); }
+.slot-spin.slow { animation-duration: .6s; filter: blur(.6px); }
+@keyframes slot-stop { 0% { transform: translateY(-14%); } 65% { transform: translateY(5%); } 100% { transform: translateY(0); } }
+.slot-stop { animation: slot-stop .28s ease-out both; }
+@keyframes slot-line { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+.slot-line { animation: slot-line .35s ease-in-out infinite; }
+@keyframes slot-cutin { 0% { transform: translateX(110%) rotate(8deg); } 18% { transform: translateX(0) rotate(-3deg); } 82% { transform: translateX(0) rotate(-3deg); } 100% { transform: translateX(-110%) rotate(-8deg); } }
+.slot-cutin { animation: slot-cutin 1.6s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes slot-coin { 0% { transform: translate3d(0, 0, 0) rotate(0) scale(.6); opacity: 1; } 100% { transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--rot)) scale(1); opacity: 0; } }
+.slot-coin { animation: slot-coin 1.2s cubic-bezier(.2,.7,.4,1) both; }
+@keyframes slot-btn { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,.0); } 50% { box-shadow: 0 0 14px 6px rgba(255,255,255,.9); } }
+.slot-btn-on { animation: slot-btn .7s ease-in-out infinite; }
+
+/* ───── 宝くじ ───── */
+.lottery-ticket { background: radial-gradient(circle at 0 50%, transparent 9px, var(--tk, #fff1f3) 10px) left / 51% 100% no-repeat, radial-gradient(circle at 100% 50%, transparent 9px, var(--tk, #fff1f3) 10px) right / 51% 100% no-repeat; }
+@keyframes drum { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+.drum-spin { animation: drum .3s linear infinite; filter: blur(1px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .slot-spin, .slot-line, .slot-btn-on, .drum-spin { animation-duration: 1.5s !important; filter: none !important; }
+  .slot-coin { display: none; }
+}
