@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MonthCalendar } from "@/components/MonthCalendar";
+import { IMG } from "@/lib/brand-images";
 import { Panel } from "@/components/member/Panel";
 import { addMonths, formatDate, formatMonth, isValidMonth, monthOf } from "@/lib/time";
 import { prisma } from "@/server/db";
@@ -11,12 +12,13 @@ export const dynamic = "force-dynamic";
 
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const sp = await searchParams;
-  await requireMember("/calendar");
+  const member = await requireMember("/calendar");
   const date = await today();
   const month = sp.m && isValidMonth(sp.m) ? sp.m : monthOf(date);
-  const [events, pointDays] = await Promise.all([
+  const [events, pointDays, visits] = await Promise.all([
     prisma.event.findMany({ where: { date: { startsWith: month } }, orderBy: [{ date: "asc" }, { startTime: "asc" }] }),
     prisma.pointDay.findMany({ where: { date: { startsWith: month } }, orderBy: { date: "asc" } }),
+    prisma.visit.findMany({ where: { memberId: member.id, businessDate: { startsWith: month } }, select: { businessDate: true } }),
   ]);
   const pdItems = pointDays.map((p) => ({ date: p.date, label: pointDayLabel(p) }));
   const list = [
@@ -37,7 +39,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           次月 ›
         </Link>
       </div>
-      <MonthCalendar month={month} today={date} events={events} pointDays={pdItems} />
+      <MonthCalendar month={month} today={date} events={events} pointDays={pdItems} stamps={visits.map((v) => v.businessDate)} />
+      <p className="text-center text-sm font-bold text-rose-600">この月の来店 {visits.length}回</p>
       <p className="flex gap-3 text-[11px] text-slate-500">
         <span>
           <span className="mr-1 inline-block h-2 w-3 rounded bg-amber-400" />
@@ -46,6 +49,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         <span>
           <span className="mr-1 inline-block h-2 w-3 rounded bg-rose-200" />
           イベント
+        </span>
+        <span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={IMG.mark} alt="" className="mr-0.5 inline-block h-3.5 w-3.5 -rotate-12 align-[-3px]" />
+          来店した日
         </span>
       </p>
       <Panel title={month === monthOf(date) ? "これからの予定" : "この月の予定"}>

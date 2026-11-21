@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { redeem } from "@/server/admin-ops";
+import { buyLottery, spinSlot } from "@/server/casino";
 import { checkIn, type CheckinResult } from "@/server/checkin";
 import { runAction, type ActionResult } from "@/server/errors";
 import { playChinchiro, playJanken } from "@/server/games";
@@ -37,6 +38,20 @@ export async function mochiTapAction(taps: number) {
   return runAction(async () => {
     const m = await requireMemberForAction();
     return recordTaps(m.id, Number(taps));
+  });
+}
+
+export async function slotSpinAction() {
+  return runAction(async () => {
+    const m = await requireMemberForAction();
+    return spinSlot(m.id);
+  });
+}
+
+export async function buyLotteryAction(count: number) {
+  return runAction(async () => {
+    const m = await requireMemberForAction();
+    return buyLottery(m.id, Number(count));
   });
 }
 

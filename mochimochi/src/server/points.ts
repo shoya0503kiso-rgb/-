@@ -2,7 +2,7 @@ import "server-only";
 import type { Tx } from "./db";
 import { UserError } from "./errors";
 
-export type PointKind = "checkin" | "stamp_card" | "game" | "mochi" | "darts" | "poker" | "manual" | "redeem" | "refund";
+export type PointKind = "checkin" | "stamp_card" | "game" | "mochi" | "darts" | "poker" | "manual" | "redeem" | "refund" | "slot" | "slot_win" | "lottery" | "lottery_win";
 
 export const KIND_LABEL: Record<string, string> = {
   checkin: "来店",
@@ -14,6 +14,10 @@ export const KIND_LABEL: Record<string, string> = {
   manual: "スタッフ調整",
   redeem: "ポイント交換",
   refund: "交換の取消",
+  slot: "スロット",
+  slot_win: "スロット当たり",
+  lottery: "宝くじ購入",
+  lottery_win: "宝くじ当選",
 };
 
 /**

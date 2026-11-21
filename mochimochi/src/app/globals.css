@@ -64,3 +64,98 @@ body {
 .wake {
   animation: wake 0.6s ease-out both;
 }
+
+/* ───── デイリーゲームの演出 ───── */
+@keyframes fx-confetti {
+  0% { transform: translate3d(0, -12vh, 0) rotate(0); opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate3d(var(--dx), 108vh, 0) rotate(var(--rot)); opacity: 0.6; }
+}
+.fx-confetti { animation-name: fx-confetti; animation-timing-function: cubic-bezier(.25,.6,.45,1); animation-fill-mode: both; }
+
+/* 文字がポンと出る（じゃん・けん・ぽん、吹き出し） */
+@keyframes fx-chant { 0% { transform: scale(.3); opacity: 0; } 45% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+.fx-chant { animation: fx-chant .32s ease-out both; }
+
+/* 手を出す前に上下に振る */
+@keyframes fx-pump { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-16px) rotate(-8deg); } }
+.fx-pump { animation: fx-pump .38s ease-in-out infinite; }
+
+/* 手を叩きつける */
+@keyframes fx-slam { 0% { transform: scale(1.8) rotate(-14deg); opacity: 0; } 55% { transform: scale(.9) rotate(4deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+.fx-slam { animation: fx-slam .42s cubic-bezier(.2,.9,.3,1.3) both; }
+
+/* 画面がゆれる */
+@keyframes fx-shake { 0%, 100% { transform: translate(0); } 15% { transform: translate(-7px, 3px); } 30% { transform: translate(6px, -4px); } 45% { transform: translate(-5px, 2px); } 60% { transform: translate(4px, -2px); } 80% { transform: translate(-2px, 1px); } }
+.fx-shake { animation: fx-shake .45s ease-out; }
+
+/* 白くフラッシュ */
+@keyframes fx-flash { 0% { opacity: .85; } 100% { opacity: 0; } }
+.fx-flash { animation: fx-flash .5s ease-out forwards; }
+
+/* 勝ち負けのスタンプ */
+@keyframes fx-stamp { 0% { transform: scale(3) rotate(-18deg); opacity: 0; } 55% { transform: scale(.9) rotate(-6deg); opacity: 1; } 100% { transform: scale(1) rotate(-8deg); opacity: 1; } }
+.fx-stamp { animation: fx-stamp .5s cubic-bezier(.2,.9,.3,1.2) both; }
+
+/* もらえたポイントが浮かぶ */
+@keyframes fx-rise { 0% { transform: translateY(14px) scale(.8); opacity: 0; } 30% { transform: translateY(0) scale(1.1); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+.fx-rise { animation: fx-rise .6s ease-out both; }
+
+/* サイコロが転がる・止まる */
+@keyframes fx-tumble {
+  0% { transform: translate(0, 0) rotate(0); }
+  25% { transform: translate(var(--x1), var(--y1)) rotate(150deg); }
+  50% { transform: translate(var(--x2), var(--y2)) rotate(310deg); }
+  75% { transform: translate(var(--x3), var(--y3)) rotate(470deg); }
+  100% { transform: translate(0, 0) rotate(600deg); }
+}
+.fx-tumble { animation: fx-tumble .55s linear infinite; }
+@keyframes fx-settle { 0% { transform: scale(1.25) rotate(calc(var(--r) * 3)); } 60% { transform: scale(.94) rotate(var(--r)); } 100% { transform: scale(1) rotate(var(--r)); } }
+.fx-settle { animation: fx-settle .35s ease-out both; }
+
+/* 役が出たときの金の光 */
+@keyframes fx-glow { 0%, 100% { box-shadow: 0 14px 0 #0f172a33, 0 0 0 0 rgba(251,191,36,0); } 50% { box-shadow: 0 14px 0 #0f172a33, 0 0 40px 14px rgba(251,191,36,.85); } }
+.fx-glow { animation: fx-glow .9s ease-in-out infinite; }
+
+/* トランプちゃんがはねる・しょんぼり */
+@keyframes fx-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-12px); } }
+.fx-hop { animation: fx-hop .5s ease-out 3; }
+@keyframes fx-droop { 0% { transform: rotate(0); } 100% { transform: rotate(-10deg) translateY(4px); } }
+.fx-droop { animation: fx-droop .6s ease-out both; filter: saturate(.8); }
+
+/* 相手の手のルーレット */
+@keyframes fx-blur { 0%, 100% { filter: blur(0); } 50% { filter: blur(1.5px); } }
+.fx-roulette { animation: fx-blur .12s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-confetti, .fx-pump, .fx-shake, .fx-tumble, .fx-glow, .fx-hop, .fx-roulette { animation: none !important; }
+}
+
+/* ───── スロット ───── */
+.slot-reel { container-type: inline-size; background: linear-gradient(90deg, #d4d4d8 0%, #ffffff 18%, #ffffff 82%, #d4d4d8 100%); }
+.slot-reel::before, .slot-reel::after { content: ""; position: absolute; left: 0; right: 0; height: 22%; z-index: 2; pointer-events: none; }
+.slot-reel::before { top: 0; background: linear-gradient(rgba(0,0,0,.28), transparent); }
+.slot-reel::after { bottom: 0; background: linear-gradient(transparent, rgba(0,0,0,.28)); }
+@keyframes slot-spin { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+.slot-spin { animation: slot-spin .22s linear infinite; filter: blur(1.2px); }
+.slot-spin.slow { animation-duration: .6s; filter: blur(.6px); }
+@keyframes slot-stop { 0% { transform: translateY(-14%); } 65% { transform: translateY(5%); } 100% { transform: translateY(0); } }
+.slot-stop { animation: slot-stop .28s ease-out both; }
+@keyframes slot-line { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+.slot-line { animation: slot-line .35s ease-in-out infinite; }
+@keyframes slot-cutin { 0% { transform: translateX(110%) rotate(8deg); } 18% { transform: translateX(0) rotate(-3deg); } 82% { transform: translateX(0) rotate(-3deg); } 100% { transform: translateX(-110%) rotate(-8deg); } }
+.slot-cutin { animation: slot-cutin 1.6s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes slot-coin { 0% { transform: translate3d(0, 0, 0) rotate(0) scale(.6); opacity: 1; } 100% { transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--rot)) scale(1); opacity: 0; } }
+.slot-coin { animation: slot-coin 1.2s cubic-bezier(.2,.7,.4,1) both; }
+@keyframes slot-btn { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,.0); } 50% { box-shadow: 0 0 14px 6px rgba(255,255,255,.9); } }
+.slot-btn-on { animation: slot-btn .7s ease-in-out infinite; }
+
+/* ───── 宝くじ ───── */
+.lottery-ticket { background: radial-gradient(circle at 0 50%, transparent 9px, var(--tk, #fff1f3) 10px) left / 51% 100% no-repeat, radial-gradient(circle at 100% 50%, transparent 9px, var(--tk, #fff1f3) 10px) right / 51% 100% no-repeat; }
+@keyframes drum { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+.drum-spin { animation: drum .3s linear infinite; filter: blur(1px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .slot-spin, .slot-line, .slot-btn-on, .drum-spin { animation-duration: 1.5s !important; filter: none !important; }
+  .slot-coin { display: none; }
+}
