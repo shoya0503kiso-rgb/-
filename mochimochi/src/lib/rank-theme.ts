@@ -17,8 +17,8 @@ export const RANK_THEMES: RankTheme[] = [
   },
   // しらたま：ピンク
   {
-    card: "bg-gradient-to-br from-pink-300 via-pink-400 to-rose-500 text-white",
-    label: "text-white/85",
+    card: "bg-gradient-to-br from-pink-400 via-pink-500 to-rose-500 text-white [text-shadow:0_1px_2px_rgba(157,23,77,.35)]",
+    label: "text-white/90",
     points: "text-white drop-shadow-[0_2px_0_rgba(190,18,60,.45)]",
     unit: "text-white",
     img: IMG.rankIcons[1],
