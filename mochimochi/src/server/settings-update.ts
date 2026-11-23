@@ -43,6 +43,8 @@ function parse<T>(schema: z.ZodType<T>, input: unknown): T {
 
 export async function updateNumbers(input: unknown) {
   const d = parse(numbersSchema, input);
+  // 発表が切替より前だと、発表のあとに「前の日」の券を買える時間ができてしまう
+  if (d.lotteryDrawHour < d.dayChangeHour) throw new UserError(`宝くじの発表時刻は、1日の切替時刻（${d.dayChangeHour}時）以降にしてください`);
   if (d.geoEnabled && (d.geoLat == null || d.geoLng == null)) throw new UserError("位置情報チェックを使うには、お店の緯度・経度を入れてください");
   await prisma.storeSetting.update({ where: { id: 1 }, data: d });
 }
