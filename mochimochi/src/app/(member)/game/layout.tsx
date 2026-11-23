@@ -1,6 +1,6 @@
 import { GameNav } from "./GameNav";
 
-// ゲームコーナー：デイリー（じゃんけん・チンチロ）・スロット・宝くじ
+// ゲームコーナー：スロット・宝くじ
 export default function GameLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="space-y-4">

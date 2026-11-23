@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/admin/submarine", label: "サブマリン" },
   { href: "/admin/calendar", label: "カレンダー" },
   { href: "/admin/rewards", label: "交換" },
+  { href: "/admin/passes", label: "宝くじパス" },
   { href: "/admin/qr", label: "来店QR" },
   { href: "/admin/settings", label: "設定" },
   { href: "/admin/staff", label: "スタッフ" },

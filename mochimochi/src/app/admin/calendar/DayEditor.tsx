@@ -49,7 +49,7 @@ export function DayEditor({ date, dateLabel, events, pointDay }: { date: string;
             <Input name="label" defaultValue={pointDay?.label ?? ""} maxLength={30} />
           </Field>
           <p className="text-xs text-slate-500">
-            {mode === "fixed" ? "その日の来店ポイントがこの値になります（ゲームは通常どおり）" : "その日の来店ポイントとデイリーゲームのポイントが◯倍になります"}
+            {mode === "fixed" ? "その日の来店ポイントがこの値になります（ゲームは通常どおり）" : "その日の来店ポイントが◯倍になります"}
           </p>
           <div className="flex gap-2">
             <Button className="flex-1">設定</Button>

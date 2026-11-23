@@ -84,14 +84,23 @@ model StoreSetting {
   mochiDailyWinLimit    Int       @default(1)
   // ── スロット（ポイントで回す） ──
   slotEnabled             Boolean @default(true)
-  slotCost                Int     @default(10)
+  slotCost                Int     @default(3)
   slotDailyLimit          Int     @default(30)
+  /// 配当（ポイント）。チャンス = もちもちランプが光った時点、スキル = 222 の目押し成功
+  slotPayBar              Int     @default(1)
+  slotPayBell             Int     @default(2)
+  slotPayGrape            Int     @default(3)
+  slotPayCherry           Int     @default(5)
+  slotChanceBonus         Int     @default(50)
+  slotSkillBonus          Int     @default(100)
   // ── 宝くじ（ポイントで買う。営業日ごとに抽選） ──
   lotteryEnabled          Boolean @default(true)
   lotteryPrice            Int     @default(10)
-  /// 1回の抽選で1人が買える枚数
-  lotteryMaxTickets       Int     @default(10)
-  /// 1等（4桁すべて）〜4等（下1桁）
+  /// 1日に1人が買える枚数（同じ番号は1枚まで）
+  lotteryMaxTickets       Int     @default(3)
+  /// 当選発表の時刻（買った営業日の次の日の◯時・JST）
+  lotteryDrawHour         Int     @default(22)
+  /// 未使用（旧仕様のポイントの当せん額）。当たりは VIPパス・プラチナパス
   lotteryPrize1           Int     @default(10000)
   lotteryPrize2           Int     @default(1000)
   lotteryPrize3           Int     @default(100)
@@ -321,8 +330,12 @@ model SlotSpin {
   memberId     String
   businessDate String
   cost         Int
-  /// trump | two | bar | bell | grape | cherry | miss
+  /// chance（もちもちランプ）| trump（もう一回）| cherry | grape | bell | bar | miss
   outcome      String
+  /// 前の回がトランプちゃん揃いで、この回は無料
+  free         Boolean  @default(false)
+  /// チャンスの目押しの結果（hit | miss）。チャンス以外・未送信は null
+  skill        String?
   /// 3つのリールの真ん中の絵柄（カンマ区切り）
   reels        String
   payout       Int      @default(0)
@@ -343,10 +356,16 @@ model LotteryTicket {
   /// 1〜4（等）。外れは 0。抽選前は null
   rank      Int?
   prize     Int       @default(0)
+  /// 当たったパス（VIP = 4桁一致 / PLATINUM = 下3桁一致）
+  pass      String?
+  /// お店でパスを使ったとき（スタッフが記録）
+  passUsedAt DateTime?
+  passUsedBy String?
   settledAt DateTime?
   createdAt DateTime  @default(now())
   member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
-  @@index([memberId, drawDate])
+  @@unique([memberId, drawDate, number])
   @@index([drawDate])
+  @@index([pass, passUsedAt])
 }

@@ -6,7 +6,7 @@ import { cx } from "@/components/ui";
 
 const ITEMS = [
   { href: "/me", label: "ホーム", icon: "🏠" },
-  { href: "/game", label: "ゲーム", icon: "🎲" },
+  { href: "/game", label: "ゲーム", icon: "🎰" },
   { href: "/mochi", label: "なでなで", icon: "🐯" },
   { href: "/ranking", label: "ランキング", icon: "🏆" },
   { href: "/calendar", label: "予定", icon: "📅" },

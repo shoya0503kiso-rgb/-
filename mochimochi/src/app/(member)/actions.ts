@@ -3,10 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { redeem } from "@/server/admin-ops";
-import { buyLottery, spinSlot } from "@/server/casino";
+import { buyLottery, slotChanceResult, spinSlot } from "@/server/casino";
 import { checkIn, type CheckinResult } from "@/server/checkin";
 import { runAction, type ActionResult } from "@/server/errors";
-import { playChinchiro, playJanken } from "@/server/games";
 import { logoutMember, requireMemberForAction } from "@/server/member-auth";
 import { recordTaps } from "@/server/mochi";
 
@@ -17,20 +16,6 @@ export async function checkinAction(code: string, geo: { lat: number; lng: numbe
     const r = await checkIn(m.id, String(code ?? ""), g);
     revalidatePath("/me");
     return r;
-  });
-}
-
-export async function jankenAction(hand: string) {
-  return runAction(async () => {
-    const m = await requireMemberForAction();
-    return playJanken(m.id, String(hand));
-  });
-}
-
-export async function chinchiroAction() {
-  return runAction(async () => {
-    const m = await requireMemberForAction();
-    return playChinchiro(m.id);
   });
 }
 
@@ -48,10 +33,17 @@ export async function slotSpinAction() {
   });
 }
 
-export async function buyLotteryAction(count: number) {
+export async function slotChanceAction(spinId: string, stops: number[]) {
   return runAction(async () => {
     const m = await requireMemberForAction();
-    return buyLottery(m.id, Number(count));
+    return slotChanceResult(m.id, String(spinId), Array.isArray(stops) ? stops.slice(0, 3).map(Number) : []);
+  });
+}
+
+export async function buyLotteryAction(numbers: string[]) {
+  return runAction(async () => {
+    const m = await requireMemberForAction();
+    return buyLottery(m.id, Array.isArray(numbers) ? numbers.map(String) : []);
   });
 }
 

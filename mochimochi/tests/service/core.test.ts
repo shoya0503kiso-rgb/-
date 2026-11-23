@@ -2,12 +2,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { addSubmarine, adjustPoints, createMatch, deleteMatch, handleRedemption, redeem } from "@/server/admin-ops";
 import { checkIn, checkinCode } from "@/server/checkin";
 import { prisma } from "@/server/db";
-import { playChinchiro, playJanken } from "@/server/games";
 import { verifyLineIdToken } from "@/server/line";
 import { recordTaps } from "@/server/mochi";
 import { gameRanking, myRankings, submarineRanking } from "@/server/rankings";
 import { getSettings } from "@/server/settings";
-import { jst, makeMember, resetDb, seq } from "../helpers";
+import { jst, makeMember, resetDb } from "../helpers";
 
 const NIGHT = jst("2026-10-30 22:00"); // 営業日 2026-10-30
 const LATE = jst("2026-10-31 03:00"); // 切替前なので同じ営業日
@@ -50,7 +49,7 @@ describe("QRチェックイン", () => {
     const m = await makeMember("常連", { stampCount: 9, visitCount: 4 });
     const s = await getSettings();
     const r = await checkIn(m.id, checkinCode("2026-10-30", s.qrSalt), null, NIGHT);
-    expect(r).toMatchObject({ cardCompleted: true, cardBonus: 100, stampCount: 10, rankName: "ブロンズ", rankUp: true });
+    expect(r).toMatchObject({ cardCompleted: true, cardBonus: 100, stampCount: 10, rankName: "しらたま", rankUp: true });
     const after = await prisma.member.findUniqueOrThrow({ where: { id: m.id } });
     expect([after.stampCount, after.completedCards]).toEqual([0, 1]);
     expect(await balance(m.id)).toBe(110);
@@ -72,33 +71,6 @@ describe("QRチェックイン", () => {
     await expect(checkIn(m.id, code, null, NIGHT)).rejects.toThrow("位置情報");
     await expect(checkIn(m.id, code, { lat: 35.6751, lng: 139.763 }, NIGHT)).rejects.toThrow("お店の近く");
     await expect(checkIn(m.id, code, { lat: 35.6813, lng: 139.7672 }, NIGHT)).resolves.toMatchObject({ points: 10 });
-  });
-});
-
-describe("デイリーゲーム", () => {
-  it("じゃんけん：あいこはやり直し、勝ったらポイント、1日1回", async () => {
-    const m = await makeMember();
-    // 親の手：0.1 → グー
-    const draw = await playJanken(m.id, "rock", NIGHT, seq(0.1));
-    expect(draw.result).toBe("draw");
-    const win = await playJanken(m.id, "paper", NIGHT, seq(0.1));
-    expect(win).toMatchObject({ result: "win", points: 10 });
-    await expect(playJanken(m.id, "paper", LATE, seq(0.1))).rejects.toThrow("もう遊びました");
-    await expect(playChinchiro(m.id, LATE)).rejects.toThrow("もう遊びました");
-    await expect(playJanken(m.id, "paper", NEXT, seq(0.5))).resolves.toMatchObject({ result: "lose", points: 0 });
-    expect(await balance(m.id)).toBe(10);
-  });
-
-  it("チンチロ：役で勝つと役のポイント（倍率デーも反映）", async () => {
-    const m = await makeMember();
-    await prisma.pointDay.create({ data: { date: "2026-10-30", mode: "multiply", value: 2 } });
-    const d = (n: number) => (n - 1) / 6 + 0.01;
-    // 親 2,2,3（3の目）→ 子 4,5,6（シゴロ）
-    const r = await playChinchiro(m.id, NIGHT, seq(d(2), d(2), d(3), d(4), d(5), d(6)));
-    expect(r.result).toBe("win");
-    expect(r.player.hand.name).toBe("シゴロ");
-    expect(r.points).toBe(100);
-    expect(await balance(m.id)).toBe(100);
   });
 });
 
