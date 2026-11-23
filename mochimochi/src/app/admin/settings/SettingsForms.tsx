@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
+import { slotReturnRate } from "@/lib/slot";
 import { saveAssetAction, saveBrandAction, saveNumbersAction, savePlacePointsAction, saveRanksAction } from "./actions";
 
 type Res = { ok: true; message?: string } | { ok: false; error: string };
@@ -243,6 +244,7 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
           <NumField name="slotPayGrape" label="ぶどうそろい" value={n.slotPayGrape} />
           <NumField name="slotPayBell" label="ベルそろい" value={n.slotPayBell} />
           <NumField name="slotPayBar" label="BARそろい" value={n.slotPayBar} hint="トランプちゃんそろいは次の1回が無料" />
+          <ReturnRate n={n} />
         </Section>
         <Section title="宝くじ（番号を選んで買う・当たりはパス）">
           <label className="flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
@@ -385,5 +387,19 @@ function PlacePointsForm({ initial }: { initial: { darts: number[]; poker: numbe
         ))}
       </div>
     </Card>
+  );
+}
+
+/** いまの設定で、使ったポイントのうち平均どれくらい戻るか（保存済みの値で計算） */
+function ReturnRate({ n }: { n: Numbers }) {
+  const p = { bar: n.slotPayBar, bell: n.slotPayBell, grape: n.slotPayGrape, cherry: n.slotPayCherry, chance: n.slotChanceBonus, skill: n.slotSkillBonus, cost: n.slotCost };
+  const low = slotReturnRate(p, 0);
+  const high = slotReturnRate(p, 1);
+  const pct = (x: number) => (Number.isFinite(x) ? `${Math.round(x * 100)}%` : "—");
+  return (
+    <p className={`rounded-lg px-3 py-2 text-xs sm:col-span-2 lg:col-span-4 ${high > 1 ? "bg-amber-50 text-amber-800" : "bg-slate-50 text-slate-600"}`}>
+      平均の戻り：使ったポイントの約 {pct(low)}（222 目押しが全部失敗）〜 {pct(high)}（全部成功）
+      {high > 1 && "。100% を超えると、回すほどポイントが増えます。222 の判定はお客さんの端末で行うため、追加ボーナスを大きくしすぎないでください"}
+    </p>
   );
 }

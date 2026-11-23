@@ -3,7 +3,7 @@ import { adjustPoints } from "@/server/admin-ops";
 import { announceAt, buyLottery, lotteryView, markPassUsed, passFor, passWinners, settleLottery, slotChanceResult, spinSlot, winningNumber } from "@/server/casino";
 import { prisma } from "@/server/db";
 import { getSettings } from "@/server/settings";
-import { buildReels, isTwoTwoTwo, lotteryRank, pickOutcome, REEL_STRIPS, SLOT_SYMBOLS, slotReturnRate, STRIP_LEN } from "@/lib/slot";
+import { buildReels, isTwoTwoTwo, lotteryRank, MAX_SLIP, pickOutcome, REEL_STRIPS, SLOT_SYMBOLS, slotReturnRate, STRIP_LEN } from "@/lib/slot";
 import { jst, makeMember, resetDb, seq } from "../helpers";
 
 const NIGHT = jst("2026-11-20 22:00"); // 営業日 2026-11-20
@@ -54,6 +54,20 @@ describe("スロットの当たり方", () => {
     expect(isTwoTwoTwo(twos)).toBe(true);
     expect(isTwoTwoTwo([twos[0], twos[1], (twos[2] + 1) % STRIP_LEN])).toBe(false);
     expect(isTwoTwoTwo([twos[0], twos[1]])).toBe(false);
+  });
+  it("ふだんの回は 2 に止めず、どこで押しても5コマ以内で止まる", () => {
+    let r = 0;
+    const rng = () => ((r = (r * 9301 + 49297) % 233280) / 233280);
+    for (let i = 0; i < 2000; i++) for (const o of ["miss", "cherry", "bell", "bar", "grape", "trump"] as const) expect(buildReels(o, rng)).not.toContain("two");
+    for (const strip of REEL_STRIPS) {
+      for (const target of SLOT_SYMBOLS.filter((x) => x !== "two")) {
+        for (let base = 0; base < STRIP_LEN; base++) {
+          let d = 0;
+          while (strip[(base - d + STRIP_LEN * 2) % STRIP_LEN] !== target) d++;
+          expect(d).toBeLessThanOrEqual(MAX_SLIP);
+        }
+      }
+    }
   });
 });
 

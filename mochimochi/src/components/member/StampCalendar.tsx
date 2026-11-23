@@ -70,7 +70,7 @@ export function StampCalendar({
                     date === today && "ring-2 ring-rose-400 ring-offset-1 ring-offset-[#fffaf0]",
                   )}
                 >
-                  <span className={cx("font-black tabular-nums", on ? "absolute top-0.5 left-1 text-[9px] text-rose-500" : i % 7 === 0 ? "text-rose-400" : i % 7 === 6 ? "text-sky-500" : "text-slate-400", !on && (mini ? "text-[11px]" : "text-sm"))}>{d}</span>
+                  <span className={cx("font-black tabular-nums", on ? "absolute -top-1 -left-1 z-10 rounded-full bg-white px-1 text-[9px] leading-tight text-rose-500 shadow-sm ring-1 ring-rose-200" : i % 7 === 0 ? "text-rose-400" : i % 7 === 6 ? "text-sky-500" : "text-slate-400", !on && (mini ? "text-[11px]" : "text-sm"))}>{d}</span>
                   {on && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={IMG.mark} alt="来店スタンプ" className="h-[78%] w-[78%] -rotate-12 object-contain drop-shadow-[0_1px_0_rgba(225,29,72,.5)]" />

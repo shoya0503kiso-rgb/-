@@ -64,7 +64,9 @@ const pick = <T>(arr: readonly T[], rng: Rng) => arr[Math.min(arr.length - 1, Ma
  * チャンスのときはリールは自由（目押し）なので使わない
  */
 export function buildReels(outcome: SlotOutcome, rng: Rng): SlotSymbol[] {
-  const noCherry = SLOT_SYMBOLS.filter((s) => s !== "cherry");
+  // ピンクの2はチャンスのときだけ。ふだんの回は2に止めない（すべりを短くするため）
+  const normal = SLOT_SYMBOLS.filter((s) => s !== "two");
+  const noCherry = normal.filter((s) => s !== "cherry");
   if (outcome === "cherry") {
     // 左だけチェリー。ほかの2つはそろえない
     const b = pick(noCherry, rng);
@@ -76,9 +78,9 @@ export function buildReels(outcome: SlotOutcome, rng: Rng): SlotSymbol[] {
   if (outcome !== "miss") return [outcome, outcome, outcome];
   // 外れ：左はチェリー以外、3つ揃いにしない。ときどき「リーチ」（左と真ん中が同じ）で惜しくする
   const a = pick(noCherry, rng);
-  const b = rng() < 0.25 ? a : pick(SLOT_SYMBOLS, rng);
-  let c = pick(SLOT_SYMBOLS, rng);
-  if (a === b && c === a) c = SLOT_SYMBOLS[(SLOT_SYMBOLS.indexOf(c) + 1) % SLOT_SYMBOLS.length];
+  const b = rng() < 0.25 ? a : pick(normal, rng);
+  let c = pick(normal, rng);
+  if (a === b && c === a) c = normal[(normal.indexOf(c) + 1) % normal.length];
   return [a, b, c];
 }
 
@@ -87,10 +89,16 @@ export const isReach = (reels: string[]) => reels[0] === reels[1];
 
 // ───── リールの並び（目押し用。サーバーと画面で同じものを使う） ─────
 
-/** 1本のリールに並ぶ12コマ。ピンクの2は1コマだけ */
-const BASE_STRIP: SlotSymbol[] = ["two", "cherry", "bell", "grape", "bar", "trump", "bell", "grape", "cherry", "bar", "grape", "bell"];
+/**
+ * 1本のリールに並ぶ16コマ。ピンクの2は1コマだけ（目押しの的）。
+ * ほかの5つの絵柄は「どの6コマを取っても全部入っている」並びにして、押してからのすべりを最大5コマにおさえる
+ */
+const CYCLE: SlotSymbol[] = ["cherry", "bell", "grape", "bar", "trump"];
+const BASE_STRIP: SlotSymbol[] = ["two", ...CYCLE, ...CYCLE, ...CYCLE];
+/** ふだんの回で、押してから止まるまでにすべる最大のコマ数 */
+export const MAX_SLIP = 5;
 /** 3本のリールは同じ並びを少しずらして使う */
-export const REEL_STRIPS: SlotSymbol[][] = [0, 4, 8].map((shift) => BASE_STRIP.map((_, i) => BASE_STRIP[(i + shift) % BASE_STRIP.length]));
+export const REEL_STRIPS: SlotSymbol[][] = [0, 5, 10].map((shift) => BASE_STRIP.map((_, i) => BASE_STRIP[(i + shift) % BASE_STRIP.length]));
 export const STRIP_LEN = BASE_STRIP.length;
 
 /** 目押しで止めた位置（各リールのコマ番号）が 2・2・2 か */
