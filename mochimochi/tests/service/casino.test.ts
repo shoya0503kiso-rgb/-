@@ -8,6 +8,7 @@ import { jst, makeMember, resetDb, seq } from "../helpers";
 
 const NIGHT = jst("2026-11-20 22:00"); // 営業日 2026-11-20
 const NEXT = jst("2026-11-21 21:00"); // 営業日 2026-11-21
+const LATE_DAY = jst("2026-11-20 11:30"); // 昼12時の切替前なので営業日 2026-11-19
 
 async function balance(id: string) {
   const m = await prisma.member.findUniqueOrThrow({ where: { id } });
@@ -111,6 +112,9 @@ describe("スロット", () => {
     const m = await makeMember();
     await expect(spinSlot(m.id, NIGHT)).rejects.toThrow("ポイントが足りません");
     await adjustPoints(m.id, 1000, "テスト", "admin", NIGHT);
+    // 初期設定は回数の制限なし
+    for (let i = 0; i < 40; i++) await spinSlot(m.id, LATE_DAY, seq(0.99));
+    expect(await prisma.slotSpin.count({ where: { businessDate: "2026-11-19" } })).toBe(40);
     await prisma.storeSetting.update({ where: { id: 1 }, data: { slotDailyLimit: 2 } });
     await spinSlot(m.id, NIGHT, seq(0.99));
     await spinSlot(m.id, NIGHT, seq(0.99));
@@ -118,8 +122,8 @@ describe("スロット", () => {
     await expect(spinSlot(m.id, NEXT, seq(0.99))).resolves.toMatchObject({ spinsToday: 1 });
     await prisma.storeSetting.update({ where: { id: 1 }, data: { slotEnabled: false } });
     await expect(spinSlot(m.id, NEXT)).rejects.toThrow("お休み");
-    expect(await prisma.slotSpin.count()).toBe(3);
-    expect(await balance(m.id)).toBe(1000 - 9);
+    expect(await prisma.slotSpin.count()).toBe(43);
+    expect(await balance(m.id)).toBe(1000 - 43 * 3);
   });
 });
 

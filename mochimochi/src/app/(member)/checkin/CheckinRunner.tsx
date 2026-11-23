@@ -6,6 +6,7 @@ import { Panel } from "@/components/member/Panel";
 import { StampBonus } from "@/components/member/StampBonus";
 import { IMG } from "@/lib/brand-images";
 import type { CheckinResult } from "@/server/checkin";
+import { STAMP_LABEL, StampMark, stampKindFor } from "@/components/member/StampMark";
 import { checkinAction } from "../actions";
 
 type State = { kind: "working"; text: string } | { kind: "done"; r: CheckinResult } | { kind: "error"; message: string };
@@ -104,13 +105,12 @@ export function CheckinRunner({
       <Panel title="今日のスタンプ">
         <div className="flex items-center gap-4">
           <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-white shadow-[inset_0_0_0_3px_#e11d48]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={IMG.mark} alt="来店スタンプ" className="stamp-in h-[80%] w-[80%] object-contain" />
+            <StampMark kind={stampKindFor(r.date)} className="stamp-in h-[80%] w-[80%]" />
           </div>
           <div className="min-w-0 flex-1 text-sm text-slate-600">
-            カレンダーの今日の日付に、スタンプを押しました！
-            <Link href="/calendar" className="mt-1 block font-bold text-rose-600">
-              スタンプカレンダーを見る ›
+            今日は「{STAMP_LABEL[stampKindFor(r.date)]}」スタンプ！ カレンダーの今日の日付に押しました
+            <Link href="/me" className="mt-1 block font-bold text-rose-600">
+              ホームのスタンプカレンダーを見る ›
             </Link>
           </div>
         </div>

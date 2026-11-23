@@ -225,7 +225,7 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
           <NumField name="checkinPoints" label="来店ポイント" value={n.checkinPoints} />
           <NumField name="stampsPerCard" label="スタンプボーナスまでの来店回数" value={n.stampsPerCard} />
           <NumField name="stampCardBonus" label="スタンプボーナス（pt）" value={n.stampCardBonus} />
-          <NumField name="dayChangeHour" label="1日の切替時刻（時）" value={n.dayChangeHour} hint="例：6 → 朝6時までは前日扱い（深夜営業向け）" />
+          <NumField name="dayChangeHour" label="1日の切替時刻（時）" value={n.dayChangeHour} hint="例：12 → 昼12時に日付が切り替わる（それまでは前日扱い）" />
         </Section>
         <Section title="トランプちゃんをなでる（なでなで）">
           <NumField name="mochiWinOdds" label="起きる確率 1 / ◯" value={n.mochiWinOdds} hint={`1回なでるごとに 1/${n.mochiWinOdds.toLocaleString()} で起きる`} />
@@ -237,7 +237,7 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
             <input type="checkbox" name="slotEnabled" defaultChecked={n.slotEnabled} /> スロットを遊べるようにする
           </label>
           <NumField name="slotCost" label="1回の値段（pt）" value={n.slotCost} />
-          <NumField name="slotDailyLimit" label="1日に回せる回数" value={n.slotDailyLimit} />
+          <NumField name="slotDailyLimit" label="1日に回せる回数" value={n.slotDailyLimit} hint="0 = 制限なし" />
           <NumField name="slotChanceBonus" label="もちもちランプ（光った時点）" value={n.slotChanceBonus} hint="光る確率は約1/120" />
           <NumField name="slotSkillBonus" label="222 目押し成功の追加" value={n.slotSkillBonus} />
           <NumField name="slotPayCherry" label="左チェリー" value={n.slotPayCherry} />

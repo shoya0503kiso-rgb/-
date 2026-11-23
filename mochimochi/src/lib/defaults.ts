@@ -3,9 +3,9 @@
 /** 来店回数で上がる。かがみもちは難しめ */
 export const DEFAULT_RANKS = [
   { name: "おこめ", minVisits: 0, color: "#a8a29e" },
-  { name: "しらたま", minVisits: 5, color: "#ec4899" },
-  { name: "だいふく", minVisits: 15, color: "#16a34a" },
-  { name: "かがみもち", minVisits: 50, color: "#d97706" },
+  { name: "しらたま", minVisits: 15, color: "#ec4899" },
+  { name: "だいふく", minVisits: 30, color: "#16a34a" },
+  { name: "かがみもち", minVisits: 100, color: "#d97706" },
 ];
 
 /** 順位ごとのポイント（i 番目 = i+1 位） */

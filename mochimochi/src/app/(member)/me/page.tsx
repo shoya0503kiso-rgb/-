@@ -3,7 +3,7 @@ import { Panel } from "@/components/member/Panel";
 import { StampBonus } from "@/components/member/StampBonus";
 import { StampCalendar } from "@/components/member/StampCalendar";
 import { IMG } from "@/lib/brand-images";
-import { formatMonth, monthOf } from "@/lib/time";
+import { formatDate, formatMonth, monthOf } from "@/lib/time";
 import { PASS_LABEL, settleLottery, type LotteryPass } from "@/server/casino";
 import { prisma } from "@/server/db";
 import { requireMember } from "@/server/member-auth";
@@ -23,13 +23,22 @@ export default async function MyPage() {
   const passes = await prisma.lotteryTicket.findMany({ where: { memberId: me.id, pass: { not: null }, passUsedAt: null }, select: { id: true, pass: true } });
   const [s, tiers, date] = await Promise.all([getSettings(), getRankTiers(), today()]);
   const month = monthOf(date);
-  const [ranks, visitedToday, monthVisits, pointDay, pending] = await Promise.all([
+  const [ranks, visitedToday, monthVisits, pointDay, pending, events, pointDays] = await Promise.all([
     myRankings(member.id, month),
     prisma.visit.findUnique({ where: { memberId_businessDate: { memberId: member.id, businessDate: date } } }),
     prisma.visit.findMany({ where: { memberId: member.id, businessDate: { startsWith: month } }, select: { businessDate: true } }),
     prisma.pointDay.findUnique({ where: { date } }),
     prisma.redemption.count({ where: { memberId: member.id, status: "pending" } }),
+    prisma.event.findMany({ where: { date: { startsWith: month } }, orderBy: [{ date: "asc" }, { startTime: "asc" }] }),
+    prisma.pointDay.findMany({ where: { date: { startsWith: month } }, orderBy: { date: "asc" } }),
   ]);
+  const pdItems = pointDays.map((p) => ({ date: p.date, label: pointDayLabel(p) }));
+  const upcoming = [
+    ...events.map((e) => ({ date: e.date, time: e.startTime, title: e.title, description: e.description, kind: "event" as const })),
+    ...pdItems.map((p) => ({ date: p.date, time: "", title: p.label, description: "", kind: "point" as const })),
+  ]
+    .filter((x) => x.date >= date)
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
   const rank = rankFor(member.visitCount, tiers);
   const show = visibleRankings(s);
 
@@ -102,8 +111,40 @@ export default async function MyPage() {
           </div>
         </section>
       )}
-      <StampCalendar month={month} today={date} visits={monthVisits.map((v) => v.businessDate)} size="mini" href="/calendar" />
+      <StampCalendar month={month} today={date} visits={monthVisits.map((v) => v.businessDate)} pointDays={pdItems} eventDates={events.map((e) => e.date)} />
+      <p className="-mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+        <span>スタンプ＝来店した日（日によって絵が変わるよ）</span>
+        <span>
+          <span className="mr-1 inline-block rounded-full bg-amber-400 px-1 text-[8px] font-black text-white">UP</span>
+          ポイントアップ
+        </span>
+        <span>
+          <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-rose-400 align-middle" />
+          イベント
+        </span>
+      </p>
       <StampBonus stampCount={member.stampCount} perCard={s.stampsPerCard} bonus={s.stampCardBonus} pointName={s.pointName} />
+      <Panel title="これからの予定">
+        {upcoming.length === 0 ? (
+          <p className="py-3 text-center text-sm text-slate-500">今月の予定はまだありません</p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {upcoming.map((x, i) => (
+              <li key={i} className="py-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="w-20 shrink-0 text-sm font-bold text-slate-700">{formatDate(x.date)}</span>
+                  <span className={x.kind === "point" ? "font-bold text-amber-600" : "font-bold text-slate-900"}>
+                    {x.kind === "point" ? "🎉 " : ""}
+                    {x.title}
+                  </span>
+                  {x.time && <span className="text-xs text-slate-500">{x.time}〜</span>}
+                </div>
+                {x.description && <p className="mt-0.5 pl-22 text-xs whitespace-pre-wrap text-slate-600">{x.description}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
 
       {(show.darts || show.poker || show.submarine) && (
         <Panel title={`${formatMonth(month)}のランキング`} action={<Link href="/ranking" className="text-sm text-rose-600">すべて見る ›</Link>}>

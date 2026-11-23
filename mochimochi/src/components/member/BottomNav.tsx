@@ -9,7 +9,6 @@ const ITEMS = [
   { href: "/game", label: "ゲーム", icon: "🎰" },
   { href: "/mochi", label: "なでなで", icon: "🐯" },
   { href: "/ranking", label: "ランキング", icon: "🏆" },
-  { href: "/calendar", label: "カレンダー", icon: "📅" },
 ];
 
 export function BottomNav({ showRanking = true }: { showRanking?: boolean }) {

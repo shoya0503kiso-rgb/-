@@ -160,7 +160,8 @@ export function SlotMachine({ initial, pointName, characterName }: { initial: St
     };
   }, [paint]);
 
-  const left = st.limit - st.spinsToday;
+  // limit 0 = 回数の制限なし
+  const left = st.limit > 0 ? st.limit - st.spinsToday : Infinity;
   const free = st.freeNext;
   const canStart = (phase === "idle" || phase === "done") && left > 0 && (free || credit >= st.cost);
 
@@ -464,7 +465,13 @@ export function SlotMachine({ initial, pointName, characterName }: { initial: St
         </button>
         <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
           <span>
-            今日あと <b className="text-slate-700">{Math.max(0, left)}</b> 回
+            {Number.isFinite(left) ? (
+              <>
+                今日あと <b className="text-slate-700">{Math.max(0, left)}</b> 回
+              </>
+            ) : (
+              <>何回でもまわせるよ</>
+            )}
           </span>
           <button onClick={sfx.toggle} className="rounded-full bg-white px-3 py-1 ring-1 ring-slate-200" aria-pressed={sfx.on}>
             {sfx.on ? "🔊 音あり" : "🔇 音なし"}

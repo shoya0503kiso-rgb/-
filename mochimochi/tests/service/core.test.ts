@@ -9,7 +9,7 @@ import { getSettings } from "@/server/settings";
 import { jst, makeMember, resetDb } from "../helpers";
 
 const NIGHT = jst("2026-10-30 22:00"); // 営業日 2026-10-30
-const LATE = jst("2026-10-31 03:00"); // 切替前なので同じ営業日
+const LATE = jst("2026-10-31 11:00"); // 昼12時の切替前なので同じ営業日
 const NEXT = jst("2026-10-31 20:00"); // 営業日 2026-10-31
 
 async function balance(id: string) {
@@ -46,7 +46,7 @@ describe("QRチェックイン", () => {
   });
 
   it("スタンプカード達成でボーナス・ランクアップ", async () => {
-    const m = await makeMember("常連", { stampCount: 9, visitCount: 4 });
+    const m = await makeMember("常連", { stampCount: 9, visitCount: 14 });
     const s = await getSettings();
     const r = await checkIn(m.id, checkinCode("2026-10-30", s.qrSalt), null, NIGHT);
     expect(r).toMatchObject({ cardCompleted: true, cardBonus: 100, stampCount: 10, rankName: "しらたま", rankUp: true });

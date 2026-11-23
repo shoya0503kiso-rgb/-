@@ -51,7 +51,7 @@ export async function spinSlot(memberId: string, now = new Date(), rng: Rng = se
   const payout = slotPayout(outcome, slotPays(s));
   const spin = await prisma.$transaction(async (tx) => {
     const spins = await tx.slotSpin.count({ where: { memberId, businessDate: date } });
-    if (spins >= s.slotDailyLimit) throw new UserError(`今日はもう${s.slotDailyLimit}回まわしました。また明日！`);
+    if (s.slotDailyLimit > 0 && spins >= s.slotDailyLimit) throw new UserError(`今日はもう${s.slotDailyLimit}回まわしました。また明日！`);
     const last = await tx.slotSpin.findFirst({ where: { memberId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }] });
     const free = last?.outcome === "trump";
     if (!free) {

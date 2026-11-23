@@ -59,7 +59,7 @@ model StoreSetting {
   brandVersion          Int       @default(0)
   // ── 営業日 ──
   /// 営業日の切替時刻（時・JST）。これより前は前日の営業日扱い
-  dayChangeHour         Int       @default(6)
+  dayChangeHour         Int       @default(12)
   // ── 来店・スタンプ ──
   checkinPoints         Int       @default(10)
   stampsPerCard         Int       @default(10)
@@ -85,7 +85,7 @@ model StoreSetting {
   // ── スロット（ポイントで回す） ──
   slotEnabled             Boolean @default(true)
   slotCost                Int     @default(3)
-  slotDailyLimit          Int     @default(30)
+  slotDailyLimit          Int     @default(0)
   /// 配当（ポイント）。チャンス = もちもちランプが光った時点、スキル = 222 の目押し成功
   slotPayBar              Int     @default(1)
   slotPayBell             Int     @default(2)

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cx } from "@/components/ui";
 import { IMG } from "@/lib/brand-images";
 import { formatMonth, monthInfo, ymd } from "@/lib/time";
+import { StampMark, stampKindFor } from "./StampMark";
 
 // カレンダーがそのままスタンプカード。来店した日の丸にスタンプが押される
 
@@ -71,10 +72,7 @@ export function StampCalendar({
                   )}
                 >
                   <span className={cx("font-black tabular-nums", on ? "absolute -top-1 -left-1 z-10 rounded-full bg-white px-1 text-[9px] leading-tight text-rose-500 shadow-sm ring-1 ring-rose-200" : i % 7 === 0 ? "text-rose-400" : i % 7 === 6 ? "text-sky-500" : "text-slate-400", !on && (mini ? "text-[11px]" : "text-sm"))}>{d}</span>
-                  {on && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={IMG.mark} alt="来店スタンプ" className="h-[78%] w-[78%] -rotate-12 object-contain drop-shadow-[0_1px_0_rgba(225,29,72,.5)]" />
-                  )}
+                  {on && <StampMark kind={stampKindFor(date)} className="h-[80%] w-[80%] -rotate-12 drop-shadow-[0_1px_0_rgba(225,29,72,.35)]" />}
                   {label && <span className="absolute -top-1 -right-1 rounded-full bg-amber-400 px-1 text-[8px] leading-tight font-black text-white">UP</span>}
                 </div>
                 {!mini && ev.has(date) && <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-rose-400" aria-label="イベント" />}
