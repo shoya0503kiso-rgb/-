@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
+import { slotReturnRate } from "@/lib/slot";
 import { saveAssetAction, saveBrandAction, saveNumbersAction, savePlacePointsAction, saveRanksAction } from "./actions";
 
 type Res = { ok: true; message?: string } | { ok: false; error: string };
@@ -11,22 +12,22 @@ type Numbers = {
   checkinPoints: number;
   stampsPerCard: number;
   stampCardBonus: number;
-  jankenWinPoints: number;
-  chinchiroWinPoints: number;
-  chinchiroBigWinPoints: number;
   mochiWinOdds: number;
   mochiWinPoints: number;
   mochiDailyWinLimit: number;
   slotEnabled: boolean;
   slotCost: number;
   slotDailyLimit: number;
+  slotPayBar: number;
+  slotPayBell: number;
+  slotPayGrape: number;
+  slotPayCherry: number;
+  slotChanceBonus: number;
+  slotSkillBonus: number;
   lotteryEnabled: boolean;
   lotteryPrice: number;
   lotteryMaxTickets: number;
-  lotteryPrize1: number;
-  lotteryPrize2: number;
-  lotteryPrize3: number;
-  lotteryPrize4: number;
+  lotteryDrawHour: number;
   guestSignupEnabled: boolean;
   geoEnabled: boolean;
   geoLat: number | null;
@@ -194,22 +195,22 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
               checkinPoints: num("checkinPoints"),
               stampsPerCard: num("stampsPerCard"),
               stampCardBonus: num("stampCardBonus"),
-              jankenWinPoints: num("jankenWinPoints"),
-              chinchiroWinPoints: num("chinchiroWinPoints"),
-              chinchiroBigWinPoints: num("chinchiroBigWinPoints"),
               mochiWinOdds: num("mochiWinOdds"),
               mochiWinPoints: num("mochiWinPoints"),
               mochiDailyWinLimit: num("mochiDailyWinLimit"),
               slotEnabled: f.get("slotEnabled") === "on",
               slotCost: num("slotCost"),
               slotDailyLimit: num("slotDailyLimit"),
+              slotPayBar: num("slotPayBar"),
+              slotPayBell: num("slotPayBell"),
+              slotPayGrape: num("slotPayGrape"),
+              slotPayCherry: num("slotPayCherry"),
+              slotChanceBonus: num("slotChanceBonus"),
+              slotSkillBonus: num("slotSkillBonus"),
               lotteryEnabled: f.get("lotteryEnabled") === "on",
               lotteryPrice: num("lotteryPrice"),
               lotteryMaxTickets: num("lotteryMaxTickets"),
-              lotteryPrize1: num("lotteryPrize1"),
-              lotteryPrize2: num("lotteryPrize2"),
-              lotteryPrize3: num("lotteryPrize3"),
-              lotteryPrize4: num("lotteryPrize4"),
+              lotteryDrawHour: num("lotteryDrawHour"),
               guestSignupEnabled: f.get("guestSignupEnabled") === "on",
               geoEnabled,
               geoLat: lat.trim() === "" ? null : lat,
@@ -222,14 +223,9 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
         {banner}
         <Section title="来店・スタンプ">
           <NumField name="checkinPoints" label="来店ポイント" value={n.checkinPoints} />
-          <NumField name="stampsPerCard" label="スタンプカードのマス数" value={n.stampsPerCard} />
-          <NumField name="stampCardBonus" label="カード達成ボーナス" value={n.stampCardBonus} />
-          <NumField name="dayChangeHour" label="1日の切替時刻（時）" value={n.dayChangeHour} hint="例：6 → 朝6時までは前日扱い（深夜営業向け）" />
-        </Section>
-        <Section title="デイリーゲーム（勝ったときのポイント）">
-          <NumField name="jankenWinPoints" label="じゃんけん" value={n.jankenWinPoints} />
-          <NumField name="chinchiroWinPoints" label="チンチロ" value={n.chinchiroWinPoints} />
-          <NumField name="chinchiroBigWinPoints" label="チンチロ（役で勝ち）" value={n.chinchiroBigWinPoints} hint="ピンゾロ・ゾロ目・シゴロ" />
+          <NumField name="stampsPerCard" label="スタンプボーナスまでの来店回数" value={n.stampsPerCard} />
+          <NumField name="stampCardBonus" label="スタンプボーナス（pt）" value={n.stampCardBonus} />
+          <NumField name="dayChangeHour" label="1日の切替時刻（時）" value={n.dayChangeHour} hint="例：12 → 昼12時に日付が切り替わる（それまでは前日扱い）" />
         </Section>
         <Section title="トランプちゃんをなでる（なでなで）">
           <NumField name="mochiWinOdds" label="起きる確率 1 / ◯" value={n.mochiWinOdds} hint={`1回なでるごとに 1/${n.mochiWinOdds.toLocaleString()} で起きる`} />
@@ -240,19 +236,24 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
           <label className="flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
             <input type="checkbox" name="slotEnabled" defaultChecked={n.slotEnabled} /> スロットを遊べるようにする
           </label>
-          <NumField name="slotCost" label="1回の値段（pt）" value={n.slotCost} hint="当たりは「値段×倍率」。払い出しは平均で値段の約9割" />
-          <NumField name="slotDailyLimit" label="1日に回せる回数" value={n.slotDailyLimit} />
+          <NumField name="slotCost" label="1回の値段（pt）" value={n.slotCost} />
+          <NumField name="slotDailyLimit" label="1日に回せる回数" value={n.slotDailyLimit} hint="0 = 制限なし" />
+          <NumField name="slotChanceBonus" label="もちもちランプ（光った時点）" value={n.slotChanceBonus} hint="光る確率は約1/120" />
+          <NumField name="slotSkillBonus" label="222 目押し成功の追加" value={n.slotSkillBonus} />
+          <NumField name="slotPayCherry" label="左チェリー" value={n.slotPayCherry} />
+          <NumField name="slotPayGrape" label="ぶどうそろい" value={n.slotPayGrape} />
+          <NumField name="slotPayBell" label="ベルそろい" value={n.slotPayBell} />
+          <NumField name="slotPayBar" label="BARそろい" value={n.slotPayBar} hint="トランプちゃんそろいは次の1回が無料" />
+          <ReturnRate n={n} />
         </Section>
-        <Section title="宝くじ（ポイントで買う・毎日抽選）">
+        <Section title="宝くじ（番号を選んで買う・当たりはパス）">
           <label className="flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
             <input type="checkbox" name="lotteryEnabled" defaultChecked={n.lotteryEnabled} /> 宝くじを買えるようにする
           </label>
           <NumField name="lotteryPrice" label="1枚の値段（pt）" value={n.lotteryPrice} />
-          <NumField name="lotteryMaxTickets" label="1日に買える枚数" value={n.lotteryMaxTickets} hint="抽選は営業日の切り替え時刻。結果は翌日に見られます" />
-          <NumField name="lotteryPrize1" label="1等（4桁すべて）" value={n.lotteryPrize1} />
-          <NumField name="lotteryPrize2" label="2等（下3桁）" value={n.lotteryPrize2} />
-          <NumField name="lotteryPrize3" label="3等（下2桁）" value={n.lotteryPrize3} />
-          <NumField name="lotteryPrize4" label="4等（下1桁）" value={n.lotteryPrize4} />
+          <NumField name="lotteryMaxTickets" label="1日に買える枚数" value={n.lotteryMaxTickets} hint="同じ番号は1枚まで" />
+          <NumField name="lotteryDrawHour" label="発表の時刻（時）" value={n.lotteryDrawHour} hint="買った日の次の日のこの時刻に発表（22 → 22:00）" />
+          <p className="text-xs text-slate-500 sm:col-span-2">当たり：4桁一致 → VIPパス／下3桁一致 → プラチナパス（「宝くじパス」画面で確認・使用済みにする）</p>
         </Section>
         <Section title="チェックインの位置情報チェック（任意）">
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
@@ -386,5 +387,19 @@ function PlacePointsForm({ initial }: { initial: { darts: number[]; poker: numbe
         ))}
       </div>
     </Card>
+  );
+}
+
+/** いまの設定で、使ったポイントのうち平均どれくらい戻るか（保存済みの値で計算） */
+function ReturnRate({ n }: { n: Numbers }) {
+  const p = { bar: n.slotPayBar, bell: n.slotPayBell, grape: n.slotPayGrape, cherry: n.slotPayCherry, chance: n.slotChanceBonus, skill: n.slotSkillBonus, cost: n.slotCost };
+  const low = slotReturnRate(p, 0);
+  const high = slotReturnRate(p, 1);
+  const pct = (x: number) => (Number.isFinite(x) ? `${Math.round(x * 100)}%` : "—");
+  return (
+    <p className={`rounded-lg px-3 py-2 text-xs sm:col-span-2 lg:col-span-4 ${high > 1 ? "bg-amber-50 text-amber-800" : "bg-slate-50 text-slate-600"}`}>
+      平均の戻り：使ったポイントの約 {pct(low)}（222 目押しが全部失敗）〜 {pct(high)}（全部成功）
+      {high > 1 && "。100% を超えると、回すほどポイントが増えます。222 の判定はお客さんの端末で行うため、追加ボーナスを大きくしすぎないでください"}
+    </p>
   );
 }

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Panel } from "@/components/member/Panel";
-import { StampCard } from "@/components/member/StampCard";
+import { StampBonus } from "@/components/member/StampBonus";
 import { IMG } from "@/lib/brand-images";
 import type { CheckinResult } from "@/server/checkin";
+import { STAMP_LABEL, StampMark, stampKindFor } from "@/components/member/StampMark";
 import { checkinAction } from "../actions";
 
 type State = { kind: "working"; text: string } | { kind: "done"; r: CheckinResult } | { kind: "error"; message: string };
@@ -101,12 +102,25 @@ export function CheckinRunner({
         )}
         {r.rankUp && <p className="mt-2 rounded-xl bg-rose-50 py-2 text-center font-bold text-rose-700">ランクアップ！「{r.rankName}」になりました</p>}
       </Panel>
-      <Panel title="スタンプカード">
-        <StampCard count={r.stampCount} perCard={r.stampsPerCard} bonus={0} pointName={pointName} highlight={r.stampCount} />
+      <Panel title="今日のスタンプ">
+        <div className="flex items-center gap-4">
+          <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-white shadow-[inset_0_0_0_3px_#e11d48]">
+            <StampMark kind={stampKindFor(r.date)} className="stamp-in h-[80%] w-[80%]" />
+          </div>
+          <div className="min-w-0 flex-1 text-sm text-slate-600">
+            今日は「{STAMP_LABEL[stampKindFor(r.date)]}」スタンプ！ カレンダーの今日の日付に押しました
+            <Link href="/me" className="mt-1 block font-bold text-rose-600">
+              ホームのスタンプカレンダーを見る ›
+            </Link>
+          </div>
+        </div>
+        <div className="mt-3">
+          <StampBonus stampCount={r.cardCompleted ? 0 : r.stampCount} perCard={r.stampsPerCard} bonus={stampCardBonus} pointName={pointName} />
+        </div>
       </Panel>
       <div className="grid grid-cols-2 gap-3">
-        <Link href="/game" className="rounded-xl bg-rose-500 py-3 text-center font-bold text-white">
-          🎲 ゲームで遊ぶ
+        <Link href="/game/slot" className="rounded-xl bg-rose-500 py-3 text-center font-bold text-white">
+          🎰 スロットで遊ぶ
         </Link>
         <Link href="/me" className="rounded-xl bg-white py-3 text-center font-bold text-rose-600 ring-1 ring-rose-200">
           マイページ

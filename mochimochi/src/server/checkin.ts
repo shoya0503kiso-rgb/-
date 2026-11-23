@@ -45,6 +45,8 @@ export interface CheckinResult {
   visitCount: number;
   rankName: string;
   rankUp: boolean;
+  /** 来店した営業日（スタンプの絵柄に使う） */
+  date: string;
 }
 
 export async function checkIn(
@@ -97,6 +99,7 @@ export async function checkIn(
         visitCount: m.visitCount,
         rankName: rank,
         rankUp: rank !== prevRank,
+        date,
       };
     });
   } catch (e) {

@@ -1,12 +1,11 @@
 // 初期値（すべて仮）。DBが空のときだけ入れる。運用開始後は管理画面「設定」「交換」で変更する
 
+/** 来店回数で上がる。かがみもちは難しめ */
 export const DEFAULT_RANKS = [
-  { name: "ビギナー", minVisits: 0, color: "#94a3b8" },
-  { name: "ブロンズ", minVisits: 5, color: "#b45309" },
-  { name: "シルバー", minVisits: 15, color: "#64748b" },
-  { name: "ゴールド", minVisits: 30, color: "#ca8a04" },
-  { name: "プラチナ", minVisits: 60, color: "#0e7490" },
-  { name: "もちもちマスター", minVisits: 100, color: "#db2777" },
+  { name: "おこめ", minVisits: 0, color: "#a8a29e" },
+  { name: "しらたま", minVisits: 15, color: "#ec4899" },
+  { name: "だいふく", minVisits: 30, color: "#16a34a" },
+  { name: "かがみもち", minVisits: 100, color: "#d97706" },
 ];
 
 /** 順位ごとのポイント（i 番目 = i+1 位） */

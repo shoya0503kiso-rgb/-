@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { cx } from "@/components/ui";
 
 const ITEMS = [
-  { href: "/game", label: "デイリー", icon: "🎲" },
   { href: "/game/slot", label: "スロット", icon: "🎰" },
   { href: "/game/lottery", label: "宝くじ", icon: "🎟️" },
 ];
@@ -13,7 +12,7 @@ const ITEMS = [
 export function GameNav() {
   const path = usePathname();
   return (
-    <nav className="grid grid-cols-3 gap-1 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 p-1 shadow-sm" aria-label="ゲームコーナー">
+    <nav className="grid grid-cols-2 gap-1 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 p-1 shadow-sm" aria-label="ゲームコーナー">
       {ITEMS.map((it) => {
         const active = path === it.href;
         return (

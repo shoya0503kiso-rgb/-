@@ -3,7 +3,8 @@ import type { Rng } from "./games";
 
 export const SLOT_SYMBOLS = ["trump", "two", "bar", "bell", "grape", "cherry"] as const;
 export type SlotSymbol = (typeof SLOT_SYMBOLS)[number];
-export type SlotOutcome = SlotSymbol | "miss";
+/** chance = もちもちランプが光る（目押しチャンス）。trump = トランプちゃん揃い（もう一回） */
+export type SlotOutcome = "chance" | "trump" | "cherry" | "grape" | "bell" | "bar" | "miss";
 
 export const SYMBOL_LABEL: Record<SlotSymbol, string> = {
   trump: "トランプちゃん",
@@ -14,30 +15,42 @@ export const SYMBOL_LABEL: Record<SlotSymbol, string> = {
   cherry: "チェリー",
 };
 
-/**
- * 当たりの確率と倍率（払い出し = 1回の値段 × 倍率）。
- * チェリーは左リールにチェリーが止まれば当たり（値段がそのまま戻る）。
- * 払い出しの期待値は約 90%（ポイントが少しずつ減る＝交換の価値を保つ）
- */
-export const SLOT_TABLE: { outcome: SlotSymbol; prob: number; mult: number }[] = [
-  { outcome: "trump", prob: 0.002, mult: 50 },
-  { outcome: "two", prob: 0.006, mult: 20 },
-  { outcome: "bar", prob: 0.015, mult: 10 },
-  { outcome: "bell", prob: 0.04, mult: 5 },
-  { outcome: "grape", prob: 0.07, mult: 3 },
-  { outcome: "cherry", prob: 0.12, mult: 1 },
+/** 当たりの確率（残りは外れ）。配当のポイントは管理画面の設定 */
+export const SLOT_PROBS: { outcome: Exclude<SlotOutcome, "miss">; prob: number }[] = [
+  { outcome: "chance", prob: 1 / 120 },
+  { outcome: "trump", prob: 0.14 },
+  { outcome: "cherry", prob: 0.06 },
+  { outcome: "grape", prob: 0.1 },
+  { outcome: "bell", prob: 0.12 },
+  { outcome: "bar", prob: 0.15 },
 ];
 
-export function slotMultiplier(outcome: SlotOutcome) {
-  return SLOT_TABLE.find((r) => r.outcome === outcome)?.mult ?? 0;
+export type SlotPays = { bar: number; bell: number; grape: number; cherry: number; chance: number; skill: number; cost: number };
+
+/** その結果ですぐ入るポイント（チャンスはランプが光った時点のボーナス。目押しの分は別） */
+export function slotPayout(outcome: SlotOutcome, p: SlotPays) {
+  if (outcome === "chance") return p.chance;
+  if (outcome === "bar" || outcome === "bell" || outcome === "grape" || outcome === "cherry") return p[outcome];
+  return 0;
 }
 
-/** 払い出しの期待値（値段1あたり） */
-export const SLOT_RETURN_RATE = SLOT_TABLE.reduce((a, r) => a + r.prob * r.mult, 0);
+/**
+ * 1回の値段に対する払い出しの期待値。skillRate は目押しの成功率（0〜1）。
+ * トランプちゃん揃いは次の1回が無料なので、値段1回分として数える
+ */
+export function slotReturnRate(p: SlotPays, skillRate = 1) {
+  let e = 0;
+  for (const r of SLOT_PROBS) {
+    if (r.outcome === "trump") e += r.prob * p.cost;
+    else if (r.outcome === "chance") e += r.prob * (p.chance + p.skill * skillRate);
+    else e += r.prob * slotPayout(r.outcome, p);
+  }
+  return p.cost > 0 ? e / p.cost : Infinity;
+}
 
 export function pickOutcome(rng: Rng): SlotOutcome {
   let x = rng();
-  for (const r of SLOT_TABLE) {
+  for (const r of SLOT_PROBS) {
     if (x < r.prob) return r.outcome;
     x -= r.prob;
   }
@@ -46,28 +59,52 @@ export function pickOutcome(rng: Rng): SlotOutcome {
 
 const pick = <T>(arr: readonly T[], rng: Rng) => arr[Math.min(arr.length - 1, Math.floor(rng() * arr.length))];
 
-/** 結果に合うように、3つのリールの真ん中に止める絵柄を決める */
+/**
+ * 結果に合うように、3つのリールの真ん中に止める絵柄を決める。
+ * チャンスのときはリールは自由（目押し）なので使わない
+ */
 export function buildReels(outcome: SlotOutcome, rng: Rng): SlotSymbol[] {
+  // ピンクの2はチャンスのときだけ。ふだんの回は2に止めない（すべりを短くするため）
+  const normal = SLOT_SYMBOLS.filter((s) => s !== "two");
+  const noCherry = normal.filter((s) => s !== "cherry");
   if (outcome === "cherry") {
-    // 左だけチェリー。3つ揃いにはしない
-    const others = SLOT_SYMBOLS.filter((s) => s !== "cherry");
-    const b = pick(others, rng);
-    let c = pick(others, rng);
-    if (b === c) c = others[(others.indexOf(c) + 1) % others.length];
+    // 左だけチェリー。ほかの2つはそろえない
+    const b = pick(noCherry, rng);
+    let c = pick(noCherry, rng);
+    if (b === c) c = noCherry[(noCherry.indexOf(c) + 1) % noCherry.length];
     return ["cherry", b, c];
   }
+  if (outcome === "chance") return ["two", "two", "two"];
   if (outcome !== "miss") return [outcome, outcome, outcome];
   // 外れ：左はチェリー以外、3つ揃いにしない。ときどき「リーチ」（左と真ん中が同じ）で惜しくする
-  const noCherry = SLOT_SYMBOLS.filter((s) => s !== "cherry");
   const a = pick(noCherry, rng);
-  const b = rng() < 0.25 ? a : pick(SLOT_SYMBOLS, rng);
-  let c = pick(SLOT_SYMBOLS, rng);
-  if (a === b && c === a) c = SLOT_SYMBOLS[(SLOT_SYMBOLS.indexOf(c) + 1) % SLOT_SYMBOLS.length];
+  const b = rng() < 0.25 ? a : pick(normal, rng);
+  let c = pick(normal, rng);
+  if (a === b && c === a) c = normal[(normal.indexOf(c) + 1) % normal.length];
   return [a, b, c];
 }
 
 /** 左と真ん中が同じ絵柄（リーチ演出を出す） */
 export const isReach = (reels: string[]) => reels[0] === reels[1];
+
+// ───── リールの並び（目押し用。サーバーと画面で同じものを使う） ─────
+
+/**
+ * 1本のリールに並ぶ16コマ。ピンクの2は1コマだけ（目押しの的）。
+ * ほかの5つの絵柄は「どの6コマを取っても全部入っている」並びにして、押してからのすべりを最大5コマにおさえる
+ */
+const CYCLE: SlotSymbol[] = ["cherry", "bell", "grape", "bar", "trump"];
+const BASE_STRIP: SlotSymbol[] = ["two", ...CYCLE, ...CYCLE, ...CYCLE];
+/** ふだんの回で、押してから止まるまでにすべる最大のコマ数 */
+export const MAX_SLIP = 5;
+/** 3本のリールは同じ並びを少しずらして使う */
+export const REEL_STRIPS: SlotSymbol[][] = [0, 5, 10].map((shift) => BASE_STRIP.map((_, i) => BASE_STRIP[(i + shift) % BASE_STRIP.length]));
+export const STRIP_LEN = BASE_STRIP.length;
+
+/** 目押しで止めた位置（各リールのコマ番号）が 2・2・2 か */
+export function isTwoTwoTwo(stops: number[]) {
+  return stops.length === 3 && stops.every((p, r) => Number.isInteger(p) && p >= 0 && p < STRIP_LEN && REEL_STRIPS[r][p] === "two");
+}
 
 // ───── 宝くじ ─────
 

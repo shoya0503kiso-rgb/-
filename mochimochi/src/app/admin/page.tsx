@@ -13,7 +13,7 @@ export default async function AdminHome() {
     prisma.redemption.count({ where: { status: "pending" } }),
     prisma.pointDay.findUnique({ where: { date } }),
     prisma.event.findMany({ where: { date: { gte: date } }, orderBy: [{ date: "asc" }, { startTime: "asc" }], take: 5 }),
-    prisma.gamePlay.count({ where: { businessDate: date } }),
+    prisma.slotSpin.count({ where: { businessDate: date } }),
   ]);
   return (
     <div className="space-y-5">
@@ -31,7 +31,7 @@ export default async function AdminHome() {
       />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="今日の来店" value={`${visits.length}人`} />
-        <Stat label="今日のゲーム" value={`${plays}回`} />
+        <Stat label="今日のスロット" value={`${plays}回`} />
         <Stat label="会員数" value={`${members}人`} href="/admin/members" />
         <Stat label="交換チケット（未処理）" value={`${pending}件`} href="/admin/rewards" tone={pending ? "alert" : "default"} />
       </div>
