@@ -51,7 +51,7 @@ model StoreSetting {
   /// 未使用（旧：連打ボタンの文字）。既存データを消さないよう列だけ残す
   mochiLabel            String    @default("もちもち")
   /// お店のキャラクターの名前（なでなで画面・ゲームの相手）
-  characterName         String    @default("トランプちゃん")
+  characterName         String    @default("とらんぷちゃん")
   /// なでたときに鳴らす言葉
   mochiWord             String    @default("もち")
   /// 「もち」の音声（data URL）。null なら端末の読み上げで鳴らす
@@ -77,8 +77,8 @@ model StoreSetting {
   chinchiroWinPoints    Int       @default(20)
   /// チンチロで役（ピンゾロ・ゾロ目・シゴロ）で勝ったとき
   chinchiroBigWinPoints Int       @default(50)
-  // ── トランプちゃんをなでる（もちもち） ──
-  /// 1なでごとにトランプちゃんが起きる確率 = 1 / mochiWinOdds
+  // ── とらんぷちゃんをなでる（もちもち） ──
+  /// 1なでごとにとらんぷちゃんが起きる確率 = 1 / mochiWinOdds
   mochiWinOdds          Int       @default(50000)
   mochiWinPoints        Int       @default(100)
   mochiDailyWinLimit    Int       @default(1)
@@ -332,7 +332,7 @@ model SlotSpin {
   cost         Int
   /// chance（もちもちランプ）| trump（もう一回）| cherry | grape | bell | bar | miss
   outcome      String
-  /// 前の回がトランプちゃん揃いで、この回は無料
+  /// 前の回がとらんぷちゃん揃いで、この回は無料
   free         Boolean  @default(false)
   /// チャンスの目押しの結果（hit | miss）。チャンス以外・未送信は null
   skill        String?

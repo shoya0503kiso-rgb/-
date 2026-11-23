@@ -12,7 +12,7 @@ const numbersSchema = z.object({
   checkinPoints: int(0, 100000, "来店ポイント"),
   stampsPerCard: int(1, 50, "スタンプの数"),
   stampCardBonus: int(0, 1000000, "カード達成ボーナス"),
-  mochiWinOdds: int(1, 100000000, "トランプちゃんが起きる確率"),
+  mochiWinOdds: int(1, 100000000, "とらんぷちゃんが起きる確率"),
   mochiWinPoints: int(0, 1000000, "起きたときのポイント"),
   mochiDailyWinLimit: int(0, 1000, "1日に起きる上限"),
   slotEnabled: z.boolean(),

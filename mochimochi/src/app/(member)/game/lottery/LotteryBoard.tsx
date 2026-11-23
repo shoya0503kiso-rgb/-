@@ -9,7 +9,7 @@ import { buyLotteryAction } from "../../actions";
 import { Confetti, useReducedMotion, wait } from "../fx";
 import { useSfx } from "../sfx";
 
-// トランプちゃん宝くじ。4桁を自分で選んで買う → 次の日の22時にトランプちゃんが発表。
+// とらんぷちゃん宝くじ。4桁を自分で選んで買う → 次の日の22時にとらんぷちゃんが発表。
 // 4桁ぜんぶ一致で VIPパス、下3桁一致でプラチナパス（中身はアプリには出さない）
 
 type Pass = "VIP" | "PLATINUM";
@@ -173,7 +173,7 @@ export function LotteryBoard({ view, pointName, characterName }: { view: View; p
           <img src={IMG.trumpAwake} alt={characterName} className="h-20 w-20 shrink-0 rounded-full object-cover ring-4 ring-white/80" />
           <div className="min-w-0">
             <div className="text-[11px] font-bold tracking-widest opacity-90">TRUMP★CHAN LOTTERY</div>
-            <h1 className="text-xl font-black whitespace-nowrap [text-shadow:0_2px_0_rgba(131,24,67,.4)]">トランプちゃん宝くじ</h1>
+            <h1 className="text-xl font-black whitespace-nowrap [text-shadow:0_2px_0_rgba(131,24,67,.4)]">とらんぷちゃん宝くじ</h1>
             <p key={line} className="fx-chant mt-1 rounded-xl bg-white/90 px-3 py-1 text-sm font-bold text-rose-600">
               {line}
             </p>

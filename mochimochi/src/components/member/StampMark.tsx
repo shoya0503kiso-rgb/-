@@ -8,7 +8,7 @@ export const STAMP_LABEL: Record<StampKind, string> = {
   logo: "もちもち",
   beer: "ビール",
   dart: "ダーツ",
-  paw: "トランプちゃんの肉球",
+  paw: "とらんぷちゃんの肉球",
   card: "トランプ",
   mic: "マイク",
   dice: "サイコロ",

@@ -227,7 +227,7 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
           <NumField name="stampCardBonus" label="スタンプボーナス（pt）" value={n.stampCardBonus} />
           <NumField name="dayChangeHour" label="1日の切替時刻（時）" value={n.dayChangeHour} hint="例：12 → 昼12時に日付が切り替わる（それまでは前日扱い）" />
         </Section>
-        <Section title="トランプちゃんをなでる（なでなで）">
+        <Section title="とらんぷちゃんをなでる（なでなで）">
           <NumField name="mochiWinOdds" label="起きる確率 1 / ◯" value={n.mochiWinOdds} hint={`1回なでるごとに 1/${n.mochiWinOdds.toLocaleString()} で起きる`} />
           <NumField name="mochiWinPoints" label="起きたときのポイント" value={n.mochiWinPoints} />
           <NumField name="mochiDailyWinLimit" label="1日に起きる上限（回）" value={n.mochiDailyWinLimit} hint="上限まで起きたら、その日はもう起きません" />
@@ -243,7 +243,7 @@ function NumbersForm({ numbers: n, lineEnabled }: { numbers: Numbers; lineEnable
           <NumField name="slotPayCherry" label="左チェリー" value={n.slotPayCherry} />
           <NumField name="slotPayGrape" label="ぶどうそろい" value={n.slotPayGrape} />
           <NumField name="slotPayBell" label="ベルそろい" value={n.slotPayBell} />
-          <NumField name="slotPayBar" label="BARそろい" value={n.slotPayBar} hint="トランプちゃんそろいは次の1回が無料" />
+          <NumField name="slotPayBar" label="BARそろい" value={n.slotPayBar} hint="とらんぷちゃんそろいは次の1回が無料" />
           <ReturnRate n={n} />
         </Section>
         <Section title="宝くじ（番号を選んで買う・当たりはパス）">
