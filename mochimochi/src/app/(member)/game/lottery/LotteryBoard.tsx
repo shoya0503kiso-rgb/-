@@ -224,7 +224,7 @@ export function LotteryBoard({ view, pointName, characterName }: { view: View; p
                 ))}
               </div>
               <div className="mt-3 flex gap-2">
-                <button onClick={omakase} className="flex-1 rounded-2xl bg-white py-3 font-bold text-rose-600 ring-2 ring-rose-200">
+                <button onClick={omakase} className="flex-1 rounded-2xl bg-white py-3 font-bold whitespace-nowrap text-rose-600 ring-2 ring-rose-200">
                   🎲 おまかせ
                 </button>
                 <button
