@@ -31,7 +31,7 @@ async function main() {
     const members = [];
     for (const [i, nickname] of names.entries()) {
       members.push(
-        await prisma.member.create({ data: { nickname, points: 100 * (i + 1), visitCount: i * 7, stampCount: (i * 7) % 10, completedCards: Math.floor((i * 7) / 10), mochiTotal: i * 1234 } }),
+        await prisma.member.create({ data: { memberNo: i + 1, nickname, points: 100 * (i + 1), visitCount: i * 7, stampCount: (i * 7) % 10, completedCards: Math.floor((i * 7) / 10), mochiTotal: i * 1234 } }),
       );
     }
     for (const [game, order] of [["darts", [1, 0, 4]], ["poker", [2, 4, 0]]] as const) {

@@ -1,3 +1,4 @@
+import { formatMemberNo } from "@/lib/member-no";
 import { notFound } from "next/navigation";
 import { Card, PageHeader, Stat, TableWrap, td, th } from "@/components/ui";
 import { formatDateTime, monthOf } from "@/lib/time";
@@ -22,7 +23,7 @@ export default async function MemberDetail({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-4">
-      <PageHeader title={`${member.nickname} さん`} description={`登録 ${formatDateTime(member.createdAt)}${member.lineUserId ? "・LINE連携済み" : "・LINE未連携"}`} />
+      <PageHeader title={`${formatMemberNo(member.memberNo)}　${member.nickname} さん`} description={`登録 ${formatDateTime(member.createdAt)}${member.lineUserId ? "・LINE連携済み" : "・LINE未連携"}`} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label={s.pointName} value={member.points.toLocaleString()} />
         <Stat label="ランク" value={rank.current.name} sub={`来店 ${member.visitCount}回`} />

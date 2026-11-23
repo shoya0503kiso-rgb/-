@@ -3,6 +3,7 @@ import { createHash, randomInt } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { clientIp } from "./auth";
+import { createMember } from "./member-no";
 import { prisma } from "./db";
 import { UserError } from "./errors";
 import { verifyLineIdToken, type LineProfile } from "./line";
@@ -67,7 +68,7 @@ export async function requireMemberForAction() {
 export async function signupGuest(nickname: string) {
   const s = await getSettings();
   if (!s.guestSignupEnabled) throw new UserError("LINE からご登録ください");
-  const member = await prisma.member.create({ data: { nickname: cleanNickname(nickname) } });
+  const member = await createMember({ nickname: cleanNickname(nickname) });
   await setMemberCookie(member);
   return member;
 }
@@ -81,9 +82,7 @@ export async function loginWithLine(idToken: string, verify: (t: string) => Prom
     if (current && !current.lineUserId) {
       member = await prisma.member.update({ where: { id: current.id }, data: { lineUserId: profile.userId } });
     } else {
-      member = await prisma.member.create({
-        data: { lineUserId: profile.userId, nickname: (profile.name || "ゲスト").slice(0, 20) },
-      });
+      member = await createMember({ lineUserId: profile.userId, nickname: (profile.name || "ゲスト").slice(0, 20) });
     }
   }
   if (!member.active) throw new UserError("この会員は利用停止中です。スタッフにお声がけください");
