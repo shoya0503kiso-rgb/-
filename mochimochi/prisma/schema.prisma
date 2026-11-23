@@ -138,6 +138,8 @@ model PlacePointRule {
 
 model Member {
   id                String    @id @default(cuid())
+  /// 会員番号（1, 2, 3 …）。登録した順に自動でつく。前からいる会員には、最初に会員画面を開いたときに登録順でつける
+  memberNo          Int?      @unique
   nickname          String
   /// LINE ログイン（LIFF）で紐付けたユーザーID
   lineUserId        String?   @unique

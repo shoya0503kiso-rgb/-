@@ -1,3 +1,4 @@
+import { parseMemberNo } from "@/lib/member-no";
 import "server-only";
 import { businessDate, isValidDate, monthOf } from "@/lib/time";
 import { prisma } from "./db";
@@ -15,9 +16,10 @@ async function todayDate(now: Date) {
 
 export async function searchMembers(q: string, take = 50) {
   const query = q.trim();
+  const no = parseMemberNo(query);
   return prisma.member.findMany({
-    where: query ? { OR: [{ nickname: { contains: query } }, { id: query }] } : {},
-    orderBy: query ? { nickname: "asc" } : { updatedAt: "desc" },
+    where: query ? { OR: [{ nickname: { contains: query } }, { id: query }, ...(no ? [{ memberNo: no }] : [])] } : {},
+    orderBy: query ? [{ memberNo: "asc" }, { nickname: "asc" }] : { updatedAt: "desc" },
     take,
   });
 }

@@ -6,19 +6,20 @@ import { adminAction } from "@/server/admin-action";
 import { prisma } from "@/server/db";
 import { UserError } from "@/server/errors";
 import { cleanNickname, issueLinkCode } from "@/server/member-auth";
+import { createMember } from "@/server/member-no";
 
 export async function searchMembersAction(q: string) {
   const res = await adminAction(async () => {
     const ms = await searchMembers(String(q ?? ""), 20);
-    return ms.filter((m) => m.active).map((m) => ({ id: m.id, nickname: m.nickname, visitCount: m.visitCount }));
+    return ms.filter((m) => m.active).map((m) => ({ id: m.id, nickname: m.nickname, visitCount: m.visitCount, memberNo: m.memberNo }));
   });
   return res.ok ? res.data! : [];
 }
 
 export async function createMemberAction(nickname: string) {
   return adminAction(async () => {
-    const m = await prisma.member.create({ data: { nickname: cleanNickname(String(nickname ?? "")) } });
-    return { id: m.id, nickname: m.nickname, visitCount: 0 };
+    const m = await createMember({ nickname: cleanNickname(String(nickname ?? "")) });
+    return { id: m.id, nickname: m.nickname, visitCount: 0, memberNo: m.memberNo };
   });
 }
 

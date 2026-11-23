@@ -1,13 +1,14 @@
 "use client";
 
+import { formatMemberNo } from "@/lib/member-no";
 import { useEffect, useRef, useState } from "react";
 import { inputClass } from "@/components/ui";
 import { createMemberAction, searchMembersAction } from "@/app/admin/members/actions";
 
-export type PickedMember = { id: string; nickname: string; visitCount: number };
+export type PickedMember = { id: string; nickname: string; visitCount: number; memberNo: number | null };
 
-/** ニックネームで検索して会員を選ぶ。見つからなければその場で新規登録もできる */
-export function MemberPicker({ onPick, placeholder = "ニックネームで検索", exclude = [] }: { onPick: (m: PickedMember) => void; placeholder?: string; exclude?: string[] }) {
+/** ニックネームか会員番号で検索して会員を選ぶ。見つからなければその場で新規登録もできる */
+export function MemberPicker({ onPick, placeholder = "ニックネーム・会員番号で検索", exclude = [] }: { onPick: (m: PickedMember) => void; placeholder?: string; exclude?: string[] }) {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<PickedMember[]>([]);
   const [open, setOpen] = useState(false);
@@ -48,7 +49,10 @@ export function MemberPicker({ onPick, placeholder = "ニックネームで検�
           {shown.map((m) => (
             <li key={m.id}>
               <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(m)} className="flex w-full justify-between px-3 py-2 text-left hover:bg-rose-50">
-                <span>{m.nickname}</span>
+                <span>
+                  <span className="mr-2 font-mono text-xs text-slate-400">{formatMemberNo(m.memberNo)}</span>
+                  {m.nickname}
+                </span>
                 <span className="text-xs text-slate-500">来店{m.visitCount}回</span>
               </button>
             </li>

@@ -1,3 +1,5 @@
+import { formatMemberNo } from "@/lib/member-no";
+import { ensureMemberNos } from "@/server/member-no";
 import Link from "next/link";
 import { Panel } from "@/components/member/Panel";
 import { StampBonus } from "@/components/member/StampBonus";
@@ -15,7 +17,12 @@ import { logoutAction } from "../actions";
 export const dynamic = "force-dynamic";
 
 export default async function MyPage() {
-  const me = await requireMember("/me");
+  let me = await requireMember("/me");
+  // この機能より前に登録した人には、ここで番号をつける
+  if (me.memberNo == null) {
+    await ensureMemberNos();
+    me = await prisma.member.findUniqueOrThrow({ where: { id: me.id } });
+  }
   // 終わった宝くじの当たりをここでも払い出す（ポイントの表示を正しくするため）
   // 発表の時刻を過ぎた宝くじを判定する（当たりはパス）
   const lottery = await settleLottery(me.id);
@@ -62,6 +69,7 @@ export default async function MyPage() {
           <div className="min-w-0">
             <div className="text-xs opacity-80">ニックネーム</div>
             <div className="truncate text-lg font-bold">{member.nickname} さん</div>
+            <div className="mt-0.5 font-mono text-xs tracking-wider opacity-70">会員番号 {formatMemberNo(member.memberNo)}</div>
           </div>
           <span className="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-bold" style={{ color: rank.current.color }}>
             {rank.current.name}
