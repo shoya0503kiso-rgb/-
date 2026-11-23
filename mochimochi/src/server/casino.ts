@@ -35,7 +35,7 @@ export async function slotStatus(memberId: string, now = new Date()) {
     limit: s.slotDailyLimit,
     spinsToday: spins,
     points: member.points,
-    /** 前の回がトランプちゃん揃い＝次の1回は無料 */
+    /** 前の回がとらんぷちゃん揃い＝次の1回は無料 */
     freeNext: last?.outcome === "trump",
     pays: slotPays(s),
   };

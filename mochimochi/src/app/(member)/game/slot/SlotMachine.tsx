@@ -7,7 +7,7 @@ import { slotChanceAction, slotSpinAction } from "../../actions";
 import { Confetti, useReducedMotion, wait } from "../fx";
 import { useSfx } from "../sfx";
 
-// トランプちゃんスロット。台の絵（slot-machine.webp）のリール窓に本物のように回るリールを重ねる。
+// とらんぷちゃんスロット。台の絵（slot-machine.webp）のリール窓に本物のように回るリールを重ねる。
 // ・ふだんの回：結果はサーバーで決まっていて、ボタンを押した近くでその絵柄に止まる
 // ・もちもちランプが光った回（チャンス）：押した位置で止まる（1コマだけすべる）。222 を目押しで揃えると追加ボーナス
 
@@ -45,7 +45,7 @@ function Sym({ s, glow }: { s: SlotSymbol; glow?: boolean }) {
     return (
       <div className={box}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={FACE} alt="トランプちゃん" className="h-[64%] rounded-full ring-[3px] ring-amber-400" draggable={false} />
+        <img src={FACE} alt="とらんぷちゃん" className="h-[64%] rounded-full ring-[3px] ring-amber-400" draggable={false} />
       </div>
     );
   }
@@ -327,7 +327,7 @@ export function SlotMachine({ initial, pointName, characterName }: { initial: St
       {/* 台（画面いっぱいに大きく） */}
       <div className="relative -mx-4 select-none [container-type:inline-size]" style={{ aspectRatio: "1448 / 1086" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={ART} alt="トランプちゃんスロット" className="absolute inset-0 h-full w-full" draggable={false} />
+        <img src={ART} alt="とらんぷちゃんスロット" className="absolute inset-0 h-full w-full" draggable={false} />
 
         {/* リール */}
         <div className="absolute" style={{ left: `${WINDOW.left}%`, top: `${WINDOW.top}%`, width: `${WINDOW.width}%`, height: `${WINDOW.height}%` }}>

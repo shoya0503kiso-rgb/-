@@ -3,11 +3,11 @@ import type { Rng } from "./games";
 
 export const SLOT_SYMBOLS = ["trump", "two", "bar", "bell", "grape", "cherry"] as const;
 export type SlotSymbol = (typeof SLOT_SYMBOLS)[number];
-/** chance = もちもちランプが光る（目押しチャンス）。trump = トランプちゃん揃い（もう一回） */
+/** chance = もちもちランプが光る（目押しチャンス）。trump = とらんぷちゃん揃い（もう一回） */
 export type SlotOutcome = "chance" | "trump" | "cherry" | "grape" | "bell" | "bar" | "miss";
 
 export const SYMBOL_LABEL: Record<SlotSymbol, string> = {
-  trump: "トランプちゃん",
+  trump: "とらんぷちゃん",
   two: "ピンクの2",
   bar: "BAR",
   bell: "ベル",
@@ -36,7 +36,7 @@ export function slotPayout(outcome: SlotOutcome, p: SlotPays) {
 
 /**
  * 1回の値段に対する払い出しの期待値。skillRate は目押しの成功率（0〜1）。
- * トランプちゃん揃いは次の1回が無料なので、値段1回分として数える
+ * とらんぷちゃん揃いは次の1回が無料なので、値段1回分として数える
  */
 export function slotReturnRate(p: SlotPays, skillRate = 1) {
   let e = 0;

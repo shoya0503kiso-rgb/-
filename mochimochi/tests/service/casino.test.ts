@@ -73,12 +73,12 @@ describe("スロットの当たり方", () => {
 });
 
 describe("スロット", () => {
-  it("値段を引き、配当を払う。トランプちゃんそろいの次は無料", async () => {
+  it("値段を引き、配当を払う。とらんぷちゃんそろいの次は無料", async () => {
     const m = await makeMember();
     await adjustPoints(m.id, 100, "テスト", "admin", NIGHT);
     const bell = await spinSlot(m.id, NIGHT, () => 0.0084 + 0.14 + 0.06 + 0.1 + 0.01); // ベル
     expect(bell).toMatchObject({ outcome: "bell", reels: ["bell", "bell", "bell"], payout: 2, free: false });
-    const rep = await spinSlot(m.id, new Date(NIGHT.getTime() + 1000), () => 0.009); // トランプちゃん
+    const rep = await spinSlot(m.id, new Date(NIGHT.getTime() + 1000), () => 0.009); // とらんぷちゃん
     expect(rep).toMatchObject({ outcome: "trump", freeNext: true });
     const freeSpin = await spinSlot(m.id, new Date(NIGHT.getTime() + 2000), seq(0.99, 0.5, 0.5, 0.5));
     expect(freeSpin.free).toBe(true);

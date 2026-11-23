@@ -12,14 +12,16 @@ export const IMG = {
   tigerDarts: "/brand/tiger-darts.webp",
   /** ピンク背景のトラ */
   tigerPink: "/brand/tiger-pink.webp",
-  /** ポーカーテーブルのキング＆クイーン */
-  poker: "/brand/poker-table.webp",
-  /** サブマリン（ビールにテキーラ）を飲ませるクイーン */
-  submarine: "/brand/submarine.webp",
-  /** なでなで画面：寝ているトランプちゃん（3枚とも同じ構図・同じ大きさ） */
+  /** ランキング：ダーツを投げるクイーンとキング（白背景） */
+  rankDarts: "/brand/ranking-darts.webp",
+  /** ランキング：ポーカーテーブルのクイーンとキング（白背景） */
+  rankPoker: "/brand/ranking-poker.webp",
+  /** ランキング：サブマリン（ビールにテキーラ）を飲ませるクイーン（白背景） */
+  rankSubmarine: "/brand/ranking-submarine.webp",
+  /** なでなで画面：寝ているとらんぷちゃん（3枚とも同じ構図・同じ大きさ） */
   trumpSleep: "/brand/trump-sleep.webp",
   /** なでなで画面：なでられてむにゃむにゃ */
   trumpDrowsy: "/brand/trump-drowsy.webp",
-  /** なでなで画面：起きたトランプちゃん */
+  /** なでなで画面：起きたとらんぷちゃん */
   trumpAwake: "/brand/trump-awake.webp",
 } as const;

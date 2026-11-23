@@ -11,9 +11,9 @@ import { getSettings, today, visibleRankings } from "@/server/settings";
 export const dynamic = "force-dynamic";
 
 const TABS = [
-  { key: "darts", label: "🎯 ダーツ", img: IMG.tigerDarts, pos: "object-[50%_50%]", bg: "bg-[#fdf9f1]" },
-  { key: "poker", label: "🃏 ポーカー", img: IMG.poker, pos: "object-[50%_30%]", bg: "bg-white" },
-  { key: "submarine", label: "🍺 サブマリン", img: IMG.submarine, pos: "object-[50%_25%]", bg: "bg-white" },
+  { key: "darts", label: "🎯 ダーツ", img: IMG.rankDarts },
+  { key: "poker", label: "🃏 ポーカー", img: IMG.rankPoker },
+  { key: "submarine", label: "🍺 サブマリン", img: IMG.rankSubmarine },
 ] as const;
 
 export default async function RankingPage({ searchParams }: { searchParams: Promise<{ t?: string; m?: string }> }) {
@@ -42,9 +42,10 @@ export default async function RankingPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">ランキング</h1>
-      <div className={`overflow-hidden rounded-2xl ring-1 ring-rose-100 ${tabInfo.bg}`}>
+      <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-rose-100">
+        {/* 絵は白い背景なので、切らずに全部見せる */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={tabInfo.img} alt="" className={`h-40 w-full object-cover ${tabInfo.pos}`} />
+        <img src={tabInfo.img} alt="" className="mx-auto max-h-72 w-full object-contain" />
       </div>
       <div className={cx("grid gap-1 rounded-2xl bg-white p-1 ring-1 ring-rose-100", ["", "grid-cols-1", "grid-cols-2", "grid-cols-3"][tabs.length])}>
         {tabs.map((t) => (
