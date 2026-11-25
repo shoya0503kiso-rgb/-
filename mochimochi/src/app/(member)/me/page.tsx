@@ -121,15 +121,15 @@ export default async function MyPage() {
           </div>
         </section>
       )}
-      <StampCalendar month={month} today={date} visits={monthVisits.map((v) => v.businessDate)} pointDays={pdItems} eventDates={events.map((e) => e.date)} />
+      <StampCalendar month={month} today={date} visits={monthVisits.map((v) => v.businessDate)} pointDays={pdItems} events={events.map((e) => ({ date: e.date, title: e.title, time: e.startTime }))} />
       <p className="-mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
         <span>もちもちスタンプ＝来店した日</span>
         <span>
-          <span className="mr-1 inline-block rounded-full bg-amber-400 px-1 text-[8px] font-black text-white">UP</span>
-          ポイントアップ
+          <span className="mr-1 inline-block rounded-sm bg-amber-400 px-1 text-[9px] font-bold text-white">2倍</span>
+          ポイントアップの日
         </span>
         <span>
-          <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-rose-400 align-middle" />
+          <span className="mr-1 inline-block rounded-sm bg-rose-100 px-1 text-[9px] font-bold text-rose-700">大会</span>
           イベント
         </span>
       </p>

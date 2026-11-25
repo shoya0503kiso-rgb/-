@@ -102,7 +102,7 @@ export function DayEditor({ date, dateLabel, events, pointDay }: { date: string;
           }}
         >
           <div className="text-sm font-bold text-slate-700">{editing ? "イベントを編集" : "イベントを追加"}</div>
-          <Field label="イベント名">
+          <Field label="イベント名" hint="お客さんのカレンダーのマスは小さいので、短い名前（例：ダーツ大会・ポーカー）が見やすいです。詳しくは説明欄へ">
             <Input name="title" defaultValue={editing?.title} required maxLength={60} placeholder="例：ダーツ大会" />
           </Field>
           <Field label="開始時刻（任意）">
