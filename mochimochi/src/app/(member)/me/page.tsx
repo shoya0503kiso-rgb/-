@@ -1,3 +1,4 @@
+import { rankTheme } from "@/lib/rank-theme";
 import { formatMemberNo } from "@/lib/member-no";
 import { ensureMemberNos } from "@/server/member-no";
 import Link from "next/link";
@@ -47,6 +48,7 @@ export default async function MyPage() {
     .filter((x) => x.date >= date)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
   const rank = rankFor(member.visitCount, tiers);
+  const theme = rankTheme(rank.level);
   const show = visibleRankings(s);
 
   return (
@@ -62,25 +64,25 @@ export default async function MyPage() {
         </div>
       )}
 
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-neutral-900 via-neutral-800 to-rose-950 p-5 text-white shadow-lg">
+      <section className={`relative overflow-hidden rounded-3xl p-5 shadow-lg ${theme.card}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={IMG.tigerChip} alt="" className="pointer-events-none absolute -right-3 -bottom-4 w-32 opacity-95" />
+        <img src={theme.img} alt="" className={`pointer-events-none absolute drop-shadow-md ${theme.imgPos ?? "-right-2 -bottom-2 w-36"}`} />
         <div className="relative flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="text-xs opacity-80">ニックネーム</div>
+            <div className={`text-xs ${theme.label}`}>ニックネーム</div>
             <div className="truncate text-lg font-bold">{member.nickname} さん</div>
             <div className="mt-0.5 font-mono text-xs tracking-wider opacity-70">会員番号 {formatMemberNo(member.memberNo)}</div>
           </div>
-          <span className="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-bold" style={{ color: rank.current.color }}>
+          <span className={`relative shrink-0 rounded-full bg-white px-3 py-1 text-sm font-bold ${theme.badge ?? ""}`} style={{ color: rank.current.color }}>
             {rank.current.name}
           </span>
         </div>
-        <div className="relative mt-4 text-xs opacity-80">{s.pointName}</div>
-        <div className="relative text-4xl font-extrabold tracking-tight text-rose-400">
+        <div className={`relative mt-4 text-xs ${theme.label}`}>{s.pointName}</div>
+        <div className={`relative text-4xl font-extrabold tracking-tight ${theme.points}`}>
           {member.points.toLocaleString()}
-          <span className="ml-1 text-base font-bold text-white">pt</span>
+          <span className={`ml-1 text-base font-bold ${theme.unit}`}>pt</span>
         </div>
-        <div className="relative mt-3 flex flex-wrap gap-x-4 gap-y-1 pr-24 text-xs opacity-90">
+        <div className="relative mt-3 flex flex-wrap gap-x-4 gap-y-1 pr-32 text-xs opacity-90">
           <span>来店 {member.visitCount}回</span>
           {rank.next ? (
             <span>
@@ -121,7 +123,7 @@ export default async function MyPage() {
       )}
       <StampCalendar month={month} today={date} visits={monthVisits.map((v) => v.businessDate)} pointDays={pdItems} eventDates={events.map((e) => e.date)} />
       <p className="-mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
-        <span>スタンプ＝来店した日（日によって絵が変わるよ）</span>
+        <span>もちもちスタンプ＝来店した日</span>
         <span>
           <span className="mr-1 inline-block rounded-full bg-amber-400 px-1 text-[8px] font-black text-white">UP</span>
           ポイントアップ

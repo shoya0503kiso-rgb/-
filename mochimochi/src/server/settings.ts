@@ -59,14 +59,18 @@ export async function getRankTiers() {
 export function rankFor(visitCount: number, tiers: { name: string; minVisits: number; color: string }[]) {
   let current = tiers[0] ?? { name: "メンバー", minVisits: 0, color: "#94a3b8" };
   let next: (typeof tiers)[number] | null = null;
-  for (const t of tiers) {
-    if (visitCount >= t.minVisits) current = t;
-    else {
+  /** 何番目のランクか（0 = 一番下）。ホームのカードの色と絵に使う */
+  let level = 0;
+  for (const [i, t] of tiers.entries()) {
+    if (visitCount >= t.minVisits) {
+      current = t;
+      level = i;
+    } else {
       next = t;
       break;
     }
   }
-  return { current, next, toNext: next ? next.minVisits - visitCount : 0 };
+  return { current, next, toNext: next ? next.minVisits - visitCount : 0, level };
 }
 
 export async function ensureDefaults() {

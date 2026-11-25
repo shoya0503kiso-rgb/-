@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { IMG } from "@/lib/brand-images";
+import { DEFAULT_RANKS } from "@/lib/defaults";
+import { rankTheme } from "@/lib/rank-theme";
+import { rankFor } from "@/server/settings";
 import { distanceMeters } from "@/lib/geo";
 import { addMonths, businessDate, isValidDate } from "@/lib/time";
 
@@ -31,5 +35,15 @@ describe("LINE（LIFF）から開いたときの行き先", () => {
     expect(liffStateTarget("//evil.example.com/x")).toBe("/me");
     expect(liffStateTarget("https://evil.example.com")).toBe("/me");
     expect(liffStateTarget("/\\evil.example.com")).toBe("/me");
+  });
+});
+
+describe("ランクとホームのカード", () => {
+  const tiers = DEFAULT_RANKS;
+  it("来店回数でランクが決まり、何番目か（level）でカードの見た目が決まる", () => {
+    expect([0, 14, 15, 29, 30, 99, 100].map((v) => rankFor(v, tiers).current.name)).toEqual(["おこめ", "おこめ", "しらたま", "しらたま", "だいふく", "だいふく", "かがみもち"]);
+    expect([0, 15, 30, 100].map((v) => rankFor(v, tiers).level)).toEqual([0, 1, 2, 3]);
+    expect(rankFor(15, tiers)).toMatchObject({ toNext: 15, next: { name: "だいふく" } });
+    expect([0, 1, 2, 3, 7].map((l) => rankTheme(l).img)).toEqual([...IMG.rankIcons, IMG.rankIcons[3]]);
   });
 });
