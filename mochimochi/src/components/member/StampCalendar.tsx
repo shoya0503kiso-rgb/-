@@ -62,7 +62,7 @@ export function StampCalendar({
           const list = ev.get(date) ?? [];
           const isToday = date === today;
           return (
-            <div key={i} className={cx("relative min-h-16 overflow-hidden p-0.5", label ? "bg-amber-50" : "bg-white", isToday && "ring-2 ring-rose-400 ring-inset")}>
+            <div key={i} className={cx("relative min-h-16 overflow-hidden p-0.5", label && !on ? "bg-amber-50" : "bg-white", isToday && "ring-2 ring-rose-400 ring-inset")}>
               <div
                 className={cx(
                   "flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold tabular-nums",
@@ -71,7 +71,8 @@ export function StampCalendar({
               >
                 {d}
               </div>
-              <div className="mt-0.5 space-y-px">
+              {/* 来店してスタンプを押した日は、予定は消してスタンプだけにする */}
+              <div className={cx("mt-0.5 space-y-px", on && "hidden")}>
                 {label && <div className="line-clamp-2 rounded-sm bg-amber-400 px-0.5 text-[9px] leading-tight font-bold break-all text-white">{label.replace(/^ポイント/, "")}</div>}
                 {list.slice(0, 2).map((e, k) => (
                   <div key={k} className="line-clamp-2 rounded-sm bg-rose-100 px-0.5 text-[9px] leading-tight font-bold break-all text-rose-700">
