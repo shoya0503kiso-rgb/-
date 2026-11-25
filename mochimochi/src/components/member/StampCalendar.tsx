@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cx } from "@/components/ui";
 import { IMG } from "@/lib/brand-images";
 import { formatMonth, monthInfo, ymd } from "@/lib/time";
-import { StampMark, stampKindFor } from "./StampMark";
+import { StampMark } from "./StampMark";
 
 // カレンダーがそのままスタンプカード。来店した日の丸にスタンプが押される
 
@@ -66,13 +66,13 @@ export function StampCalendar({
                 <div
                   className={cx(
                     "relative flex aspect-square w-full max-w-[52px] items-center justify-center rounded-full",
-                    on ? "bg-white shadow-[inset_0_0_0_2px_#e11d48]" : "border-2 border-dashed border-rose-200 bg-white/70",
+                    on ? "bg-white shadow-[inset_0_0_0_1.5px_#fecdd3]" : "border-2 border-dashed border-rose-200 bg-white/70",
                     label && !on && "border-amber-300 bg-amber-50",
                     date === today && "ring-2 ring-rose-400 ring-offset-1 ring-offset-[#fffaf0]",
                   )}
                 >
                   <span className={cx("font-black tabular-nums", on ? "absolute -top-1 -left-1 z-10 rounded-full bg-white px-1 text-[9px] leading-tight text-rose-500 shadow-sm ring-1 ring-rose-200" : i % 7 === 0 ? "text-rose-400" : i % 7 === 6 ? "text-sky-500" : "text-slate-400", !on && (mini ? "text-[11px]" : "text-sm"))}>{d}</span>
-                  {on && <StampMark kind={stampKindFor(date)} className="h-[80%] w-[80%] -rotate-12 drop-shadow-[0_1px_0_rgba(225,29,72,.35)]" />}
+                  {on && <StampMark date={date} className="h-[86%] w-[86%]" />}
                   {label && <span className="absolute -top-1 -right-1 rounded-full bg-amber-400 px-1 text-[8px] leading-tight font-black text-white">UP</span>}
                 </div>
                 {!mini && ev.has(date) && <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-rose-400" aria-label="イベント" />}

@@ -123,7 +123,7 @@ export default async function MyPage() {
       )}
       <StampCalendar month={month} today={date} visits={monthVisits.map((v) => v.businessDate)} pointDays={pdItems} eventDates={events.map((e) => e.date)} />
       <p className="-mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
-        <span>スタンプ＝来店した日（日によって絵が変わるよ）</span>
+        <span>もちもちスタンプ＝来店した日</span>
         <span>
           <span className="mr-1 inline-block rounded-full bg-amber-400 px-1 text-[8px] font-black text-white">UP</span>
           ポイントアップ

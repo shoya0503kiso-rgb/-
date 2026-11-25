@@ -1,5 +1,7 @@
 // お店のイラスト（public/brand/ の画像）。差し替えるときは同じ名前のファイルを置き換える
 export const IMG = {
+  /** 来店スタンプ：ロゴを赤いインクのはんこにした絵。透過（logo-mark から作った） */
+  stampLogo: "/brand/stamp-logo.webp",
   /** ロゴマーク（チップ）。透過 */
   mark: "/brand/logo-mark.webp",
   /** 「AMUSEMENT BAR MOCHI MOCHI」入りのロゴ。透過・黒文字なので明るい背景で使う */
